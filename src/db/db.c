@@ -195,6 +195,8 @@ dbOpen(Db *this)
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
+        VariantList *row;
+
         // Open the connection
         if (this->remoteClient != NULL)
         {
@@ -214,14 +216,12 @@ dbOpen(Db *this)
         // Set client encoding to UTF8.  This is the only encoding (other than ASCII) that we can safely work with.
         dbExec(this, STRDEF("set client_encoding = 'UTF8'"));
 
-        // Query the version and data_directory
-        VariantList *row = dbQueryRow(
+        // Query the version and archive mode
+        row = dbQueryRow(
             this,
             STRDEF(
                 "select (select setting from pg_catalog.pg_settings where name = 'server_version_num')::int4,"
-                " (select setting from pg_catalog.pg_settings where name = 'data_directory')::text,"
-                " (select setting from pg_catalog.pg_settings where name = 'archive_mode')::text,"
-                " (select setting from pg_catalog.pg_settings where name = 'archive_command')::text"));
+                " (select setting from pg_catalog.pg_settings where name = 'archive_mode')::text"));
 
         // Check that none of the return values are null, which indicates the user cannot select some rows in pg_settings
         for (unsigned int columnIdx = 0; columnIdx < varLstSize(row); columnIdx++)
@@ -240,13 +240,43 @@ dbOpen(Db *this)
         // running an old minor version.
         this->pub.pgVersion = varUIntForce(varLstGet(row, 0)) / 100 * 100;
 
-        // Store the data directory that PostgreSQL is running in, the archive mode, and archive command. These can be compared to
-        // the configured pgBackRest directory, and archive settings checked for validity, when validating the configuration.
+        // Store archive mode.
         MEM_CONTEXT_BEGIN(this->pub.memContext)
         {
-            this->pub.pgDataPath = strDup(varStr(varLstGet(row, 1)));
-            this->pub.archiveMode = strDup(varStr(varLstGet(row, 2)));
-            this->pub.archiveCommand = strDup(varStr(varLstGet(row, 3)));
+            this->pub.archiveMode = strDup(varStr(varLstGet(row, 1)));
+        }
+        MEM_CONTEXT_END();
+
+        // Get data directory and archive command. They are not visible in pg_settings for Greenplum, so use "show" command instead
+        row = dbQueryRow(
+            this,
+            STRDEF(
+                "show data_directory"));
+        if (varLstGet(row, 0) == NULL)
+        {
+            THROW(
+                DbQueryError,
+                "unable to show data_directory");
+        }
+        MEM_CONTEXT_BEGIN(this->pub.memContext)
+        {
+            this->pub.pgDataPath = strDup(varStr(varLstGet(row, 0)));
+        }
+        MEM_CONTEXT_END();
+
+        row = dbQueryRow(
+            this,
+            STRDEF(
+                "show archive_command"));
+        if (varLstGet(row, 0) == NULL)
+        {
+            THROW(
+                DbQueryError,
+                "unable to show archive_command");
+        }
+        MEM_CONTEXT_BEGIN(this->pub.memContext)
+        {
+            this->pub.archiveCommand = strDup(varStr(varLstGet(row, 0)));
         }
         MEM_CONTEXT_END();
 

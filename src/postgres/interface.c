@@ -88,6 +88,30 @@ typedef struct PgInterface
 #endif
 } PgInterface;
 
+static const PgInterface gpInterface[] =
+{
+    {
+        .version = GP_VERSION_7,
+
+        .controlIs = pgInterfaceControlIs7X,
+        .control = pgInterfaceControl7X,
+        .controlVersion = pgInterfaceControlVersion7X,
+
+        .walIs = pgInterfaceWalIs7X,
+        .wal = pgInterfaceWal7X,
+
+#ifdef DEBUG
+        .catalogVersion = 302104021,
+
+        .controlTest = pgInterfaceControlTest7X,
+        .walTest = pgInterfaceWalTest7X,
+#endif
+    },
+};
+
+// Total Greenplum versions in gpInterface
+#define GP_INTERFACE_SIZE                                           (sizeof(gpInterface) / sizeof(PgInterface))
+
 static const PgInterface pgInterface[] =
 {
     {
@@ -339,12 +363,26 @@ pgInterfaceVersion(unsigned int pgVersion)
 
     const PgInterface *result = NULL;
 
+    // Search among PostgreSQL interfaces
     for (unsigned int interfaceIdx = 0; interfaceIdx < PG_INTERFACE_SIZE; interfaceIdx++)
     {
         if (pgInterface[interfaceIdx].version == pgVersion)
         {
             result = &pgInterface[interfaceIdx];
             break;
+        }
+    }
+
+    // Search among Greenplum interfaces if nothing was found
+    if (result == NULL)
+    {
+        for (unsigned int interfaceIdx = 0; interfaceIdx < GP_INTERFACE_SIZE; interfaceIdx++)
+        {
+            if (gpInterface[interfaceIdx].version == pgVersion)
+            {
+                result = &gpInterface[interfaceIdx];
+                break;
+            }
         }
     }
 
@@ -398,6 +436,19 @@ pgControlFromBuffer(const Buffer *controlFile)
         }
     }
 
+    // Search among Greenplum interfaces if nothing was found
+    if (interface == NULL)
+    {
+        for (unsigned int interfaceIdx = 0; interfaceIdx < GP_INTERFACE_SIZE; interfaceIdx++)
+        {
+            if (gpInterface[interfaceIdx].controlIs(bufPtrConst(controlFile)))
+            {
+                interface = &gpInterface[interfaceIdx];
+                break;
+            }
+        }
+    }
+
     // If the version was not found then error with the control and catalog version that were found
     if (interface == NULL)
     {
@@ -418,8 +469,16 @@ pgControlFromBuffer(const Buffer *controlFile)
     pgWalSegmentSizeCheck(result.version, result.walSegmentSize);
 
     // Check the page size
-    if (result.pageSize != PG_PAGE_SIZE_DEFAULT)
-        THROW_FMT(FormatError, "page size is %u but must be %u", result.pageSize, PG_PAGE_SIZE_DEFAULT);
+    if (result.version > GP_VERSION_INVALID)
+    {
+        if (result.pageSize != GP_PAGE_SIZE_DEFAULT)
+            THROW_FMT(FormatError, "page size is %u but must be %u", result.pageSize, GP_PAGE_SIZE_DEFAULT);
+    }
+    else
+    {
+        if (result.pageSize != PG_PAGE_SIZE_DEFAULT)
+            THROW_FMT(FormatError, "page size is %u but must be %u", result.pageSize, PG_PAGE_SIZE_DEFAULT);
+    }
 
     FUNCTION_LOG_RETURN(PG_CONTROL, result);
 }
@@ -494,6 +553,19 @@ pgWalFromBuffer(const Buffer *walBuffer)
         {
             interface = &pgInterface[interfaceIdx];
             break;
+        }
+    }
+
+    // Search among Greenplum interfaces if nothing was found
+    if (interface == NULL)
+    {
+        for (unsigned int interfaceIdx = 0; interfaceIdx < GP_INTERFACE_SIZE; interfaceIdx++)
+        {
+            if (gpInterface[interfaceIdx].walIs(bufPtrConst(walBuffer)))
+            {
+                interface = &gpInterface[interfaceIdx];
+                break;
+            }
         }
     }
 

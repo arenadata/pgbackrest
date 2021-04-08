@@ -87,6 +87,12 @@ uint32_t pgInterfaceControlVersion130(void);
 bool pgInterfaceWalIs130(const unsigned char *walFile);
 PgWal pgInterfaceWal130(const unsigned char *controlFile);
 
+bool pgInterfaceControlIs7X(const unsigned char *controlFile);
+PgControl pgInterfaceControl7X(const unsigned char *controlFile);
+uint32_t pgInterfaceControlVersion7X(void);
+bool pgInterfaceWalIs7X(const unsigned char *walFile);
+PgWal pgInterfaceWal7X(const unsigned char *controlFile);
+
 /***********************************************************************************************************************************
 Test Functions
 ***********************************************************************************************************************************/
@@ -129,6 +135,9 @@ Test Functions
 
     void pgInterfaceControlTest130(PgControl pgControl, unsigned char *buffer);
     void pgInterfaceWalTest130(PgWal pgWal, unsigned char *buffer);
+
+    void pgInterfaceControlTest7X(PgControl pgControl, unsigned char *buffer);
+    void pgInterfaceWalTest7X(PgWal pgWal, unsigned char *buffer);
 #endif
 
 #endif

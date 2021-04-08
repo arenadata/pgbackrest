@@ -12,6 +12,7 @@ Check Common Handler
 #include "info/infoArchive.h"
 #include "info/infoBackup.h"
 #include "postgres/interface.h"
+#include "postgres/version.h"
 #include "storage/helper.h"
 #include "version.h"
 
@@ -58,15 +59,30 @@ checkDbConfig(const unsigned int pgVersion, const unsigned int pgIdx, const Db *
         unsigned int dbVersion = dbPgVersion(dbObject);
         const String *dbPath = dbPgDataPath(dbObject);
 
-        // Error if the version from the control file and the configured pg-path do not match the values obtained from the database
-        if (pgVersion != dbVersion || strCmp(cfgOptionIdxStr(cfgOptPgPath, pgIdx), dbPath) != 0)
+        // Server version number from connection is not equal to the one in pg_control in Greenplum
+        if (pgVersion >= GP_VERSION_7)
         {
-            THROW_FMT(
-                DbMismatchError, "version '%s' and path '%s' queried from cluster do not match version '%s' and '%s' read from '%s/"
-                PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL "'\nHINT: the %s and %s settings likely reference different clusters.",
-                strZ(pgVersionToStr(dbVersion)), strZ(dbPath), strZ(pgVersionToStr(pgVersion)),
-                strZ(cfgOptionIdxStr(cfgOptPgPath, pgIdx)), strZ(cfgOptionIdxStr(cfgOptPgPath, pgIdx)),
-                cfgOptionIdxName(cfgOptPgPath, pgIdx), cfgOptionIdxName(cfgOptPgPort, pgIdx));
+            if (strCmp(cfgOptionIdxStr(cfgOptPgPath, pgIdx), dbPath) != 0)
+            {
+                THROW_FMT(
+                    DbMismatchError, "path '%s' queried from cluster do not match '%s' read from '%s/"
+                    PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL "'\nHINT: the %s and %s settings likely reference different clusters.",
+                    strZ(dbPath), strZ(cfgOptionIdxStr(cfgOptPgPath, pgIdx)), strZ(cfgOptionIdxStr(cfgOptPgPath, pgIdx)),
+                    cfgOptionIdxName(cfgOptPgPath, pgIdx), cfgOptionIdxName(cfgOptPgPort, pgIdx));
+            }
+        }
+        else
+        {
+            // Error if the version from the control file and the configured pg-path do not match the values obtained from the database
+            if (pgVersion != dbVersion || strCmp(cfgOptionIdxStr(cfgOptPgPath, pgIdx), dbPath) != 0)
+            {
+                THROW_FMT(
+                    DbMismatchError, "version '%s' and path '%s' queried from cluster do not match version '%s' and '%s' read from '%s/"
+                    PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL "'\nHINT: the %s and %s settings likely reference different clusters.",
+                    strZ(pgVersionToStr(dbVersion)), strZ(dbPath), strZ(pgVersionToStr(pgVersion)),
+                    strZ(cfgOptionIdxStr(cfgOptPgPath, pgIdx)), strZ(cfgOptionIdxStr(cfgOptPgPath, pgIdx)),
+                    cfgOptionIdxName(cfgOptPgPath, pgIdx), cfgOptionIdxName(cfgOptPgPort, pgIdx));
+            }
         }
 
         // Check archive configuration if option is valid for the command and set

@@ -66,6 +66,7 @@ Define default page size
 Page size can only be changed at compile time and is not known to be well-tested, so only the default page size is supported.
 ***********************************************************************************************************************************/
 #define PG_PAGE_SIZE_DEFAULT                                        ((unsigned int)(8 * 1024))
+#define GP_PAGE_SIZE_DEFAULT                                        ((unsigned int)(32 * 1024))
 
 /***********************************************************************************************************************************
 Define the minimum oid that can be used for a user object
@@ -95,6 +96,7 @@ Before PostgreSQL 11 WAL segment size could only be changed at compile time and 
 WAL segment size is supported for versions below 11.
 ***********************************************************************************************************************************/
 #define PG_WAL_SEGMENT_SIZE_DEFAULT                                 ((unsigned int)(16 * 1024 * 1024))
+#define GP_WAL_SEGMENT_SIZE_DEFAULT                                 ((unsigned int)(64 * 1024 * 1024))
 
 /***********************************************************************************************************************************
 PostgreSQL Control File Info

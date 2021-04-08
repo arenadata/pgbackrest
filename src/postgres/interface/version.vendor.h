@@ -24,6 +24,16 @@ should be created.  See the CheckPoint type difference between 9.5 and 9.6 as an
 #include "postgres/interface/static.vendor.h"
 
 /***********************************************************************************************************************************
+DIsable Greenplum version for vanilla PostgreSQL
+***********************************************************************************************************************************/
+
+#ifndef GP_VERSION
+
+#define GP_VERSION	GP_VERSION_INVALID
+
+#endif
+
+/***********************************************************************************************************************************
 Types from src/include/c.h
 ***********************************************************************************************************************************/
 
@@ -55,6 +65,14 @@ typedef TransactionId MultiXactId;
 #elif PG_VERSION >= PG_VERSION_83
 
 typedef uint32 MultiXactOffset;
+
+#endif
+
+// DistributedTransactionId
+// ---------------------------------------------------------------------------------------------------------------------------------
+#if GP_VERSION >= GP_VERSION_7
+
+typedef uint64 DistributedTransactionId;
 
 #endif
 
@@ -286,6 +304,15 @@ Types from src/include/catalog/pg_control.h
 /* Version identifier for this pg_control format */
 #define PG_CONTROL_VERSION	1300
 
+#elif PG_VERSION >= PG_VERSION_12 && GP_VERSION >= GP_VERSION_7
+
+/*
+ * Version identifier for Greenplum pg_control format:
+ * first four digits is PG version and the last four
+ * digits - Greenplum one.
+ */
+#define PG_CONTROL_VERSION	12010700
+
 #elif PG_VERSION >= PG_VERSION_12
 
 /* Version identifier for this pg_control format */
@@ -352,6 +379,42 @@ Types from src/include/catalog/pg_control.h
 // CheckPoint Type
 // ---------------------------------------------------------------------------------------------------------------------------------
 #if PG_VERSION > PG_VERSION_MAX
+
+#elif PG_VERSION >= PG_VERSION_12 && GP_VERSION >= GP_VERSION_7
+typedef struct CheckPoint
+{
+	XLogRecPtr	redo;			/* next RecPtr available when we began to
+								 * create CheckPoint (i.e. REDO start point) */
+	TimeLineID	ThisTimeLineID; /* current TLI */
+	TimeLineID	PrevTimeLineID; /* previous TLI, if this record begins a new
+								 * timeline (equals ThisTimeLineID otherwise) */
+	bool		fullPageWrites; /* current full_page_writes */
+	FullTransactionId nextFullXid;	/* next free full transaction ID */
+	DistributedTransactionId nextGxid;	/* next free gxid */
+	Oid			nextOid;		/* next free OID */
+	Oid			nextRelfilenode;	/* next free Relfilenode */
+	MultiXactId nextMulti;		/* next free MultiXactId */
+	MultiXactOffset nextMultiOffset;	/* next free MultiXact offset */
+	TransactionId oldestXid;	/* cluster-wide minimum datfrozenxid */
+	Oid			oldestXidDB;	/* database with minimum datfrozenxid */
+	MultiXactId oldestMulti;	/* cluster-wide minimum datminmxid */
+	Oid			oldestMultiDB;	/* database with minimum datminmxid */
+	pg_time_t	time;			/* time stamp of checkpoint */
+	TransactionId oldestCommitTsXid;	/* oldest Xid with valid commit
+										 * timestamp */
+	TransactionId newestCommitTsXid;	/* newest Xid with valid commit
+										 * timestamp */
+
+	/*
+	 * Oldest XID still running. This is only needed to initialize hot standby
+	 * mode from an online checkpoint, so we only bother calculating this for
+	 * online checkpoints and only when wal_level is replica. Otherwise it's
+	 * set to InvalidTransactionId.
+	 */
+	TransactionId oldestActiveXid;
+
+	/* IN XLOG RECORD, MORE DATA FOLLOWS AT END OF STRUCT FOR DTM CHECKPOINT */
+} CheckPoint;
 
 #elif PG_VERSION >= PG_VERSION_12
 
@@ -936,7 +999,6 @@ typedef struct ControlFileData
 } ControlFileData;
 
 #elif PG_VERSION >= PG_VERSION_11
-
 /*
  * Contents of pg_control.
  */
