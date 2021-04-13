@@ -919,6 +919,19 @@ pgVersionFromStr(const String *version)
     FUNCTION_LOG_RETURN(UINT, result);
 }
 
+unsigned int
+pgVersionAlign(unsigned int pgVersion)
+{
+    if (pgVersion >= GP_VERSION_7)
+    {
+        return pgVersion / 10000;
+    }
+    else
+    {
+        return pgVersion / 100;
+    }
+}
+
 String *
 pgVersionToStr(unsigned int version)
 {
@@ -926,8 +939,10 @@ pgVersionToStr(unsigned int version)
         FUNCTION_LOG_PARAM(UINT, version);
     FUNCTION_LOG_END();
 
-    String *result = version >= PG_VERSION_10 ?
-        strNewFmt("%u", version / 10000) : strNewFmt("%u.%u", version / 10000, version % 10000 / 100);
+    unsigned int pg_version = pgVersionAlign(version);
+
+    String *result = pg_version >= pgVersionAlign(PG_VERSION_10) ?
+        strNewFmt("%u", pg_version / 100) : strNewFmt("%u.%u", pg_version / 100, version % 100);
 
     FUNCTION_LOG_RETURN(STRING, result);
 }

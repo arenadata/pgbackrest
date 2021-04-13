@@ -133,6 +133,11 @@ PgControl pgControlFromBuffer(const Buffer *controlFile);
 // Get the control version for a PostgreSQL version
 uint32_t pgControlVersion(unsigned int pgVersion);
 
+// Four digit pg version format (required for Greenplum)
+unsigned int pgVersionAlign(unsigned int pgVersion);
+#define MAJOR_VERSION(version)  pgVersionAlign(version) / 100
+#define MINOR_VERSION(version)  pgVersionAlign(version) % 100
+
 // Convert version string to version number and vice versa
 unsigned int pgVersionFromStr(const String *version);
 String *pgVersionToStr(unsigned int version);
