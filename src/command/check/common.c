@@ -150,7 +150,7 @@ checkStanzaInfoPg(
         checkStanzaInfo(&archiveInfoPg, &backupInfoPg);
 
         // Check that the version and system id match the current database
-    if (VERSION_COMPARE(pgVersion, archiveInfoPg.version, !=) || pgSystemId != archiveInfoPg.systemId)
+        if (VERSION_COMPARE(pgVersion, archiveInfoPg.version, !=) || pgSystemId != archiveInfoPg.systemId)
         {
             THROW(FileInvalidError, "backup and archive info files exist but do not match the database\n"
                 "HINT: is this the correct stanza?\n"

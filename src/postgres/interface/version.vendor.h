@@ -24,7 +24,7 @@ should be created.  See the CheckPoint type difference between 9.5 and 9.6 as an
 #include "postgres/interface/static.vendor.h"
 
 /***********************************************************************************************************************************
-DIsable Greenplum version for vanilla PostgreSQL
+Disable Greenplum version for vanilla PostgreSQL
 ***********************************************************************************************************************************/
 
 #ifndef GP_VERSION
