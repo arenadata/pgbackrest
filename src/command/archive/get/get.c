@@ -416,7 +416,7 @@ archiveGetCheck(const StringList *archiveRequestList)
                     InfoPgData pgData = infoPgData(infoArchivePg(info), pgIdx);
 
                     // Only use the archive id if it matches the current cluster
-                    bool version_check = controlInfo.version >= GP_VERSION_7 ? 
+                    bool version_check = controlInfo.version >= GP_VERSION_7 ?
                                          MAJOR_VERSION(pgData.version) == MAJOR_VERSION(controlInfo.version) :
                                          pgData.version == controlInfo.version;
                     if (pgData.systemId == controlInfo.systemId && version_check)
