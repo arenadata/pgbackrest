@@ -469,16 +469,8 @@ pgControlFromBuffer(const Buffer *controlFile)
     pgWalSegmentSizeCheck(result.version, result.walSegmentSize);
 
     // Check the page size
-    if (result.version > GP_VERSION_INVALID)
-    {
-        if (result.pageSize != GP_PAGE_SIZE_DEFAULT)
-            THROW_FMT(FormatError, "page size is %u but must be %u", result.pageSize, GP_PAGE_SIZE_DEFAULT);
-    }
-    else
-    {
-        if (result.pageSize != PG_PAGE_SIZE_DEFAULT)
-            THROW_FMT(FormatError, "page size is %u but must be %u", result.pageSize, PG_PAGE_SIZE_DEFAULT);
-    }
+    if (result.pageSize != PG_PAGE_SIZE_DEFAULT)
+        THROW_FMT(FormatError, "page size is %u but must be %u", result.pageSize, PG_PAGE_SIZE_DEFAULT);
 
     FUNCTION_LOG_RETURN(PG_CONTROL, result);
 }

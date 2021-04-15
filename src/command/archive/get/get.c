@@ -22,6 +22,7 @@ Archive Get Command
 #include "config/exec.h"
 #include "info/infoArchive.h"
 #include "postgres/interface.h"
+#include "postgres/version.h"
 #include "protocol/helper.h"
 #include "protocol/parallel.h"
 #include "storage/helper.h"
@@ -415,7 +416,10 @@ archiveGetCheck(const StringList *archiveRequestList)
                     InfoPgData pgData = infoPgData(infoArchivePg(info), pgIdx);
 
                     // Only use the archive id if it matches the current cluster
-                    if (pgData.systemId == controlInfo.systemId && pgData.version == controlInfo.version)
+                    bool version_check = controlInfo.version >= GP_VERSION_7 ? 
+                                         MAJOR_VERSION(pgData.version) == MAJOR_VERSION(controlInfo.version) :
+                                         pgData.version == controlInfo.version;
+                    if (pgData.systemId == controlInfo.systemId && version_check)
                     {
                         const String *archiveId = infoPgArchiveId(infoArchivePg(info), pgIdx);
                         bool found = true;
