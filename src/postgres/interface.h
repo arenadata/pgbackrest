@@ -139,6 +139,10 @@ uint32_t pgControlVersion(unsigned int pgVersion);
 unsigned int pgVersionAlign(unsigned int pgVersion);
 #define MAJOR_VERSION(version)  pgVersionAlign(version) / 100
 #define MINOR_VERSION(version)  pgVersionAlign(version) % 100
+#define VERSION_COMPARE(version1, version2, operator) \
+    version1 >= GP_VERSION_7 ?\
+    MAJOR_VERSION(version1) operator MAJOR_VERSION(version2) :\
+    version1 operator version2
 
 // Convert version string to version number and vice versa
 unsigned int pgVersionFromStr(const String *version);

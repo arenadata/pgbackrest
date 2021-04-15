@@ -253,9 +253,7 @@ backupInit(const InfoBackup *infoBackup)
     result->walSegmentSize = pgControl.walSegmentSize;
 
     // Validate pg_control info against the stanza
-    if (((result->version >= GP_VERSION_7) && (MAJOR_VERSION(result->version) != MAJOR_VERSION(infoPg.version))) ||
-        ((result->version < GP_VERSION_7) && (result->version != infoPg.version)) ||
-        pgControl.systemId != infoPg.systemId)
+    if (VERSION_COMPARE(result->version, infoPg.version, !=) || pgControl.systemId != infoPg.systemId)
     {
         THROW_FMT(
             BackupMismatchError,

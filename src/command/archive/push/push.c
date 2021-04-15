@@ -244,9 +244,7 @@ archivePushCheck(bool pgPathSet)
                 // pg_control is not available
                 if (pgPathSet || repoIdx > 0)
                 {
-                    if (((result.pgVersion >= GP_VERSION_7) && (MAJOR_VERSION(result.pgVersion) != MAJOR_VERSION(archiveInfo.version))) ||
-                        ((result.pgVersion < GP_VERSION_7) && (result.pgVersion != archiveInfo.version)) ||
-                        result.pgSystemId != archiveInfo.systemId)
+                    if (VERSION_COMPARE(result.pgVersion, archiveInfo.version, !=) || result.pgSystemId != archiveInfo.systemId)
                     {
                         THROW_FMT(
                             ArchiveMismatchError,
