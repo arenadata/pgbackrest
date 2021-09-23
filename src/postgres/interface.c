@@ -107,6 +107,23 @@ static const PgInterface gpInterface[] =
         .walTest = pgInterfaceWalTest7X,
 #endif
     },
+    {
+        .version = GP_VERSION_6,
+
+        .controlIs = pgInterfaceControlIs6X,
+        .control = pgInterfaceControl6X,
+        .controlVersion = pgInterfaceControlVersion6X,
+
+        .walIs = pgInterfaceWalIs6X,
+        .wal = pgInterfaceWal6X,
+
+#ifdef DEBUG
+        .catalogVersion = 301908232,
+
+        .controlTest = pgInterfaceControlTest6X,
+        .walTest = pgInterfaceWalTest6X,
+#endif
+    },
 };
 
 // Total Greenplum versions in gpInterface
@@ -931,10 +948,8 @@ pgVersionToStr(unsigned int version)
         FUNCTION_LOG_PARAM(UINT, version);
     FUNCTION_LOG_END();
 
-    unsigned int pg_version = pgVersionAlign(version);
-
-    String *result = pg_version >= pgVersionAlign(PG_VERSION_10) ?
-        strNewFmt("%u", pg_version / 100) : strNewFmt("%u.%u", pg_version / 100, version % 100);
+    String *result = version >= PG_VERSION_10 ?
+        strNewFmt("%u", version / 10000) : strNewFmt("%u.%u", version / 10000, version % 10000 / 100);
 
     FUNCTION_LOG_RETURN(STRING, result);
 }
