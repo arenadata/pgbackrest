@@ -1319,6 +1319,14 @@ src/postgres/interface/static.vendor.h:
   class: core/vendor
   type: c/h
 
+src/postgres/interface/gp6.c:
+  class: core
+  type: c
+
+src/postgres/interface/gp7.c:
+  class: core
+  type: c
+
 src/postgres/interface/v083.c:
   class: core
   type: c

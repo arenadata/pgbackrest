@@ -376,6 +376,8 @@ unit:
           - command/command
           - postgres/interface
           - postgres/interface/page
+          - postgres/interface/gp6
+          - postgres/interface/gp7
           - postgres/interface/v083
           - postgres/interface/v084
           - postgres/interface/v090
