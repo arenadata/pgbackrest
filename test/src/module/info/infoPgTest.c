@@ -50,7 +50,7 @@ testRun(void)
             infoPg,
             infoPgSet(
                 infoPgNew(infoPgArchive, NULL), infoPgArchive, PG_VERSION_94, 6569239123849665679,
-                pgCatalogTestVersion(PG_VERSION_94)),
+                pgCatalogTestVersion(dbmsPostgreSQL, PG_VERSION_94)),
             "infoPgSet - infoPgArchive");
         TEST_RESULT_INT(infoPgDataTotal(infoPg), 1, "  1 history");
         TEST_RESULT_INT(infoPgDataCurrentId(infoPg), 0, "  0 historyCurrent");
@@ -61,7 +61,7 @@ testRun(void)
         TEST_RESULT_UINT(pgData.catalogVersion, 0, "  catalog version not set for archive");
 
         TEST_ASSIGN(
-            infoPg, infoPgSet(infoPg, infoPgArchive, PG_VERSION_95, 6569239123849665999, pgCatalogTestVersion(PG_VERSION_95)),
+            infoPg, infoPgSet(infoPg, infoPgArchive, PG_VERSION_95, 6569239123849665999, pgCatalogTestVersion(dbmsPostgreSQL, PG_VERSION_95)),
             "infoPgSet - infoPgArchive second db");
         TEST_RESULT_INT(infoPgDataTotal(infoPg), 2, "  2 history");
         TEST_RESULT_INT(infoPgDataCurrentId(infoPg), 0, "  0 historyCurrent");
@@ -77,7 +77,7 @@ testRun(void)
             infoPg,
             infoPgSet(
                 infoPgNew(infoPgBackup, strNew("123xyz")), infoPgBackup, PG_VERSION_94, 6569239123849665679,
-                pgCatalogTestVersion(PG_VERSION_94)),
+                pgCatalogTestVersion(dbmsPostgreSQL, PG_VERSION_94)),
             "infoPgSet - infoPgBackup");
         TEST_RESULT_INT(infoPgDataTotal(infoPg), 1, "  1 history");
         TEST_RESULT_INT(infoPgDataCurrentId(infoPg), 0, "  0 historyCurrent");

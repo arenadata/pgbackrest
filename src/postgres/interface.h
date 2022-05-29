@@ -100,6 +100,22 @@ WAL segment size is supported for versions below 11.
 #define PG_WAL_SEGMENT_SIZE_DEFAULT                                 ((unsigned int)(16 * 1024 * 1024))
 #endif
 
+typedef enum
+{
+    dbmsPostgreSQL,
+    dbmsGreenplum
+} DBMSType;
+
+__attribute__((always_inline)) static inline DBMSType
+getDBMSType(unsigned int catalogVersion)
+{
+    /*
+     * 3 is used as the first digit for Greenplum (3yyymmddN) to distinguish
+     * catalog versions from PostgreSQL (yyyymmddN).
+    */
+    return (catalogVersion / 100000000 == 3) ? dbmsGreenplum : dbmsPostgreSQL;
+}
+
 /***********************************************************************************************************************************
 PostgreSQL Control File Info
 ***********************************************************************************************************************************/
@@ -132,8 +148,8 @@ Functions
 PgControl pgControlFromFile(const Storage *storage);
 PgControl pgControlFromBuffer(const Buffer *controlFile);
 
-// Get the control version for a PostgreSQL version
-uint32_t pgControlVersion(unsigned int pgVersion);
+// Get the control version for a DBMS version
+uint32_t pgControlVersion(DBMSType dt, unsigned int pgVersion);
 
 // Four digit pg version format (required for Greenplum)
 unsigned int pgVersionAlign(unsigned int pgVersion);
@@ -185,8 +201,8 @@ const String *pgXactPath(unsigned int pgVersion);
 Test Functions
 ***********************************************************************************************************************************/
 #ifdef DEBUG
-    // Get the catalog version for a PostgreSQL version for testing
-    unsigned int pgCatalogTestVersion(unsigned int pgVersion);
+    // Get the catalog version for a DBMS version for testing
+    unsigned int pgCatalogTestVersion(DBMSType dt, unsigned int pgVersion);
 
     // Create pg_control for testing
     Buffer *pgControlTestToBuffer(PgControl pgControl);

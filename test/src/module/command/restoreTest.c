@@ -1416,7 +1416,7 @@ testRun(void)
         TEST_TITLE("one database selected with tablespace id");
 
         manifest->pub.data.pgVersion = PG_VERSION_94;
-        manifest->pub.data.pgCatalogVersion = pgCatalogTestVersion(PG_VERSION_94);
+        manifest->pub.data.pgCatalogVersion = pgCatalogTestVersion(dbmsPostgreSQL, PG_VERSION_94);
 
         MEM_CONTEXT_BEGIN(manifest->pub.memContext)
         {
@@ -2200,7 +2200,7 @@ testRun(void)
             manifest->pub.info = infoNew(NULL);
             manifest->pub.data.backupLabel = strNew(TEST_LABEL);
             manifest->pub.data.pgVersion = PG_VERSION_10;
-            manifest->pub.data.pgCatalogVersion = pgCatalogTestVersion(PG_VERSION_10);
+            manifest->pub.data.pgCatalogVersion = pgCatalogTestVersion(dbmsPostgreSQL, PG_VERSION_10);
             manifest->pub.data.backupType = backupTypeFull;
             manifest->pub.data.backupTimestampCopyStart = 1482182861; // So file timestamps should be less than this
 

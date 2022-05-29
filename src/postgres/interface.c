@@ -369,30 +369,20 @@ typedef struct PgControlCommon
 } PgControlCommon;
 
 /***********************************************************************************************************************************
-Get the interface for a PostgreSQL version
+Get the interface for a DBMS version
 ***********************************************************************************************************************************/
 static const PgInterface *
-pgInterfaceVersion(unsigned int pgVersion)
+pgInterfaceVersion(DBMSType dt, unsigned int pgVersion)
 {
     FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(UINT, dt);
         FUNCTION_TEST_PARAM(UINT, pgVersion);
     FUNCTION_TEST_END();
 
     const PgInterface *result = NULL;
-
-    // Search among PostgreSQL interfaces
-    for (unsigned int interfaceIdx = 0; interfaceIdx < PG_INTERFACE_SIZE; interfaceIdx++)
+    if (dt == dbmsGreenplum)
     {
-        if (pgInterface[interfaceIdx].version == pgVersion)
-        {
-            result = &pgInterface[interfaceIdx];
-            break;
-        }
-    }
-
-    // Search among Greenplum interfaces if nothing was found
-    if (result == NULL)
-    {
+        // Search among Greenplum interfaces
         for (unsigned int interfaceIdx = 0; interfaceIdx < GP_INTERFACE_SIZE; interfaceIdx++)
         {
             if (gpInterface[interfaceIdx].version == pgVersion)
@@ -402,10 +392,24 @@ pgInterfaceVersion(unsigned int pgVersion)
             }
         }
     }
+    else
+    {   // dt == dbmsPostgreSQL
+        // Search among PostgreSQL interfaces
+        for (unsigned int interfaceIdx = 0; interfaceIdx < PG_INTERFACE_SIZE; interfaceIdx++)
+        {
+            if (pgInterface[interfaceIdx].version == pgVersion)
+            {
+                result = &pgInterface[interfaceIdx];
+                break;
+            }
+        }
+    }
 
     // If the version was not found then error
     if (result == NULL)
-        THROW_FMT(AssertError, "invalid " PG_NAME " version %u", pgVersion);
+        THROW_FMT(AssertError, "invalid %s version %u",
+                 (dt == dbmsGreenplum) ? GP_NAME : PG_NAME,
+                 pgVersion);
 
     FUNCTION_TEST_RETURN(result);
 }
@@ -518,13 +522,14 @@ pgControlFromFile(const Storage *storage)
 
 /**********************************************************************************************************************************/
 uint32_t
-pgControlVersion(unsigned int pgVersion)
+pgControlVersion(DBMSType dt, unsigned int pgVersion)
 {
     FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(UINT, dt);
         FUNCTION_TEST_PARAM(UINT, pgVersion);
     FUNCTION_TEST_END();
 
-    FUNCTION_TEST_RETURN(pgInterfaceVersion(pgVersion)->controlVersion());
+    FUNCTION_TEST_RETURN(pgInterfaceVersion(dt, pgVersion)->controlVersion());
 }
 
 /***********************************************************************************************************************************
@@ -824,13 +829,14 @@ pgXactPath(unsigned int pgVersion)
 #ifdef DEBUG
 
 unsigned int
-pgCatalogTestVersion(unsigned int pgVersion)
+pgCatalogTestVersion(DBMSType dt, unsigned int pgVersion)
 {
     FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(UINT, dt);
         FUNCTION_TEST_PARAM(UINT, pgVersion);
     FUNCTION_TEST_END();
 
-    FUNCTION_TEST_RETURN(pgInterfaceVersion(pgVersion)->catalogVersion);
+    FUNCTION_TEST_RETURN(pgInterfaceVersion(dt, pgVersion)->catalogVersion);
 }
 
 #endif
@@ -849,7 +855,7 @@ pgControlTestToBuffer(PgControl pgControl)
     pgControl.pageSize = pgControl.pageSize == 0 ? PG_PAGE_SIZE_DEFAULT : pgControl.pageSize;
     pgControl.walSegmentSize = pgControl.walSegmentSize == 0 ? PG_WAL_SEGMENT_SIZE_DEFAULT : pgControl.walSegmentSize;
     pgControl.catalogVersion = pgControl.catalogVersion == 0 ?
-        pgInterfaceVersion(pgControl.version)->catalogVersion : pgControl.catalogVersion;
+        pgInterfaceVersion(dbmsPostgreSQL, pgControl.version)->catalogVersion : pgControl.catalogVersion;
 
     // Create the buffer and clear it
     Buffer *result = bufNew(PG_CONTROL_SIZE);
@@ -857,7 +863,7 @@ pgControlTestToBuffer(PgControl pgControl)
     bufUsedSet(result, bufSize(result));
 
     // Generate pg_control
-    pgInterfaceVersion(pgControl.version)->controlTest(pgControl, bufPtr(result));
+    pgInterfaceVersion(dbmsPostgreSQL, pgControl.version)->controlTest(pgControl, bufPtr(result));
 
     FUNCTION_TEST_RETURN(result);
 }
@@ -882,7 +888,7 @@ pgWalTestToBuffer(PgWal pgWal, Buffer *walBuffer)
         pgWal.size = PG_WAL_SEGMENT_SIZE_DEFAULT;
 
     // Generate WAL
-    pgInterfaceVersion(pgWal.version)->walTest(pgWal, bufPtr(walBuffer));
+    pgInterfaceVersion(dbmsPostgreSQL, pgWal.version)->walTest(pgWal, bufPtr(walBuffer));
 
     FUNCTION_TEST_RETURN_VOID();
 }

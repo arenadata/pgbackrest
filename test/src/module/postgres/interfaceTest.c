@@ -32,9 +32,13 @@ testRun(void)
     // *****************************************************************************************************************************
     if (testBegin("pgControlVersion()"))
     {
-        TEST_ERROR(pgControlVersion(70300), AssertError, "invalid PostgreSQL version 70300");
-        TEST_RESULT_UINT(pgControlVersion(PG_VERSION_83), 833, "8.3 control version");
-        TEST_RESULT_UINT(pgControlVersion(PG_VERSION_11), 1100, "11 control version");
+        TEST_ERROR(pgControlVersion(dbmsPostgreSQL, 70300), AssertError, "invalid PostgreSQL version 70300");
+        TEST_ERROR(pgControlVersion(dbmsGreenplum, 1), AssertError, "invalid Greenplum version 1");
+        TEST_RESULT_UINT(pgControlVersion(dbmsPostgreSQL, PG_VERSION_83), 833, "8.3 control version");
+        TEST_RESULT_UINT(pgControlVersion(dbmsPostgreSQL, PG_VERSION_94), 942, "9.4 control version");
+        TEST_RESULT_UINT(pgControlVersion(dbmsPostgreSQL, PG_VERSION_11), 1100, "11 control version");
+        TEST_RESULT_UINT(pgControlVersion(dbmsGreenplum, GP_VERSION_6), 9420600, "6 Greenplum control version");
+        TEST_RESULT_UINT(pgControlVersion(dbmsGreenplum, GP_VERSION_7), 12010700, "7 Greenplum control version");
     }
 
     // *****************************************************************************************************************************
@@ -96,7 +100,7 @@ testRun(void)
             storageNewWriteP(storageTest, controlFile),
             pgControlTestToBuffer(
                 (PgControl){
-                    .version = PG_VERSION_83, .systemId = 0xEFEFEFEFEF, .catalogVersion = pgCatalogTestVersion(PG_VERSION_83)}));
+                    .version = PG_VERSION_83, .systemId = 0xEFEFEFEFEF, .catalogVersion = pgCatalogTestVersion(dbmsPostgreSQL, PG_VERSION_83)}));
 
         TEST_ASSIGN(info, pgControlFromFile(storageTest), "get control info v83");
         TEST_RESULT_UINT(info.systemId, 0xEFEFEFEFEF, "   check system id");
