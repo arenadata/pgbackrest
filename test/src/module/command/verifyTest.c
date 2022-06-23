@@ -1003,7 +1003,7 @@ testRun(void)
         Buffer *walBuffer = bufNew((size_t)(1024 * 1024));
         bufUsedSet(walBuffer, bufSize(walBuffer));
         memset(bufPtr(walBuffer), 0, bufSize(walBuffer));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_11, .size = 1024 * 1024}, walBuffer);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_11, .size = 1024 * 1024}, walBuffer);
         const char *walBufferSha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer)));
 
         HRN_STORAGE_PUT(
@@ -1637,7 +1637,7 @@ testRun(void)
         Buffer *walBuffer = bufNew((size_t)(1024 * 1024));
         bufUsedSet(walBuffer, bufSize(walBuffer));
         memset(bufPtr(walBuffer), 0, bufSize(walBuffer));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_11, .size = 1024 * 1024}, walBuffer);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_11, .size = 1024 * 1024}, walBuffer);
         const char *walBufferSha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer)));
 
         HRN_STORAGE_PUT(
@@ -1849,7 +1849,7 @@ testRun(void)
         Buffer *walBuffer = bufNew((size_t)(1024 * 1024));
         bufUsedSet(walBuffer, bufSize(walBuffer));
         memset(bufPtr(walBuffer), 0, bufSize(walBuffer));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_11, .size = 1024 * 1024}, walBuffer);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_11, .size = 1024 * 1024}, walBuffer);
         const char *walBufferSha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer)));
 
         HRN_STORAGE_PUT(
@@ -1920,7 +1920,7 @@ testRun(void)
         Buffer *walBuffer = bufNew((size_t)(1024 * 1024));
         bufUsedSet(walBuffer, bufSize(walBuffer));
         memset(bufPtr(walBuffer), 0, bufSize(walBuffer));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_11, .size = 1024 * 1024}, walBuffer);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_11, .size = 1024 * 1024}, walBuffer);
         const char *walBufferSha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer)));
 
         HRN_STORAGE_PUT(
@@ -1975,7 +1975,7 @@ testRun(void)
         Buffer *walBuffer = bufNew((size_t)(1024 * 1024));
         bufUsedSet(walBuffer, bufSize(walBuffer));
         memset(bufPtr(walBuffer), 0, bufSize(walBuffer));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_11, .size = 1024 * 1024}, walBuffer);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_11, .size = 1024 * 1024}, walBuffer);
         const char *walBufferSha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer)));
 
         HRN_STORAGE_PUT(

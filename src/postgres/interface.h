@@ -65,7 +65,9 @@ Define default page size
 
 Page size can only be changed at compile time and is not known to be well-tested, so only the default page size is supported.
 ***********************************************************************************************************************************/
+#ifndef PG_PAGE_SIZE_DEFAULT
 #define PG_PAGE_SIZE_DEFAULT                                        ((unsigned int)(8 * 1024))
+#endif
 
 /***********************************************************************************************************************************
 Define default segment size and pages per segment
@@ -87,7 +89,25 @@ Define default wal segment size
 Before PostgreSQL 11 WAL segment size could only be changed at compile time and is not known to be well-tested, so only the default
 WAL segment size is supported for versions below 11.
 ***********************************************************************************************************************************/
+#ifndef PG_WAL_SEGMENT_SIZE_DEFAULT
 #define PG_WAL_SEGMENT_SIZE_DEFAULT                                 ((unsigned int)(16 * 1024 * 1024))
+#endif
+
+typedef enum
+{
+    dbmsPG,
+    dbmsGPDB
+} DBMSType;
+
+__attribute__((always_inline)) static inline DBMSType
+getDBMSType(unsigned int catalogVersion)
+{
+    /*
+     * 3 is used as the first digit for GPDB (3yyymmddN) to distinguish
+     * catalog versions from PostgreSQL (yyyymmddN).
+    */
+    return (catalogVersion / 100000000 == 3) ? dbmsGPDB : dbmsPG;
+}
 
 /***********************************************************************************************************************************
 PostgreSQL Control File Info
@@ -133,7 +153,7 @@ bool pgDbIsSystemId(unsigned int id);
 PgControl pgControlFromFile(const Storage *storage);
 
 // Get the control version for a PostgreSQL version
-uint32_t pgControlVersion(unsigned int pgVersion);
+uint32_t pgControlVersion(DBMSType dt, unsigned int pgVersion);
 
 // Convert version string to version number and vice versa
 unsigned int pgVersionFromStr(const String *version);

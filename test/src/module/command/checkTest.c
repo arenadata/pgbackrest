@@ -56,7 +56,7 @@ testRun(void)
         //--------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("standby only, repo local - fail to find primary database");
 
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_92);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), dbmsPG, PG_VERSION_92);
 
         harnessPqScriptSet((HarnessPq [])
         {
@@ -80,7 +80,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptArchiveTimeout, ".5");
         HRN_CFG_LOAD(cfgCmdCheck, argList);
 
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), PG_VERSION_92);
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), dbmsPG, PG_VERSION_92);
 
         // Two standbys found but no primary
         harnessPqScriptSet((HarnessPq [])
@@ -167,7 +167,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdCheck, argList);
 
         // Create pg_control for standby
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_92);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), dbmsPG, PG_VERSION_92);
 
         // Standby database path doesn't match pg_control
         harnessPqScriptSet((HarnessPq [])
@@ -191,7 +191,7 @@ testRun(void)
         TEST_TITLE("standby and primary database - error on primary but standby check ok");
 
         // Create pg_control for primary
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), PG_VERSION_92);
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), dbmsPG, PG_VERSION_92);
 
         // Create info files
         HRN_INFO_PUT(
@@ -397,8 +397,8 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
         HRN_CFG_LOAD(cfgCmdCheck, argList);
 
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_92);
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), PG_VERSION_92);
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_92);
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), dbmsPG, PG_VERSION_92);
 
         DbGetResult db = {0};
 
@@ -500,7 +500,7 @@ testRun(void)
         InfoArchive *archiveInfo = infoArchiveNew(PG_VERSION_96, 6569239123849665679, NULL);
         InfoPgData archivePg = infoPgData(infoArchivePg(archiveInfo), infoPgDataCurrentId(infoArchivePg(archiveInfo)));
 
-        InfoBackup *backupInfo = infoBackupNew(PG_VERSION_96, 6569239123849665679, hrnPgCatalogVersion(PG_VERSION_96), NULL);
+        InfoBackup *backupInfo = infoBackupNew(PG_VERSION_96, 6569239123849665679, hrnPgCatalogVersion(dbmsPG, PG_VERSION_96), NULL);
         InfoPgData backupPg = infoPgData(infoBackupPg(backupInfo), infoPgDataCurrentId(infoBackupPg(backupInfo)));
 
         TEST_RESULT_VOID(checkStanzaInfo(&archivePg, &backupPg), "stanza info files match");
@@ -508,7 +508,7 @@ testRun(void)
         //--------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("checkStanzaInfo() - corrupted backup file: system id");
 
-        backupInfo = infoBackupNew(PG_VERSION_96, 6569239123849665999, hrnPgCatalogVersion(PG_VERSION_96), NULL);
+        backupInfo = infoBackupNew(PG_VERSION_96, 6569239123849665999, hrnPgCatalogVersion(dbmsPG, PG_VERSION_96), NULL);
         backupPg = infoPgData(infoBackupPg(backupInfo), infoPgDataCurrentId(infoBackupPg(backupInfo)));
 
         TEST_ERROR(
@@ -521,7 +521,7 @@ testRun(void)
         //--------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("checkStanzaInfo() - corrupted backup file: system id and version");
 
-        backupInfo = infoBackupNew(PG_VERSION_95, 6569239123849665999, hrnPgCatalogVersion(PG_VERSION_95), NULL);
+        backupInfo = infoBackupNew(PG_VERSION_95, 6569239123849665999, hrnPgCatalogVersion(dbmsPG, PG_VERSION_95), NULL);
         backupPg = infoPgData(infoBackupPg(backupInfo), infoPgDataCurrentId(infoBackupPg(backupInfo)));
 
         TEST_ERROR(
@@ -534,7 +534,7 @@ testRun(void)
         //--------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("checkStanzaInfo() - corrupted backup file: version");
 
-        backupInfo = infoBackupNew(PG_VERSION_95, 6569239123849665679, hrnPgCatalogVersion(PG_VERSION_95), NULL);
+        backupInfo = infoBackupNew(PG_VERSION_95, 6569239123849665679, hrnPgCatalogVersion(dbmsPG, PG_VERSION_95), NULL);
         backupPg = infoPgData(infoBackupPg(backupInfo), infoPgDataCurrentId(infoBackupPg(backupInfo)));
 
         TEST_ERROR(
@@ -547,7 +547,7 @@ testRun(void)
         //--------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("checkStanzaInfo() - corrupted backup file: db id");
 
-        infoBackupPgSet(backupInfo, PG_VERSION_96, 6569239123849665679, hrnPgCatalogVersion(PG_VERSION_96));
+        infoBackupPgSet(backupInfo, PG_VERSION_96, 6569239123849665679, hrnPgCatalogVersion(dbmsPG, PG_VERSION_96));
         backupPg = infoPgData(infoBackupPg(backupInfo), infoPgDataCurrentId(infoBackupPg(backupInfo)));
 
         TEST_ERROR(
@@ -570,7 +570,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdStanzaCreate, argList);
 
         // Create pg_control
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_96);
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_96);
 
         // Create info files
         TEST_RESULT_VOID(cmdStanzaCreate(), "stanza create - encryption");

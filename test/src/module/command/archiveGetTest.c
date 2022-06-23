@@ -150,7 +150,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("no segments to find");
 
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_10);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), dbmsPG, PG_VERSION_10);
 
         HRN_INFO_PUT(
             storageRepoWrite(), INFO_ARCHIVE_PATH_FILE,
@@ -622,7 +622,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("no valid repo");
 
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_10);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), dbmsPG, PG_VERSION_10);
 
         strLstAddZ(argList, TEST_PATH "/pg/pg_wal/RECOVERYXLOG");
         HRN_CFG_LOAD(cfgCmdArchiveGet, argList, .exeBogus = true);
@@ -781,7 +781,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("pg version does not match archive.info");
 
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_11);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), dbmsPG, PG_VERSION_11);
 
         HRN_INFO_PUT(
             storageRepoWrite(), INFO_ARCHIVE_PATH_FILE,
@@ -810,7 +810,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("pg system id does not match archive.info");
 
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_10, .systemId = 1);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), dbmsPG, PG_VERSION_10, .systemId = 1);
 
         TEST_ERROR(cmdArchiveGet(), RepoInvalidError, "unable to find a valid repository");
 
@@ -821,7 +821,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("file is missing");
 
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_10);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), dbmsPG, PG_VERSION_10);
 
         TEST_RESULT_INT(cmdArchiveGet(), 1, "get");
 

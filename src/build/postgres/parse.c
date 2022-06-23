@@ -84,6 +84,65 @@ bldPgVersionList(Yaml *const yaml)
     return result;
 }
 
+static List *
+bldGpdbVersionList(Yaml *const yaml)
+{
+    List *const result = lstNewP(sizeof(BldGpdbVersion), .comparator = lstComparatorStr);
+
+    MEM_CONTEXT_TEMP_BEGIN()
+    {
+        YamlEvent gpdbDef = yamlEventNextCheck(yaml, yamlEventTypeScalar);
+
+        // Parse version list
+        if (!strEqZ(gpdbDef.value, "version"))
+            THROW_FMT(FormatError, "unknown GPDB definition '%s'", strZ(gpdbDef.value));
+
+        yamlEventNextCheck(yaml, yamlEventTypeSeqBegin);
+
+        YamlEvent ver = yamlEventNext(yaml);
+
+        do
+        {
+            if (ver.type != yamlEventTypeMapBegin)
+                THROW_FMT(FormatError, "invalid GPDB version '%s'", strZ(ver.value));
+
+            const String *const version = yamlEventNextCheck(yaml, yamlEventTypeScalar).value;
+            yamlEventNextCheck(yaml, yamlEventTypeMapBegin);
+
+            YamlEvent verDef = yamlEventNextCheck(yaml, yamlEventTypeScalar);
+            YamlEvent verDefVal = yamlEventNextCheck(yaml, yamlEventTypeScalar);
+
+            // Get pg_version setting
+            if (!strEqZ(verDef.value, "pg_version"))
+                THROW_FMT(FormatError, "unknown GPDB definition '%s'", strZ(verDef.value));
+
+            const String *const pg_version = verDefVal.value;
+
+            yamlEventNextCheck(yaml, yamlEventTypeMapEnd);
+            yamlEventNextCheck(yaml, yamlEventTypeMapEnd);
+
+            // Add to list
+            MEM_CONTEXT_BEGIN(lstMemContext(result))
+            {
+                lstAdd(
+                    result,
+                    &(BldGpdbVersion)
+                    {
+                        .version = strDup(version),
+                        .pg_version = strDup(pg_version),
+                    });
+            }
+            MEM_CONTEXT_END();
+
+            ver = yamlEventNext(yaml);
+        }
+        while (ver.type != yamlEventTypeSeqEnd);
+    }
+    MEM_CONTEXT_TEMP_END();
+
+    return result;
+}
+
 /***********************************************************************************************************************************
 Parse defines from header
 ***********************************************************************************************************************************/
@@ -191,9 +250,14 @@ bldPgParse(const Storage *const storageRepo)
         strNewBuf(storageGetP(storageNewReadP(storageRepo, STRDEF("src/postgres/interface/version.intern.h")))));
 
     // Initialize yaml
-    Yaml *const yaml = yamlNew(storageGetP(storageNewReadP(storageRepo, STRDEF("src/build/postgres/postgres.yaml"))));
-    yamlEventNextCheck(yaml, yamlEventTypeMapBegin);
+    Yaml *const pgYaml = yamlNew(storageGetP(storageNewReadP(storageRepo, STRDEF("src/build/postgres/postgres.yaml"))));
+    yamlEventNextCheck(pgYaml, yamlEventTypeMapBegin);
 
-    // Parse postgres
-    return (BldPg){.pgList = bldPgVersionList(yaml), .typeList = typeList, .defineList = defineList, .functionList = functionList};
+    Yaml *const gpdbYaml = yamlNew(storageGetP(storageNewReadP(storageRepo, STRDEF("src/build/postgres/gpdb.yaml"))));
+    yamlEventNextCheck(gpdbYaml, yamlEventTypeMapBegin);
+
+    // Parse postgres.yaml and gpdb.yaml
+    return (BldPg){.pgList   = bldPgVersionList(pgYaml),
+                   .gpdbList = bldGpdbVersionList(gpdbYaml),
+                   .typeList = typeList, .defineList = defineList, .functionList = functionList};
 }

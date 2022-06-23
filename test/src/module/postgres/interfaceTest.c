@@ -49,9 +49,11 @@ testRun(void)
     // *****************************************************************************************************************************
     if (testBegin("pgControlVersion()"))
     {
-        TEST_ERROR(pgControlVersion(70300), AssertError, "invalid PostgreSQL version 70300");
-        TEST_RESULT_UINT(pgControlVersion(PG_VERSION_90), 903, "9.0 control version");
-        TEST_RESULT_UINT(pgControlVersion(PG_VERSION_11), 1100, "11 control version");
+        TEST_ERROR(pgControlVersion(dbmsPG, 70300), AssertError, "invalid PostgreSQL version 70300");
+        TEST_ERROR(pgControlVersion(dbmsGPDB, 1), AssertError, "invalid GPDB version 1");
+        TEST_RESULT_UINT(pgControlVersion(dbmsPG, PG_VERSION_90), 903, "9.0 control version");
+        TEST_RESULT_UINT(pgControlVersion(dbmsPG, PG_VERSION_11), 1100, "11 control version");
+        TEST_RESULT_UINT(pgControlVersion(dbmsGPDB, GPDB_VERSION_6), 9420600, "6 GPDB control version");
     }
 
     // *****************************************************************************************************************************
@@ -79,7 +81,7 @@ testRun(void)
 
         //--------------------------------------------------------------------------------------------------------------------------
         HRN_PG_CONTROL_PUT(
-            storageTest, PG_VERSION_11, .systemId = 0xFACEFACE, .checkpoint = 0xEEFFEEFFAABBAABB, .timeline = 47,
+            storageTest, dbmsPG, PG_VERSION_11, .systemId = 0xFACEFACE, .checkpoint = 0xEEFFEEFFAABBAABB, .timeline = 47,
             .walSegmentSize = 1024 * 1024);
 
         PgControl info = {0};
@@ -91,20 +93,20 @@ testRun(void)
         TEST_RESULT_UINT(info.timeline, 47, "check timeline");
 
         //--------------------------------------------------------------------------------------------------------------------------
-        HRN_PG_CONTROL_PUT(storageTest, PG_VERSION_93, .walSegmentSize = 1024 * 1024);
+        HRN_PG_CONTROL_PUT(storageTest, dbmsPG, PG_VERSION_93, .walSegmentSize = 1024 * 1024);
 
         TEST_ERROR(
             pgControlFromFile(storageTest), FormatError, "wal segment size is 1048576 but must be 16777216 for PostgreSQL <= 10");
 
         //--------------------------------------------------------------------------------------------------------------------------
-        HRN_PG_CONTROL_PUT(storageTest, PG_VERSION_95, .pageSize = 32 * 1024);
+        HRN_PG_CONTROL_PUT(storageTest, dbmsPG, PG_VERSION_95, .pageSize = 32 * 1024);
 
         TEST_ERROR(pgControlFromFile(storageTest), FormatError, "page size is 32768 but must be 8192");
 
         //--------------------------------------------------------------------------------------------------------------------------
         HRN_PG_CONTROL_PUT(
-            storageTest, PG_VERSION_90, .systemId = 0xEFEFEFEFEF, .catalogVersion = hrnPgCatalogVersion(PG_VERSION_90),
-            .checkpoint = 0xAABBAABBEEFFEEFF, .timeline = 88);
+            storageTest, dbmsPG, PG_VERSION_90, .systemId = 0xEFEFEFEFEF,
+            .catalogVersion = hrnPgCatalogVersion(dbmsPG, PG_VERSION_90), .checkpoint = 0xAABBAABBEEFFEEFF, .timeline = 88);
 
         TEST_ASSIGN(info, pgControlFromFile(storageTest), "get control info v90");
         TEST_RESULT_UINT(info.systemId, 0xEFEFEFEFEF, "   check system id");
@@ -112,6 +114,18 @@ testRun(void)
         TEST_RESULT_UINT(info.catalogVersion, 201008051, "   check catalog version");
         TEST_RESULT_UINT(info.checkpoint, 0xAABBAABBEEFFEEFF, "check checkpoint");
         TEST_RESULT_UINT(info.timeline, 88, "check timeline");
+
+        //--------------------------------------------------------------------------------------------------------------------------
+        HRN_PG_CONTROL_PUT(
+            storageTest, dbmsGPDB, GPDB_VERSION_6, .systemId = 0xEFEFEFEFEF,
+            .catalogVersion = hrnPgCatalogVersion(dbmsGPDB, GPDB_VERSION_6), .checkpoint = 0xBABBAABBEEFFEEFF, .timeline = 89);
+
+        TEST_ASSIGN(info, pgControlFromFile(storageTest), "get control info GPDB6");
+        TEST_RESULT_UINT(info.systemId, 0xEFEFEFEFEF, "   check system id");
+        TEST_RESULT_UINT(info.version, GPDB_VERSION_6, "   check version");
+        TEST_RESULT_UINT(info.catalogVersion, 301908232, "   check catalog version");
+        TEST_RESULT_UINT(info.checkpoint, 0xBABBAABBEEFFEEFF, "check checkpoint");
+        TEST_RESULT_UINT(info.timeline, 89, "check timeline");
     }
 
     // *****************************************************************************************************************************
@@ -221,7 +235,7 @@ testRun(void)
 
         //--------------------------------------------------------------------------------------------------------------------------
         memset(bufPtr(result), 0, bufSize(result));
-        hrnPgWalToBuffer(
+        hrnPgWalToBuffer(dbmsPG,
             (PgWal){.version = PG_VERSION_11, .systemId = 0xECAFECAF, .size = PG_WAL_SEGMENT_SIZE_DEFAULT * 2}, result);
         storagePutP(storageNewWriteP(storageTest, walFile), result);
 
@@ -233,14 +247,15 @@ testRun(void)
 
         //--------------------------------------------------------------------------------------------------------------------------
         memset(bufPtr(result), 0, bufSize(result));
-        hrnPgWalToBuffer(
+        hrnPgWalToBuffer(dbmsPG,
             (PgWal){.version = PG_VERSION_90, .systemId = 0xEAEAEAEA, .size = PG_WAL_SEGMENT_SIZE_DEFAULT * 2}, result);
 
         TEST_ERROR(pgWalFromBuffer(result), FormatError, "wal segment size is 33554432 but must be 16777216 for PostgreSQL <= 10");
 
         //--------------------------------------------------------------------------------------------------------------------------
         memset(bufPtr(result), 0, bufSize(result));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_90, .systemId = 0xEAEAEAEA, .size = PG_WAL_SEGMENT_SIZE_DEFAULT}, result);
+        hrnPgWalToBuffer(dbmsPG,
+            (PgWal){.version = PG_VERSION_90, .systemId = 0xEAEAEAEA, .size = PG_WAL_SEGMENT_SIZE_DEFAULT}, result);
         storagePutP(storageNewWriteP(storageTest, walFile), result);
 
         TEST_ASSIGN(info, pgWalFromFile(walFile, storageTest), "get wal info v9.0");

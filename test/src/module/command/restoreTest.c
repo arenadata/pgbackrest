@@ -1298,7 +1298,7 @@ testRun(void)
         {
             manifest = manifestNewInternal();
             manifest->pub.data.pgVersion = PG_VERSION_90;
-            manifest->pub.data.pgCatalogVersion = hrnPgCatalogVersion(PG_VERSION_90);
+            manifest->pub.data.pgCatalogVersion = hrnPgCatalogVersion(dbmsPG, PG_VERSION_90);
 
             manifestTargetAdd(manifest, &(ManifestTarget){.name = MANIFEST_TARGET_PGDATA_STR, .path = STRDEF("/pg")});
             manifestFileAdd(manifest, &(ManifestFile){.name = STRDEF(MANIFEST_TARGET_PGDATA "/" PG_FILE_PGVERSION)});
@@ -1462,7 +1462,7 @@ testRun(void)
         TEST_TITLE("one database selected with tablespace id");
 
         manifest->pub.data.pgVersion = PG_VERSION_94;
-        manifest->pub.data.pgCatalogVersion = hrnPgCatalogVersion(PG_VERSION_94);
+        manifest->pub.data.pgCatalogVersion = hrnPgCatalogVersion(dbmsPG, PG_VERSION_94);
 
         MEM_CONTEXT_BEGIN(manifest->pub.memContext)
         {
@@ -2032,7 +2032,7 @@ testRun(void)
             manifest->pub.info = infoNew(NULL);
             manifest->pub.data.backupLabel = strNewZ(TEST_LABEL);
             manifest->pub.data.pgVersion = PG_VERSION_90;
-            manifest->pub.data.pgCatalogVersion = hrnPgCatalogVersion(PG_VERSION_90);
+            manifest->pub.data.pgCatalogVersion = hrnPgCatalogVersion(dbmsPG, PG_VERSION_90);
             manifest->pub.data.backupType = backupTypeFull;
             manifest->pub.data.backupTimestampCopyStart = 1482182861; // So file timestamps should be less than this
 
@@ -2437,7 +2437,7 @@ testRun(void)
             manifest->pub.info = infoNew(NULL);
             manifest->pub.data.backupLabel = strNewZ(TEST_LABEL);
             manifest->pub.data.pgVersion = PG_VERSION_10;
-            manifest->pub.data.pgCatalogVersion = hrnPgCatalogVersion(PG_VERSION_10);
+            manifest->pub.data.pgCatalogVersion = hrnPgCatalogVersion(dbmsPG, PG_VERSION_10);
             manifest->pub.data.backupType = backupTypeIncr;
             manifest->pub.data.backupTimestampCopyStart = 1482182861; // So file timestamps should be less than this
 

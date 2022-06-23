@@ -47,9 +47,9 @@ System id constants by version
 /***********************************************************************************************************************************
 Put a control file to storage
 ***********************************************************************************************************************************/
-#define HRN_PG_CONTROL_PUT(storageParam, versionParam, ...)                                                                        \
+#define HRN_PG_CONTROL_PUT(storageParam, dt, versionParam, ...)                                                                        \
     HRN_STORAGE_PUT(                                                                                                               \
-        storageParam, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL, hrnPgControlToBuffer((PgControl){.version = versionParam, __VA_ARGS__}))
+        storageParam, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL, hrnPgControlToBuffer(dt, (PgControl){.version = versionParam, __VA_ARGS__}))
 
 /***********************************************************************************************************************************
 Update control file time
@@ -60,11 +60,11 @@ Update control file time
 /***********************************************************************************************************************************
 Functions
 ***********************************************************************************************************************************/
-// Get the catalog version for a PostgreSQL version
-unsigned int hrnPgCatalogVersion(unsigned int pgVersion);
+// Get the catalog version for a DBMS version
+unsigned int hrnPgCatalogVersion(DBMSType dt, unsigned int pgVersion);
 
 // Create pg_control
-Buffer *hrnPgControlToBuffer(PgControl pgControl);
+Buffer *hrnPgControlToBuffer(DBMSType dt, PgControl pgControl);
 
 // Get system id by version
 __attribute__((always_inline)) static inline uint64_t
@@ -74,6 +74,6 @@ hrnPgSystemId(const unsigned int pgVersion)
 }
 
 // Create WAL for testing
-void hrnPgWalToBuffer(PgWal pgWal, Buffer *walBuffer);
+void hrnPgWalToBuffer(DBMSType dt, PgWal pgWal, Buffer *walBuffer);
 
 #endif

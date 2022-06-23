@@ -57,8 +57,10 @@ testRun(void)
             "bogus: value\n");
 
         HRN_STORAGE_PUT_Z(
-            storageTest, "src/build/postgres/postgres.yaml",
-            "bogus: value\n");
+            storageTest, "src/build/postgres/gpdb.yaml",
+            "version:\n"
+            "  - 6:\n"
+            "     pg_version: 9.4\n");
 
         TEST_ERROR(bldPgParse(storageTest), FormatError, "unknown postgres definition 'bogus'");
 
@@ -70,6 +72,52 @@ testRun(void)
 
         TEST_ERROR(bldPgParse(storageTest), FormatError, "unknown postgres definition 'bogus'");
 
+        HRN_STORAGE_PUT_Z(
+            storageTest, "src/build/postgres/postgres.yaml",
+            "version:\n"
+            "  - 9.0\n");
+
+        HRN_STORAGE_PUT_Z(
+            storageTest, "src/build/postgres/gpdb.yaml",
+            "bogus: value\n");
+
+        TEST_ERROR(bldPgParse(storageTest), FormatError, "unknown GPDB definition 'bogus'");
+
+        HRN_STORAGE_PUT_Z(
+            storageTest, "src/build/postgres/postgres.yaml",
+            "version:\n"
+            "  - 9.0\n");
+
+        HRN_STORAGE_PUT_Z(
+            storageTest, "src/build/postgres/gpdb.yaml",
+            "bogus: value\n");
+
+        TEST_ERROR(bldPgParse(storageTest), FormatError, "unknown GPDB definition 'bogus'");
+
+        HRN_STORAGE_PUT_Z(
+            storageTest, "src/build/postgres/postgres.yaml",
+            "version:\n"
+            "  - 9.0\n");
+
+        HRN_STORAGE_PUT_Z(
+            storageTest, "src/build/postgres/gpdb.yaml",
+            "version:\n"
+            "  - 6:\n"
+            "     bogus: 9.4\n");
+
+        TEST_ERROR(bldPgParse(storageTest), FormatError, "unknown GPDB definition 'bogus'");
+
+        HRN_STORAGE_PUT_Z(
+            storageTest, "src/build/postgres/postgres.yaml",
+            "version:\n"
+            "  - 9.0\n");
+
+        HRN_STORAGE_PUT_Z(
+            storageTest, "src/build/postgres/gpdb.yaml",
+            "version:\n"
+            "  - 6\n");
+
+        TEST_ERROR(bldPgParse(storageTest), FormatError, "invalid GPDB version '6'");
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("parse and render postgres");
 
@@ -80,6 +128,13 @@ testRun(void)
             "  - 11:\n"
             "      release: false\n");
 
+        HRN_STORAGE_PUT_Z(
+            storageTest, "src/build/postgres/gpdb.yaml",
+            "version:\n"
+            "  - 6:\n"
+            "     pg_version: 9.4\n"
+            "  - 7:\n"
+            "     pg_version: 12\n");
         TEST_RESULT_VOID(bldPgRender(storageTest, bldPgParse(storageTest)), "parse and render");
 
         // -------------------------------------------------------------------------------------------------------------------------
@@ -172,6 +227,89 @@ testRun(void)
             "\n"
             "        .controlIs = pgInterfaceControlIs90,\n"
             "        .control = pgInterfaceControl90,\n"
+            "    },\n"
+            "};\n"
+            "\n"
+            COMMENT_BLOCK_BEGIN "\n"
+            "GPDB 7 interface\n"
+            COMMENT_BLOCK_END "\n"
+            "#define PG_VERSION                                                  PG_VERSION_12\n"
+            "#define GPDB_VERSION                                                GPDB_VERSION_7\n"
+            "\n"
+            "#define enum1                                                       enum1_GPDB7\n"
+            "#define enum2                                                       enum2_GPDB7\n"
+            "#define enum_type                                                   enum_type_GPDB7\n"
+            "#define int64                                                       int64_GPDB7\n"
+            "#define struct_type                                                 struct_type_GPDB7\n"
+            "\n"
+            "#include \"postgres/interface/version.intern.h\"\n"
+            "\n"
+            "PG_INTERFACE_CONTROL_IS(GPDB7);\n"
+            "PG_INTERFACE_CONTROL(GPDB7);\n"
+            "\n"
+            "#undef enum1\n"
+            "#undef enum2\n"
+            "#undef enum_type\n"
+            "#undef int64\n"
+            "#undef struct_type\n"
+            "\n"
+            "#undef CATALOG_VERSION_NO\n"
+            "#undef CATALOG_VERSION_NO_MAX\n"
+            "#undef PG_CONTROL_VERSION\n"
+            "#undef PG_VERSION\n"
+            "#undef GPDB_VERSION\n"
+            "\n"
+            "#undef PG_INTERFACE_CONTROL_IS\n"
+            "#undef PG_INTERFACE_CONTROL\n"
+            "\n"
+            COMMENT_BLOCK_BEGIN "\n"
+            "GPDB 6 interface\n"
+            COMMENT_BLOCK_END "\n"
+            "#define PG_VERSION                                                  PG_VERSION_94\n"
+            "#define GPDB_VERSION                                                GPDB_VERSION_6\n"
+            "\n"
+            "#define enum1                                                       enum1_GPDB6\n"
+            "#define enum2                                                       enum2_GPDB6\n"
+            "#define enum_type                                                   enum_type_GPDB6\n"
+            "#define int64                                                       int64_GPDB6\n"
+            "#define struct_type                                                 struct_type_GPDB6\n"
+            "\n"
+            "#include \"postgres/interface/version.intern.h\"\n"
+            "\n"
+            "PG_INTERFACE_CONTROL_IS(GPDB6);\n"
+            "PG_INTERFACE_CONTROL(GPDB6);\n"
+            "\n"
+            "#undef enum1\n"
+            "#undef enum2\n"
+            "#undef enum_type\n"
+            "#undef int64\n"
+            "#undef struct_type\n"
+            "\n"
+            "#undef CATALOG_VERSION_NO\n"
+            "#undef CATALOG_VERSION_NO_MAX\n"
+            "#undef PG_CONTROL_VERSION\n"
+            "#undef PG_VERSION\n"
+            "#undef GPDB_VERSION\n"
+            "\n"
+            "#undef PG_INTERFACE_CONTROL_IS\n"
+            "#undef PG_INTERFACE_CONTROL\n"
+            "\n"
+            COMMENT_BLOCK_BEGIN "\n"
+            "GPDB interface struct\n"
+            COMMENT_BLOCK_END "\n"
+            "static const PgInterface gpdbInterface[] =\n"
+            "{\n"
+            "    {\n"
+            "        .version = GPDB_VERSION_7,\n"
+            "\n"
+            "        .controlIs = pgInterfaceControlIsGPDB7,\n"
+            "        .control = pgInterfaceControlGPDB7,\n"
+            "    },\n"
+            "    {\n"
+            "        .version = GPDB_VERSION_6,\n"
+            "\n"
+            "        .controlIs = pgInterfaceControlIsGPDB6,\n"
+            "        .control = pgInterfaceControlGPDB6,\n"
             "    },\n"
             "};\n");
     }

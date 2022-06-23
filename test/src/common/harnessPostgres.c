@@ -63,6 +63,10 @@ uint32_t hrnPgInterfaceCatalogVersion150(void);
 void hrnPgInterfaceControl150(PgControl pgControl, unsigned char *buffer);
 void hrnPgInterfaceWal150(PgWal pgWal, unsigned char *buffer);
 
+uint32_t hrnPgInterfaceCatalogVersionGPDB6(void);
+void hrnPgInterfaceControlGPDB6(PgControl pgControl, unsigned char *buffer);
+void hrnPgInterfaceWalGPDB6(PgWal pgWal, unsigned char *buffer);
+
 typedef struct HrnPgInterface
 {
     // Version of PostgreSQL supported by this interface
@@ -172,50 +176,80 @@ static const HrnPgInterface hrnPgInterface[] =
     },
 };
 
+static const HrnPgInterface hrnGpdbInterface[] =
+{
+    {
+        .version = GPDB_VERSION_6,
+
+        .catalogVersion = hrnPgInterfaceCatalogVersionGPDB6,
+        .control = hrnPgInterfaceControlGPDB6,
+        .wal = hrnPgInterfaceWalGPDB6,
+    },
+};
+
 /***********************************************************************************************************************************
 Get the interface for a PostgreSQL version
 ***********************************************************************************************************************************/
 static const HrnPgInterface *
-hrnPgInterfaceVersion(unsigned int pgVersion)
+hrnPgInterfaceVersion(DBMSType dt, unsigned int pgVersion)
 {
     FUNCTION_HARNESS_BEGIN();
+        FUNCTION_HARNESS_PARAM(UINT, dt);
         FUNCTION_HARNESS_PARAM(UINT, pgVersion);
     FUNCTION_HARNESS_END();
 
     const HrnPgInterface *result = NULL;
 
-    for (unsigned int interfaceIdx = 0; interfaceIdx < LENGTH_OF(hrnPgInterface); interfaceIdx++)
+    if (dt == dbmsGPDB)
     {
-        if (hrnPgInterface[interfaceIdx].version == pgVersion)
+        for (unsigned int interfaceIdx = 0; interfaceIdx < LENGTH_OF(hrnGpdbInterface); interfaceIdx++)
         {
-            result = &hrnPgInterface[interfaceIdx];
-            break;
+            if (hrnGpdbInterface[interfaceIdx].version == pgVersion)
+            {
+                result = &hrnGpdbInterface[interfaceIdx];
+                break;
+            }
+        }
+    }
+    else
+    {   // dt == dbmsPG
+        for (unsigned int interfaceIdx = 0; interfaceIdx < LENGTH_OF(hrnPgInterface); interfaceIdx++)
+        {
+            if (hrnPgInterface[interfaceIdx].version == pgVersion)
+            {
+                result = &hrnPgInterface[interfaceIdx];
+                break;
+            }
         }
     }
 
     // If the version was not found then error
     if (result == NULL)
-        THROW_FMT(AssertError, "invalid " PG_NAME " version %u", pgVersion);
+        THROW_FMT(AssertError, "invalid %s version %u",
+                 (dt == dbmsGPDB) ? GPDB_NAME : PG_NAME,
+                 pgVersion);
 
     FUNCTION_HARNESS_RETURN(STRUCT, result);
 }
 
 /**********************************************************************************************************************************/
 unsigned int
-hrnPgCatalogVersion(unsigned int pgVersion)
+hrnPgCatalogVersion(DBMSType dt, unsigned int pgVersion)
 {
     FUNCTION_HARNESS_BEGIN();
+        FUNCTION_HARNESS_PARAM(UINT, dt);
         FUNCTION_HARNESS_PARAM(UINT, pgVersion);
     FUNCTION_HARNESS_END();
 
-    FUNCTION_HARNESS_RETURN(UINT, hrnPgInterfaceVersion(pgVersion)->catalogVersion());
+    FUNCTION_HARNESS_RETURN(UINT, hrnPgInterfaceVersion(dt, pgVersion)->catalogVersion());
 }
 
 /**********************************************************************************************************************************/
 Buffer *
-hrnPgControlToBuffer(PgControl pgControl)
+hrnPgControlToBuffer(DBMSType dt, PgControl pgControl)
 {
     FUNCTION_HARNESS_BEGIN();
+        FUNCTION_HARNESS_PARAM(UINT, dt);
         FUNCTION_HARNESS_PARAM(PG_CONTROL, pgControl);
     FUNCTION_HARNESS_END();
 
@@ -225,7 +259,7 @@ hrnPgControlToBuffer(PgControl pgControl)
     pgControl.pageSize = pgControl.pageSize == 0 ? PG_PAGE_SIZE_DEFAULT : pgControl.pageSize;
     pgControl.walSegmentSize = pgControl.walSegmentSize == 0 ? PG_WAL_SEGMENT_SIZE_DEFAULT : pgControl.walSegmentSize;
     pgControl.catalogVersion = pgControl.catalogVersion == 0 ?
-        hrnPgInterfaceVersion(pgControl.version)->catalogVersion() : pgControl.catalogVersion;
+        hrnPgInterfaceVersion(dt, pgControl.version)->catalogVersion() : pgControl.catalogVersion;
     pgControl.systemId = pgControl.systemId < 100 ? hrnPgSystemId(pgControl.version) + pgControl.systemId : pgControl.systemId;
     pgControl.checkpoint = pgControl.checkpoint == 0 ? 1 : pgControl.checkpoint;
     pgControl.timeline = pgControl.timeline == 0 ? 1 : pgControl.timeline;
@@ -236,16 +270,17 @@ hrnPgControlToBuffer(PgControl pgControl)
     bufUsedSet(result, bufSize(result));
 
     // Generate pg_control
-    hrnPgInterfaceVersion(pgControl.version)->control(pgControl, bufPtr(result));
+    hrnPgInterfaceVersion(dt, pgControl.version)->control(pgControl, bufPtr(result));
 
     FUNCTION_HARNESS_RETURN(BUFFER, result);
 }
 
 /**********************************************************************************************************************************/
 void
-hrnPgWalToBuffer(PgWal pgWal, Buffer *walBuffer)
+hrnPgWalToBuffer(DBMSType dt, PgWal pgWal, Buffer *walBuffer)
 {
     FUNCTION_HARNESS_BEGIN();
+        FUNCTION_HARNESS_PARAM(UINT, dt);
         FUNCTION_HARNESS_PARAM(PG_WAL, pgWal);
         FUNCTION_HARNESS_PARAM(BUFFER, walBuffer);
     FUNCTION_TEST_END();
@@ -261,7 +296,7 @@ hrnPgWalToBuffer(PgWal pgWal, Buffer *walBuffer)
         pgWal.systemId = hrnPgSystemId(pgWal.version) + pgWal.systemId;
 
     // Generate WAL
-    hrnPgInterfaceVersion(pgWal.version)->wal(pgWal, bufPtr(walBuffer));
+    hrnPgInterfaceVersion(dt, pgWal.version)->wal(pgWal, bufPtr(walBuffer));
 
     FUNCTION_HARNESS_RETURN_VOID();
 }

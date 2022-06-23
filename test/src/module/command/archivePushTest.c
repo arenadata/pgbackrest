@@ -72,7 +72,7 @@ testRun(void)
         Buffer *walBuffer = bufNew((size_t)16 * 1024 * 1024);
         bufUsedSet(walBuffer, bufSize(walBuffer));
         memset(bufPtr(walBuffer), 0, bufSize(walBuffer));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_10}, walBuffer);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_10}, walBuffer);
 
         HRN_STORAGE_PUT(storagePgWrite(), "pg_wal/000000010000000100000002", walBuffer);
         HRN_STORAGE_PUT(storagePgWrite(), "pg_wal/000000010000000100000003", walBuffer);
@@ -104,7 +104,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("mismatched pg_control and archive.info - pg version");
 
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_96);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), dbmsPG, PG_VERSION_96);
 
         // Create incorrect archive info
         HRN_INFO_PUT(
@@ -287,7 +287,7 @@ testRun(void)
         strLstAddZ(argListTemp, "pg_wal/000000010000000100000001");
         HRN_CFG_LOAD(cfgCmdArchivePush, argListTemp);
 
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_11);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), dbmsPG, PG_VERSION_11);
 
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), INFO_ARCHIVE_PATH_FILE,
@@ -301,7 +301,7 @@ testRun(void)
         Buffer *walBuffer1 = bufNew((size_t)16 * 1024 * 1024);
         bufUsedSet(walBuffer1, bufSize(walBuffer1));
         memset(bufPtr(walBuffer1), 0, bufSize(walBuffer1));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_10}, walBuffer1);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_10}, walBuffer1);
 
         HRN_STORAGE_PUT(storagePgWrite(), "pg_wal/000000010000000100000001", walBuffer1);
 
@@ -313,7 +313,7 @@ testRun(void)
                 " match stanza version 11, system-id " HRN_PG_SYSTEMID_11_Z "");
 
         memset(bufPtr(walBuffer1), 0, bufSize(walBuffer1));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_11, .systemId = 1}, walBuffer1);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_11, .systemId = 1}, walBuffer1);
         const char *walBuffer1Sha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer1)));
 
         HRN_STORAGE_PUT(storagePgWrite(), "pg_wal/000000010000000100000001", walBuffer1);
@@ -347,7 +347,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdArchivePush, argListTemp);
 
         memset(bufPtr(walBuffer1), 0, bufSize(walBuffer1));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_11}, walBuffer1);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_11}, walBuffer1);
 
         HRN_STORAGE_PUT(storagePgWrite(), "pg_wal/000000010000000100000001", walBuffer1);
 
@@ -374,7 +374,7 @@ testRun(void)
         Buffer *walBuffer2 = bufNew((size_t)16 * 1024 * 1024);
         bufUsedSet(walBuffer2, bufSize(walBuffer2));
         memset(bufPtr(walBuffer2), 0xFF, bufSize(walBuffer2));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_11}, walBuffer2);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_11}, walBuffer2);
         const char *walBuffer2Sha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer2)));
 
         HRN_STORAGE_PUT(storagePgWrite(), "pg_wal/000000010000000100000001", walBuffer2);
@@ -463,7 +463,7 @@ testRun(void)
         walBuffer2 = bufNew(1024);
         bufUsedSet(walBuffer2, bufSize(walBuffer2));
         memset(bufPtr(walBuffer2), 0xFF, bufSize(walBuffer2));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_11}, walBuffer2);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_11}, walBuffer2);
         walBuffer2Sha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer2)));
         HRN_STORAGE_PUT(storageTest, "pg/pg_wal/000000010000000100000002", walBuffer2, .comment = "write WAL");
 
@@ -673,7 +673,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
         hrnCfgArgRawBool(argList, cfgOptLogSubprocess, true);
 
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_94);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), dbmsPG, PG_VERSION_94);
 
         HRN_INFO_PUT(
             storageTest, "repo/archive/test/archive.info",
@@ -757,7 +757,7 @@ testRun(void)
         Buffer *walBuffer1 = bufNew((size_t)16 * 1024 * 1024);
         bufUsedSet(walBuffer1, bufSize(walBuffer1));
         memset(bufPtr(walBuffer1), 0xFF, bufSize(walBuffer1));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_94}, walBuffer1);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_94}, walBuffer1);
         const char *walBuffer1Sha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer1)));
 
         HRN_STORAGE_PUT(storagePgWrite(),"pg_xlog/000000010000000100000001", walBuffer1);
@@ -862,7 +862,7 @@ testRun(void)
         Buffer *walBuffer2 = bufNew((size_t)16 * 1024 * 1024);
         bufUsedSet(walBuffer2, bufSize(walBuffer2));
         memset(bufPtr(walBuffer2), 0x0C, bufSize(walBuffer2));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_94}, walBuffer2);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_94}, walBuffer2);
         const char *walBuffer2Sha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer2)));
 
         HRN_STORAGE_PUT(storagePgWrite(), "pg_xlog/000000010000000100000002", walBuffer2);
@@ -911,7 +911,7 @@ testRun(void)
         Buffer *walBuffer3 = bufNew((size_t)16 * 1024 * 1024);
         bufUsedSet(walBuffer3, bufSize(walBuffer3));
         memset(bufPtr(walBuffer3), 0x44, bufSize(walBuffer3));
-        hrnPgWalToBuffer((PgWal){.version = PG_VERSION_94}, walBuffer3);
+        hrnPgWalToBuffer(dbmsPG, (PgWal){.version = PG_VERSION_94}, walBuffer3);
         const char *walBuffer3Sha1 = strZ(bufHex(cryptoHashOne(hashTypeSha1, walBuffer3)));
 
         HRN_STORAGE_PUT(storagePgWrite(), "pg_xlog/000000010000000100000003", walBuffer3);

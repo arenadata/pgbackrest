@@ -129,7 +129,7 @@ testRun(void)
                 HRN_CFG_LOAD(cfgCmdBackup, argList);
 
                 // Create control file
-                HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_93);
+                HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_93);
 
                 // Create client
                 ProtocolClient *client = NULL;
@@ -205,7 +205,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdBackup, argList);
 
         // Create control file
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_93, .checkpoint = pgLsnFromStr(STRDEF("1/1")));
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_93, .checkpoint = pgLsnFromStr(STRDEF("1/1")));
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error when unable to select any pg_settings");
@@ -300,7 +300,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("PostgreSQL 9.5 start/stop backup");
 
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_93, .checkpoint = pgLsnFromStr(STRDEF("2/3")));
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_93, .checkpoint = pgLsnFromStr(STRDEF("2/3")));
 
         harnessPqScriptSet((HarnessPq [])
         {
@@ -357,7 +357,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("PostgreSQL 9.5 start/stop backup where backup is in progress");
 
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_93, .checkpoint = pgLsnFromStr(STRDEF("2/5")));
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_93, .checkpoint = pgLsnFromStr(STRDEF("2/5")));
 
         harnessPqScriptSet((HarnessPq [])
         {
@@ -398,7 +398,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("PostgreSQL 9.6 start/stop backup");
 
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_93, .checkpoint = pgLsnFromStr(STRDEF("3/3")));
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_93, .checkpoint = pgLsnFromStr(STRDEF("3/3")));
 
         harnessPqScriptSet((HarnessPq [])
         {
@@ -462,8 +462,8 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdBackup, argList);
 
         // Create control file
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_93, .timeline = 5, .checkpoint = pgLsnFromStr(STRDEF("5/4")));
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), PG_VERSION_93, .timeline = 5, .checkpoint = pgLsnFromStr(STRDEF("5/4")));
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_93, .timeline = 5, .checkpoint = pgLsnFromStr(STRDEF("5/4")));
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), dbmsPG, PG_VERSION_93, .timeline = 5, .checkpoint = pgLsnFromStr(STRDEF("5/4")));
 
         harnessPqScriptSet((HarnessPq [])
         {
@@ -527,8 +527,8 @@ testRun(void)
         TEST_TITLE("PostgreSQL 10 start/stop backup from standby");
 
         // Update control file
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_93, .timeline = 5, .checkpoint = pgLsnFromStr(STRDEF("5/5")));
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), PG_VERSION_93, .timeline = 5, .checkpoint = pgLsnFromStr(STRDEF("5/5")));
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_93, .timeline = 5, .checkpoint = pgLsnFromStr(STRDEF("5/5")));
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), dbmsPG, PG_VERSION_93, .timeline = 5, .checkpoint = pgLsnFromStr(STRDEF("5/5")));
 
         harnessPqScriptSet((HarnessPq [])
         {
@@ -677,7 +677,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("PostgreSQL 15 - non-exclusive flag dropped");
 
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_15, .timeline = 6, .checkpoint = pgLsnFromStr(STRDEF("6/6")));
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_15, .timeline = 6, .checkpoint = pgLsnFromStr(STRDEF("6/6")));
 
         argList = strLstNew();
         hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
@@ -733,7 +733,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdBackup, argList);
 
         // Create control file
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_93);
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), dbmsPG, PG_VERSION_93);
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error connecting to primary");
@@ -825,7 +825,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdBackup, argList);
 
         // Create control file
-        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), PG_VERSION_93);
+        HRN_PG_CONTROL_PUT(storagePgIdxWrite(1), dbmsPG, PG_VERSION_93);
 
         harnessPqScriptSet((HarnessPq [])
         {
