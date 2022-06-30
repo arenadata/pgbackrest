@@ -378,17 +378,24 @@ pgTablespaceId(unsigned int pgVersion, unsigned int pgCatalogVersion)
 
     String *result = NULL;
 
-    MEM_CONTEXT_TEMP_BEGIN()
+    if (getDBMSType(pgCatalogVersion) == dbmsGPDB)
     {
-        String *pgVersionStr = pgVersionToStr(pgVersion);
-
-        MEM_CONTEXT_PRIOR_BEGIN()
-        {
-            result = strNewFmt("PG_%s_%u", strZ(pgVersionStr), pgCatalogVersion);
-        }
-        MEM_CONTEXT_PRIOR_END();
+        result = strNewFmt("GPDB_%u_%u", (pgControlVersion(dbmsGPDB, pgVersion) % 10000) / 100, pgCatalogVersion);
     }
-    MEM_CONTEXT_TEMP_END();
+    else
+    {
+        MEM_CONTEXT_TEMP_BEGIN()
+        {
+            String *pgVersionStr = pgVersionToStr(pgVersion);
+
+            MEM_CONTEXT_PRIOR_BEGIN()
+            {
+                result = strNewFmt("PG_%s_%u", strZ(pgVersionStr), pgCatalogVersion);
+            }
+            MEM_CONTEXT_PRIOR_END();
+        }
+        MEM_CONTEXT_TEMP_END();
+    }
 
     FUNCTION_TEST_RETURN(STRING, result);
 }

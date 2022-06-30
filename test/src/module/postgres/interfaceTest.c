@@ -188,6 +188,7 @@ testRun(void)
 
         TEST_RESULT_STR_Z(pgTablespaceId(PG_VERSION_90, 201008051), "PG_9.0_201008051", "check 9.0 tablespace id");
         TEST_RESULT_STR_Z(pgTablespaceId(PG_VERSION_94, 999999999), "PG_9.4_999999999", "check 9.4 tablespace id");
+        TEST_RESULT_STR_Z(pgTablespaceId(GPDB_VERSION_6, 301908232), "GPDB_6_301908232", "check GPDB6 tablespace id");
 
         TEST_RESULT_STR_Z(pgWalName(PG_VERSION_96), "xlog", "check xlog name");
         TEST_RESULT_STR_Z(pgWalName(PG_VERSION_10), "wal", "check wal name");
