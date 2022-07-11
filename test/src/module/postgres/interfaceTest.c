@@ -496,5 +496,33 @@ testRun(void)
         TEST_RESULT_Z(logBuf, "{version: 100000, systemId: 1095199817470}", "check log");
     }
 
+    // *****************************************************************************************************************************
+    // Test configurations loading to initialize cfgOptFork value (GPDB)
+    argList = strLstNew();
+    hrnCfgArgRawZ(argList, cfgOptStanza, "test");
+    hrnCfgArgRawZ(argList, cfgOptFork, "GPDB");
+    hrnCfgArgKeyRawZ(argList, cfgOptPgPath, 1, "/pg1");
+    hrnCfgArgKeyRawZ(argList, cfgOptRepoRetentionFull, 1, "2");
+    hrnCfgLoadP(cfgCmdBackup, argList);
+    if (testBegin("pgTablespaceId for GPDB"))
+    {
+        TEST_RESULT_STR_Z(pgTablespaceId(PG_VERSION_94, 999999999), "GPDB_6_999999999", "check GPDB 6 tablespace id");
+    }
+
+    if (testBegin("pg_control with valid crc32 for Greenplum"))
+    {
+        HRN_PG_CONTROL_OVERRIDE_VERSION_PUT(
+            storageTest, PG_VERSION_94, 9420600, .systemId = 0xEFEFEFEFEF, .catalogVersion = 301908232,
+            .pageSize = 32768, .walSegmentSize = 64 * 1024 * 1024);
+
+        PgControl info = {0};
+        TEST_ASSIGN(info, pgControlFromFile(storageTest, NULL), "get control info v9.4 (Greenplum)");
+        TEST_RESULT_UINT(info.systemId, 0xEFEFEFEFEF, "   check system id");
+        TEST_RESULT_UINT(info.version, PG_VERSION_94, "   check version");
+        TEST_RESULT_UINT(info.catalogVersion, 301908232, "   check catalog version");
+        TEST_RESULT_UINT(info.checkpoint, 1, "check checkpoint");
+        TEST_RESULT_UINT(info.timeline, 1, "check timeline");
+    }
+
     FUNCTION_HARNESS_RETURN_VOID();
 }

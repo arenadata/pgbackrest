@@ -10,6 +10,7 @@ PostgreSQL Interface
 #include "common/memContext.h"
 #include "common/regExp.h"
 #include "common/time.h"
+#include "config/config.h"
 #include "postgres/interface.h"
 #include "postgres/interface/crc32.h"
 #include "postgres/interface/static.vendor.h"
@@ -62,7 +63,10 @@ typedef struct PgInterface
     // Version of PostgreSQL supported by this interface
     unsigned int version;
 
-    // Does pg_control match this version of PostgreSQL?
+    // DBMS (PostgreSQL or its fork) supported by this interface
+    StringId fork;
+
+    // Does pg_control match this version and fork of PostgreSQL?
     bool (*controlIs)(const unsigned char *);
 
     // Convert pg_control to a common data structure
@@ -71,14 +75,20 @@ typedef struct PgInterface
     // Get control crc offset
     size_t (*controlCrcOffset)(void);
 
-    // Get the control version for this version of PostgreSQL
+    // Get the control version for this version and fork of PostgreSQL
     uint32_t (*controlVersion)(void);
 
-    // Does the WAL header match this version of PostgreSQL?
+    // Does the WAL header match this version and fork of PostgreSQL?
     bool (*walIs)(const unsigned char *);
 
     // Convert WAL header to a common data structure
     PgWal (*wal)(const unsigned char *);
+
+    // Get the tablespace identifier used to distinguish versions in a tablespace directory
+    String *(*tablespaceId)(unsigned int pgCatalogVersion);
+
+    // Get default WAL segment size for this version and fork of PostgreSQL
+    unsigned int (*walSegmentSizeDefault)(void);
 } PgInterface;
 
 // Include auto-generated interfaces
@@ -106,10 +116,11 @@ pgInterfaceVersion(unsigned int pgVersion)
     FUNCTION_TEST_END();
 
     const PgInterface *result = NULL;
+    const StringId fork = cfgOptionStrId(cfgOptFork);
 
     for (unsigned int interfaceIdx = 0; interfaceIdx < LENGTH_OF(pgInterface); interfaceIdx++)
     {
-        if (pgInterface[interfaceIdx].version == pgVersion)
+        if (pgInterface[interfaceIdx].version == pgVersion && pgInterface[interfaceIdx].fork == fork)
         {
             result = &pgInterface[interfaceIdx];
             break;
@@ -173,11 +184,11 @@ pgWalSegmentSizeCheck(unsigned int pgVersion, unsigned int walSegmentSize)
         FUNCTION_TEST_PARAM(UINT, walSegmentSize);
     FUNCTION_TEST_END();
 
-    if (pgVersion < PG_VERSION_11 && walSegmentSize != PG_WAL_SEGMENT_SIZE_DEFAULT)
+    if (pgVersion < PG_VERSION_11 && walSegmentSize != pgWalSegmentSizeDefault(pgVersion))
     {
         THROW_FMT(
             FormatError, "wal segment size is %u but must be %u for " PG_NAME " <= " PG_VERSION_10_Z, walSegmentSize,
-            PG_WAL_SEGMENT_SIZE_DEFAULT);
+            pgWalSegmentSizeDefault(pgVersion));
     }
 
     FUNCTION_TEST_RETURN_VOID();
@@ -196,6 +207,7 @@ pgControlFromBuffer(const Buffer *controlFile, const String *const pgVersionForc
 
     // Search for the version of PostgreSQL that uses this control file
     const PgInterface *interface = NULL;
+    const StringId fork = cfgOptionStrId(cfgOptFork);
 
     if (pgVersionForce != NULL)
         interface = pgInterfaceVersion(pgVersionFromStr(pgVersionForce));
@@ -203,7 +215,7 @@ pgControlFromBuffer(const Buffer *controlFile, const String *const pgVersionForc
     {
         for (unsigned int interfaceIdx = 0; interfaceIdx < LENGTH_OF(pgInterface); interfaceIdx++)
         {
-            if (pgInterface[interfaceIdx].controlIs(bufPtrConst(controlFile)))
+            if (pgInterface[interfaceIdx].fork == fork && pgInterface[interfaceIdx].controlIs(bufPtrConst(controlFile)))
             {
                 interface = &pgInterface[interfaceIdx];
                 break;
@@ -236,7 +248,7 @@ pgControlFromBuffer(const Buffer *controlFile, const String *const pgVersionForc
     {
         // Calculate CRC and retrieve expected CRC
         const uint32_t crcCalculated =
-            result.version > PG_VERSION_94 ?
+            result.version > PG_VERSION_94 || fork == CFGOPTVAL_FORK_GPDB ?
                 crc32cOne(bufPtrConst(controlFile), crcOffset) : crc32One(bufPtrConst(controlFile), crcOffset);
         const uint32_t crcExpected = *((uint32_t *)(bufPtrConst(controlFile) + crcOffset));
 
@@ -413,6 +425,7 @@ pgWalFromBuffer(const Buffer *walBuffer, const String *const pgVersionForce)
 
     // Search for the version of PostgreSQL that uses this WAL magic
     const PgInterface *interface = NULL;
+    const StringId fork = cfgOptionStrId(cfgOptFork);
 
     if (pgVersionForce != NULL)
         interface = pgInterfaceVersion(pgVersionFromStr(pgVersionForce));
@@ -420,7 +433,7 @@ pgWalFromBuffer(const Buffer *walBuffer, const String *const pgVersionForce)
     {
         for (unsigned int interfaceIdx = 0; interfaceIdx < LENGTH_OF(pgInterface); interfaceIdx++)
         {
-            if (pgInterface[interfaceIdx].walIs(bufPtrConst(walBuffer)))
+            if (pgInterface[interfaceIdx].fork == fork && pgInterface[interfaceIdx].walIs(bufPtrConst(walBuffer)))
             {
                 interface = &pgInterface[interfaceIdx];
                 break;
@@ -474,6 +487,16 @@ pgWalFromFile(const String *walFile, const Storage *storage, const String *const
     FUNCTION_LOG_RETURN(PG_WAL, result);
 }
 
+unsigned int
+pgWalSegmentSizeDefault(unsigned int pgVersion)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(UINT, pgVersion);
+    FUNCTION_TEST_END();
+
+    FUNCTION_TEST_RETURN(UINT, pgInterfaceVersion(pgVersion)->walSegmentSizeDefault());
+}
+
 /**********************************************************************************************************************************/
 FN_EXTERN String *
 pgTablespaceId(unsigned int pgVersion, unsigned int pgCatalogVersion)
@@ -483,21 +506,7 @@ pgTablespaceId(unsigned int pgVersion, unsigned int pgCatalogVersion)
         FUNCTION_TEST_PARAM(UINT, pgCatalogVersion);
     FUNCTION_TEST_END();
 
-    String *result = NULL;
-
-    MEM_CONTEXT_TEMP_BEGIN()
-    {
-        String *pgVersionStr = pgVersionToStr(pgVersion);
-
-        MEM_CONTEXT_PRIOR_BEGIN()
-        {
-            result = strNewFmt("PG_%s_%u", strZ(pgVersionStr), pgCatalogVersion);
-        }
-        MEM_CONTEXT_PRIOR_END();
-    }
-    MEM_CONTEXT_TEMP_END();
-
-    FUNCTION_TEST_RETURN(STRING, result);
+    FUNCTION_TEST_RETURN(STRING, pgInterfaceVersion(pgVersion)->tablespaceId(pgCatalogVersion));
 }
 
 /**********************************************************************************************************************************/
