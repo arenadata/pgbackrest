@@ -61,6 +61,6 @@ typedef struct BackupFileResult
 
 FN_EXTERN List *backupFile(
     const String *repoFile, uint64_t bundleId, bool bundleRaw, unsigned int blockIncrReference, CompressType repoFileCompressType,
-    int repoFileCompressLevel, CipherType cipherType, const String *cipherPass, const List *fileList);
+    int repoFileCompressLevel, CipherType cipherType, const String *cipherPass, const unsigned int pageSize, const List *fileList);
 
 #endif
