@@ -1513,7 +1513,7 @@ backupJobResult(
                                 // ??? Update formatting after migration
                                 LOG_WARN_FMT(
                                     "page misalignment in file %s: file size %" PRIu64 " is not divisible by page size %u",
-                                    strZ(fileLog), copySize, PG_PAGE_SIZE_DEFAULT);
+                                    strZ(fileLog), copySize, pgPageSizeDefault(manifestData(manifest)->pgVersion));
                             }
                             else
                             {
@@ -1988,6 +1988,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                     pckWriteI32P(param, jobData->compressLevel);
                     pckWriteU64P(param, jobData->cipherSubPass == NULL ? cipherTypeNone : cipherTypeAes256Cbc);
                     pckWriteStrP(param, jobData->cipherSubPass);
+                    pckWriteU32P(param, pgPageSizeDefault(manifestData(jobData->manifest)->pgVersion));
                 }
 
                 pckWriteStrP(param, manifestPathPg(file.name));
