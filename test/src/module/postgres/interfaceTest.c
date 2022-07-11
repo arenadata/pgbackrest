@@ -3,6 +3,7 @@ Test PostgreSQL Interface
 ***********************************************************************************************************************************/
 #include "storage/posix/storage.h"
 
+#include "common/harnessConfig.h"
 #include "common/harnessPostgres.h"
 
 /***********************************************************************************************************************************
@@ -14,6 +15,11 @@ testRun(void)
     FUNCTION_HARNESS_VOID();
 
     Storage *storageTest = storagePosixNewP(TEST_PATH_STR, .write = true);
+    // Test configurations loading to initialize cfgOptFork value (PostgreSQL)
+    StringList *argList = strLstNew();
+    hrnCfgArgRawZ(argList, cfgOptStanza, "test");
+    hrnCfgArgKeyRawZ(argList, cfgOptPgPath, 1, "/pg1");
+    hrnCfgLoadP(cfgCmdBackup, argList);
 
     // *****************************************************************************************************************************
     if (testBegin("pgVersionFromStr() and pgVersionToStr()"))
@@ -235,11 +241,17 @@ testRun(void)
     // *****************************************************************************************************************************
     if (testBegin("pgPageChecksum()"))
     {
-        unsigned char page[PG_PAGE_SIZE_DEFAULT];
-        memset(page, 0xFF, PG_PAGE_SIZE_DEFAULT);
+        unsigned char pagePG[POSTGRESQL_PAGE_SIZE];
+        memset(pagePG, 0xFF, sizeof(pagePG));
 
-        TEST_RESULT_UINT(pgPageChecksum(page, 0), TEST_BIG_ENDIAN() ? 0xF55E : 0x0E1C, "check 0xFF filled page, block 0");
-        TEST_RESULT_UINT(pgPageChecksum(page, 999), TEST_BIG_ENDIAN() ? 0xF1B9 : 0x0EC3, "check 0xFF filled page, block 999");
+        TEST_RESULT_UINT(pgPageChecksum(pagePG, 0, sizeof(pagePG)), TEST_BIG_ENDIAN() ? 0xF55E : 0x0E1C, "check 0xFF filled page, block 0");
+        TEST_RESULT_UINT(pgPageChecksum(pagePG, 999, sizeof(pagePG)), TEST_BIG_ENDIAN() ? 0xF1B9 : 0x0EC3, "check 0xFF filled page, block 999");
+
+        unsigned char pageGPDB[GPDB_PAGE_SIZE];
+        memset(pageGPDB, 0xFF, sizeof(pageGPDB));
+
+        TEST_RESULT_UINT(pgPageChecksum(pageGPDB, 0, sizeof(pageGPDB)), TEST_BIG_ENDIAN() ? 0x7F66 : 0x5366, "check 0xFF filled page, block 0");
+        TEST_RESULT_UINT(pgPageChecksum(pageGPDB, 999, sizeof(pageGPDB)), TEST_BIG_ENDIAN() ? 0x82C5 : 0x5745, "check 0xFF filled page, block 999");
     }
 
     // *****************************************************************************************************************************
@@ -344,6 +356,42 @@ testRun(void)
 
         TEST_RESULT_VOID(FUNCTION_LOG_OBJECT_FORMAT(&pgWal, pgWalToLog, logBuf, sizeof(logBuf)), "pgWalToLog");
         TEST_RESULT_Z(logBuf, "{version: 100000, systemId: 1095199817470}", "check log");
+    }
+
+    // *****************************************************************************************************************************
+    if (testBegin("pgPageSizeDefault() for PostgreSQL"))
+    {
+        TEST_RESULT_UINT(pgPageSizeDefault(PG_VERSION_94), POSTGRESQL_PAGE_SIZE, "check PostgreSQL 9.4 page size");
+        TEST_RESULT_UINT(pgPageSizeDefault(PG_VERSION_95), POSTGRESQL_PAGE_SIZE, "check PostgreSQL 9.5 page size");
+    }
+
+    // *****************************************************************************************************************************
+    // Test configurations loading to initialize cfgOptFork value (GPDB)
+    argList = strLstNew();
+    hrnCfgArgRawZ(argList, cfgOptStanza, "test");
+    hrnCfgArgRawZ(argList, cfgOptFork, "GPDB");
+    hrnCfgArgKeyRawZ(argList, cfgOptPgPath, 1, "/pg1");
+    hrnCfgArgKeyRawZ(argList, cfgOptRepoRetentionFull, 1, "2");
+    hrnCfgLoadP(cfgCmdBackup, argList);
+    if (testBegin("pgPageSizeDefault() and pgTablespaceId for GPDB"))
+    {
+        TEST_RESULT_UINT(pgPageSizeDefault(PG_VERSION_94), GPDB_PAGE_SIZE, "check GPDB page size");
+        TEST_RESULT_STR_Z(pgTablespaceId(PG_VERSION_94, 999999999), "GPDB_6_999999999", "check GPDB 6 tablespace id");
+    }
+
+    if (testBegin("pg_control with valid crc32 for Greenplum"))
+    {
+        HRN_PG_CONTROL_OVERRIDE_VERSION_PUT(
+            storageTest, PG_VERSION_94, 9420600, .systemId = 0xEFEFEFEFEF, .catalogVersion = 301908232,
+            .pageSize = 32768, .walSegmentSize = 64 * 1024 * 1024);
+
+        PgControl info = {0};
+        TEST_ASSIGN(info, pgControlFromFile(storageTest, NULL), "get control info v9.4 (Greenplum)");
+        TEST_RESULT_UINT(info.systemId, 0xEFEFEFEFEF, "   check system id");
+        TEST_RESULT_UINT(info.version, PG_VERSION_94, "   check version");
+        TEST_RESULT_UINT(info.catalogVersion, 301908232, "   check catalog version");
+        TEST_RESULT_UINT(info.checkpoint, 1, "check checkpoint");
+        TEST_RESULT_UINT(info.timeline, 1, "check timeline");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();

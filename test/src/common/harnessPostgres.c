@@ -2,6 +2,7 @@
 Harness for PostgreSQL Interface
 ***********************************************************************************************************************************/
 #include "build.auto.h"
+#include "config/config.h"
 
 #include "common/assert.h"
 
@@ -14,6 +15,10 @@ Interface definition
 uint32_t hrnPgInterfaceCatalogVersion094(void);
 void hrnPgInterfaceControl094(unsigned int controlVersion, unsigned int crc, PgControl pgControl, unsigned char *buffer);
 void hrnPgInterfaceWal094(unsigned int magic, PgWal pgWal, unsigned char *buffer);
+
+uint32_t hrnPgInterfaceCatalogVersion94GPDB(void);
+void hrnPgInterfaceControl94GPDB(unsigned int controlVersion, unsigned int crc, PgControl pgControl, unsigned char *buffer);
+void hrnPgInterfaceWal94GPDB(unsigned int magic, PgWal pgWal, unsigned char *buffer);
 
 uint32_t hrnPgInterfaceCatalogVersion095(void);
 void hrnPgInterfaceControl095(unsigned int controlVersion, unsigned int crc, PgControl pgControl, unsigned char *buffer);
@@ -56,6 +61,8 @@ typedef struct HrnPgInterface
     // Version of PostgreSQL supported by this interface
     unsigned int version;
 
+    StringId fork;
+
     // Catalog version
     unsigned int (*catalogVersion)(void);
 
@@ -70,6 +77,7 @@ static const HrnPgInterface hrnPgInterface[] =
 {
     {
         .version = PG_VERSION_16,
+        .fork = CFGOPTVAL_FORK_POSTGRESQL,
 
         .catalogVersion = hrnPgInterfaceCatalogVersion160,
         .control = hrnPgInterfaceControl160,
@@ -77,6 +85,7 @@ static const HrnPgInterface hrnPgInterface[] =
     },
     {
         .version = PG_VERSION_15,
+        .fork = CFGOPTVAL_FORK_POSTGRESQL,
 
         .catalogVersion = hrnPgInterfaceCatalogVersion150,
         .control = hrnPgInterfaceControl150,
@@ -84,6 +93,7 @@ static const HrnPgInterface hrnPgInterface[] =
     },
     {
         .version = PG_VERSION_14,
+        .fork = CFGOPTVAL_FORK_POSTGRESQL,
 
         .catalogVersion = hrnPgInterfaceCatalogVersion140,
         .control = hrnPgInterfaceControl140,
@@ -91,6 +101,7 @@ static const HrnPgInterface hrnPgInterface[] =
     },
     {
         .version = PG_VERSION_13,
+        .fork = CFGOPTVAL_FORK_POSTGRESQL,
 
         .catalogVersion = hrnPgInterfaceCatalogVersion130,
         .control = hrnPgInterfaceControl130,
@@ -98,6 +109,7 @@ static const HrnPgInterface hrnPgInterface[] =
     },
     {
         .version = PG_VERSION_12,
+        .fork = CFGOPTVAL_FORK_POSTGRESQL,
 
         .catalogVersion = hrnPgInterfaceCatalogVersion120,
         .control = hrnPgInterfaceControl120,
@@ -105,6 +117,7 @@ static const HrnPgInterface hrnPgInterface[] =
     },
     {
         .version = PG_VERSION_11,
+        .fork = CFGOPTVAL_FORK_POSTGRESQL,
 
         .catalogVersion = hrnPgInterfaceCatalogVersion110,
         .control = hrnPgInterfaceControl110,
@@ -112,6 +125,7 @@ static const HrnPgInterface hrnPgInterface[] =
     },
     {
         .version = PG_VERSION_10,
+        .fork = CFGOPTVAL_FORK_POSTGRESQL,
 
         .catalogVersion = hrnPgInterfaceCatalogVersion100,
         .control = hrnPgInterfaceControl100,
@@ -119,6 +133,7 @@ static const HrnPgInterface hrnPgInterface[] =
     },
     {
         .version = PG_VERSION_96,
+        .fork = CFGOPTVAL_FORK_POSTGRESQL,
 
         .catalogVersion = hrnPgInterfaceCatalogVersion096,
         .control = hrnPgInterfaceControl096,
@@ -126,6 +141,7 @@ static const HrnPgInterface hrnPgInterface[] =
     },
     {
         .version = PG_VERSION_95,
+        .fork = CFGOPTVAL_FORK_POSTGRESQL,
 
         .catalogVersion = hrnPgInterfaceCatalogVersion095,
         .control = hrnPgInterfaceControl095,
@@ -133,10 +149,19 @@ static const HrnPgInterface hrnPgInterface[] =
     },
     {
         .version = PG_VERSION_94,
+        .fork = CFGOPTVAL_FORK_POSTGRESQL,
 
         .catalogVersion = hrnPgInterfaceCatalogVersion094,
         .control = hrnPgInterfaceControl094,
         .wal = hrnPgInterfaceWal094,
+    },
+    {
+        .version = PG_VERSION_94,
+        .fork = CFGOPTVAL_FORK_GPDB,
+
+        .catalogVersion = hrnPgInterfaceCatalogVersion94GPDB,
+        .control = hrnPgInterfaceControl94GPDB,
+        .wal = hrnPgInterfaceWal94GPDB,
     },
 };
 
@@ -151,10 +176,11 @@ hrnPgInterfaceVersion(unsigned int pgVersion)
     FUNCTION_HARNESS_END();
 
     const HrnPgInterface *result = NULL;
+    const StringId fork = cfgOptionStrId(cfgOptFork);
 
     for (unsigned int interfaceIdx = 0; interfaceIdx < LENGTH_OF(hrnPgInterface); interfaceIdx++)
     {
-        if (hrnPgInterface[interfaceIdx].version == pgVersion)
+        if (hrnPgInterface[interfaceIdx].version == pgVersion && hrnPgInterface[interfaceIdx].fork == fork)
         {
             result = &hrnPgInterface[interfaceIdx];
             break;
@@ -192,7 +218,7 @@ hrnPgControlToBuffer(const unsigned int controlVersion, const unsigned int crc, 
     ASSERT(pgControl.version != 0);
 
     // Set defaults if values are not passed
-    pgControl.pageSize = pgControl.pageSize == 0 ? PG_PAGE_SIZE_DEFAULT : pgControl.pageSize;
+    pgControl.pageSize = pgControl.pageSize == 0 ? POSTGRESQL_PAGE_SIZE : pgControl.pageSize;
     pgControl.walSegmentSize = pgControl.walSegmentSize == 0 ? PG_WAL_SEGMENT_SIZE_DEFAULT : pgControl.walSegmentSize;
     pgControl.catalogVersion =
         pgControl.catalogVersion == 0 ? hrnPgInterfaceVersion(pgControl.version)->catalogVersion() : pgControl.catalogVersion;
