@@ -1,21 +1,4 @@
 ####################################################################################################################################
-# It is very easy to get into confusing states when the source directory contains an in-place build, e.g. the wrong build.auto.h
-# will be used. So just refuse to build in this case.
-####################################################################################################################################
-if import('fs').exists(meson.current_source_dir() / 'build.auto.h')
-  error('''
-
-Non-clean source code directory detected.
-
-To build with meson the source tree may not have an in-place, ./configure
-style, build configured. Use a separate check out for meson based builds, or
-run 'make clean-all' in the source tree.
-
-You can have both meson and ./configure style builds for the same source tree
-by building out-of-source / VPATH with configure as well.''')
-endif
-
-####################################################################################################################################
 # Write configuration
 ####################################################################################################################################
 configure_file(output: 'build.auto.h', configuration: configuration)
@@ -41,6 +24,7 @@ src_common = files(
 	'common/regExp.c',
 	'common/stackTrace.c',
 	'common/time.c',
+	'common/type/blob.c',
 	'common/type/buffer.c',
 	'common/type/convert.c',
 	'common/type/keyValue.c',
@@ -59,6 +43,8 @@ src_common = files(
 	'storage/posix/read.c',
 	'storage/posix/storage.c',
 	'storage/posix/write.c',
+	'storage/iterator.c',
+	'storage/list.c',
 	'storage/read.c',
 	'storage/storage.c',
 	'storage/write.c',
@@ -85,8 +71,6 @@ build_config = executable(
     build_by_default: false,
 )
 
-alias_target('build-config', build_config)
-
 ####################################################################################################################################
 # Build error target
 ####################################################################################################################################
@@ -107,8 +91,6 @@ build_error = executable(
     ],
     build_by_default: false,
 )
-
-alias_target('build-error', build_error)
 
 ####################################################################################################################################
 # Build help target
@@ -139,8 +121,6 @@ build_help = executable(
 # build help.auto.c.inc
 subdir('command/help')
 
-alias_target('build-help', help_auto_c_inc)
-
 ####################################################################################################################################
 # Build postgres target
 ####################################################################################################################################
@@ -163,8 +143,6 @@ build_postgres = executable(
 
 # build interface.auto.c.inc
 subdir('postgres')
-
-alias_target('build-postgres', build_postgres)
 
 ####################################################################################################################################
 # pgBackRest target
@@ -302,7 +280,7 @@ src_pgbackrest = [
     'main.c',
 ]
 
-pgbackrest = executable(
+executable(
     'pgbackrest',
     src_common,
     src_pgbackrest,
@@ -318,5 +296,3 @@ pgbackrest = executable(
         lib_zstd,
     ]
 )
-
-alias_target('pgbackrest', pgbackrest)
