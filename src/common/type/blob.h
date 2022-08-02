@@ -1,38 +1,58 @@
 /***********************************************************************************************************************************
-Version Numbers and Names
+Blob Handler
+
+Efficiently store large numbers of small allocations by packing them onto larger blocks. Note that the allocations will not be
+aligned unless all of them are aligned.
+
+A usage example is to store zero-terminated strings, which do not need to be aligned, and where alignment might waste significant
+space.
+
+Note that this code is fairly primitive, and this should probably be a capability of memory contexts. However, for now it reduces
+memory requirements for large numbers of zero-terminated strings.
 ***********************************************************************************************************************************/
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef COMMON_TYPE_BLOB_H
+#define COMMON_TYPE_BLOB_H
 
 /***********************************************************************************************************************************
-Official name of the project
+Size of blocks allocated for blob data
 ***********************************************************************************************************************************/
-#define PROJECT_NAME                                                "pgBackRest"
+#ifndef BLOB_BLOCK_SIZE
+    #define BLOB_BLOCK_SIZE                                         (64 * 1024)
+#endif
 
 /***********************************************************************************************************************************
-Standard binary name
+Object type
 ***********************************************************************************************************************************/
-#define PROJECT_BIN                                                 "pgbackrest"
+typedef struct Blob Blob;
+
+#include "common/type/object.h"
 
 /***********************************************************************************************************************************
-Config file name. The path will vary based on configuration.
+Constructor
 ***********************************************************************************************************************************/
-#define PROJECT_CONFIG_FILE                                         PROJECT_BIN ".conf"
+Blob *blbNew(void);
 
 /***********************************************************************************************************************************
-Config include path name. The parent path will vary based on configuration.
+Functions
 ***********************************************************************************************************************************/
-#define PROJECT_CONFIG_INCLUDE_PATH                                 "conf.d"
+// Add data to the blob
+const void *blbAdd(Blob *this, const void *data, size_t size);
 
 /***********************************************************************************************************************************
-Format Number -- defines format for info and manifest files as well as on-disk structure.  If this number changes then the
-repository will be invalid unless migration functions are written.
+Destructor
 ***********************************************************************************************************************************/
-#define REPOSITORY_FORMAT                                           5
+__attribute__((always_inline)) static inline void
+strBlbFree(Blob *const this)
+{
+    objFree(this);
+}
 
 /***********************************************************************************************************************************
-Software version
+Macros for function logging
 ***********************************************************************************************************************************/
-#define PROJECT_VERSION                                             "2.40"
+#define FUNCTION_LOG_BLOB_TYPE                                                                                                     \
+    Blob *
+#define FUNCTION_LOG_BLOB_FORMAT(value, buffer, bufferSize)                                                                        \
+    objToLog(value, "Blob", buffer, bufferSize)
 
 #endif
