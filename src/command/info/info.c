@@ -387,12 +387,12 @@ Add the backup data to the backup section
 ***********************************************************************************************************************************/
 static void
 backupListAdd(
-    VariantList *backupSection, InfoBackupData *backupData, const String *backupLabel, InfoRepoData *repoData)
+    VariantList *backupSection, InfoBackupData *backupData, const bool backupLabelMatch, InfoRepoData *repoData)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(VARIANT_LIST, backupSection);           // The section to add the backup data to
         FUNCTION_TEST_PARAM_P(INFO_BACKUP_DATA, backupData);        // The data for the backup
-        FUNCTION_TEST_PARAM(STRING, backupLabel);                   // Backup label to filter if requested by the user
+        FUNCTION_TEST_PARAM(BOOL, backupLabelMatch);                // Does backup label match the filter if requested by the user
         FUNCTION_TEST_PARAM(INFO_REPO_DATA, repoData);              // The repo data where this backup is located
     FUNCTION_TEST_END();
 
@@ -402,9 +402,8 @@ backupListAdd(
 
     Variant *backupInfo = varNewKv(kvNew());
 
-    // Flags used to decide what data to add
+    // Flag used to decide what data to add
     const bool outputJson = cfgOptionStrId(cfgOptOutput) == CFGOPTVAL_OUTPUT_JSON;
-    const bool backupLabelMatch = backupLabel != NULL && strEq(backupData->backupLabel, backupLabel);
 
     // main keys
     kvPut(varKv(backupInfo), BACKUP_KEY_LABEL_VAR, VARSTR(backupData->backupLabel));
@@ -629,8 +628,14 @@ backupList(
         repoData->backupIdx++;
 
         // Add the backup data to the backup section
-        if (!cfgOptionTest(cfgOptType) || cfgOptionStrId(cfgOptType) == backupData.backupType)
-            backupListAdd(backupSection, &backupData, backupLabel, repoData);
+        const bool backupLabelMatch = backupLabel != NULL && strEq(backupData.backupLabel, backupLabel);
+        if ((!cfgOptionTest(cfgOptType) || cfgOptionStrId(cfgOptType) == backupData.backupType) &&
+            (backupLabel == NULL || backupLabelMatch))
+        {
+            backupListAdd(backupSection, &backupData, backupLabelMatch, repoData);
+            if (backupLabelMatch)
+                break;
+        }
 
         backupTotalProcessed++;
     }
@@ -1055,11 +1060,6 @@ formatTextDb(
     for (unsigned int backupIdx = 0; backupIdx < varLstSize(backupSection); backupIdx++)
     {
         KeyValue *backupInfo = varKv(varLstGet(backupSection, backupIdx));
-
-        // If a backup label was specified but this is not it then continue
-        if (backupLabel != NULL && !strEq(varStr(kvGet(backupInfo, BACKUP_KEY_LABEL_VAR)), backupLabel))
-            continue;
-
         KeyValue *backupDbInfo = varKv(kvGet(backupInfo, KEY_DATABASE_VAR));
         unsigned int backupDbId = varUInt(kvGet(backupDbInfo, DB_KEY_ID_VAR));
         unsigned int backupRepoKey = varUInt(kvGet(backupDbInfo, KEY_REPO_KEY_VAR));
@@ -1257,8 +1257,6 @@ infoRender(void)
 
         // Since the --set option depends on the --stanza option, the parser will error before this if the backup label is
         // specified but a stanza is not
-        if (backupLabel != NULL && cfgOptionStrId(cfgOptOutput) != CFGOPTVAL_OUTPUT_TEXT)
-            THROW(ConfigError, "option '" CFGOPT_SET "' is currently only valid for " CFGOPTVAL_OUTPUT_TEXT_Z " output");
 
         // Initialize the repo index
         unsigned int repoIdxMin = 0;
