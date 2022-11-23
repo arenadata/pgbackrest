@@ -117,11 +117,10 @@ expireAdhocBackup(InfoBackup *infoBackup, const String *backupLabel, unsigned in
             // If the latest full backup requested is the only backup or the prior full backup is not for the same db-id
             // then the backup requested cannot be expired
             if (strLstSize(fullList) == 1 || infoBackupDataByLabel(infoBackup, backupLabel)->backupPgId !=
-                infoBackupDataByLabel(infoBackup, strLstGet(fullList, 1))->backupPgId)
+                                                             infoBackupDataByLabel(infoBackup, strLstGet(fullList, 1))->backupPgId)
             {
-                THROW_FMT(
-                    BackupSetInvalidError,
-                    "full backup %s cannot be expired until another full backup has been created on this repo", strZ(backupLabel));
+                LOG_WARN_FMT(
+                    "it is the only full backup with label %s created on this repo", strZ(backupLabel));
             }
         }
 
