@@ -607,6 +607,7 @@ testRun(void)
     // *****************************************************************************************************************************
     if (testBegin("PageChecksum"))
     {
+        #define PG_SEGMENT_PAGE_DEFAULT                             PG_SEGMENT_SIZE_DEFAULT/POSTGRESQL_PAGE_SIZE
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("segment page default");
 
@@ -619,13 +620,18 @@ testRun(void)
         bufUsedSet(buffer, bufSize(buffer));
         memset(bufPtr(buffer), 0, bufSize(buffer));
 
-        *(PageHeaderData *)(bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x00)) = (PageHeaderData){.pd_upper = 0};
+        *(PageHeaderData *)(bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x00)) = (PageHeaderData){.pd_upper = 0};
 
         Buffer *bufferOut = bufNew(513);
         IoWrite *write = ioBufferWriteNew(bufferOut);
         ioFilterGroupAdd(
             ioWriteFilterGroup(write),
+<<<<<<< HEAD
             pageChecksumNewPack(ioFilterParamList(pageChecksumNew(0, PG_SEGMENT_PAGE_DEFAULT, true, STRDEF(BOGUS_STR)))));
+=======
+            pageChecksumNewPack(
+                ioFilterParamList(pageChecksumNew(0, PG_SEGMENT_PAGE_DEFAULT, POSTGRESQL_PAGE_SIZE, STRDEF(BOGUS_STR)))));
+>>>>>>> ae424bc73 (Add GPDB 6 support)
         ioWriteOpen(write);
         ioWrite(write, buffer);
         TEST_ERROR(ioWrite(write, buffer), AssertError, "should not be possible to see two misaligned pages in a row");
@@ -634,29 +640,33 @@ testRun(void)
         TEST_TITLE("retry a page with an invalid checksum");
 
         // Write to file with valid checksums
-        buffer = bufNew(PG_PAGE_SIZE_DEFAULT * 4);
+        buffer = bufNew(POSTGRESQL_PAGE_SIZE * 4);
         memset(bufPtr(buffer), 0, bufSize(buffer));
         bufUsedSet(buffer, bufSize(buffer));
 
-        *(PageHeaderData *)(bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x00)) = (PageHeaderData){.pd_upper = 0x00};
-        *(PageHeaderData *)(bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x01)) = (PageHeaderData){.pd_upper = 0xFF};
-        ((PageHeaderData *)(bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x01)))->pd_checksum = pgPageChecksum(
-            bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x01), 1);
-        *(PageHeaderData *)(bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x02)) = (PageHeaderData){.pd_upper = 0x00};
-        *(PageHeaderData *)(bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x03)) = (PageHeaderData){.pd_upper = 0xFE};
-        ((PageHeaderData *)(bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x03)))->pd_checksum = pgPageChecksum(
-            bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x03), 3);
+        *(PageHeaderData *)(bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x00)) = (PageHeaderData){.pd_upper = 0x00};
+        *(PageHeaderData *)(bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x01)) = (PageHeaderData){.pd_upper = 0xFF};
+        ((PageHeaderData *)(bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x01)))->pd_checksum = pgPageChecksum(
+            bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x01), 1, POSTGRESQL_PAGE_SIZE);
+        *(PageHeaderData *)(bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x02)) = (PageHeaderData){.pd_upper = 0x00};
+        *(PageHeaderData *)(bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x03)) = (PageHeaderData){.pd_upper = 0xFE};
+        ((PageHeaderData *)(bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x03)))->pd_checksum = pgPageChecksum(
+            bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x03), 3, POSTGRESQL_PAGE_SIZE);
 
         HRN_STORAGE_PUT(storageTest, "relation", buffer);
 
         // Now break the checksum to force a retry
-        ((PageHeaderData *)(bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x01)))->pd_checksum = 0;
-        ((PageHeaderData *)(bufPtr(buffer) + (PG_PAGE_SIZE_DEFAULT * 0x03)))->pd_checksum = 0;
+        ((PageHeaderData *)(bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x01)))->pd_checksum = 0;
+        ((PageHeaderData *)(bufPtr(buffer) + (POSTGRESQL_PAGE_SIZE * 0x03)))->pd_checksum = 0;
 
         write = ioBufferWriteNew(bufferOut);
         ioFilterGroupAdd(
             ioWriteFilterGroup(write),
+<<<<<<< HEAD
             pageChecksumNew(0, PG_SEGMENT_PAGE_DEFAULT, true, storagePathP(storageTest, STRDEF("relation"))));
+=======
+            pageChecksumNew(0, PG_SEGMENT_PAGE_DEFAULT, POSTGRESQL_PAGE_SIZE, storagePathP(storageTest, STRDEF("relation"))));
+>>>>>>> ae424bc73 (Add GPDB 6 support)
         ioWriteOpen(write);
         ioWrite(write, buffer);
         ioWriteClose(write);
@@ -1270,7 +1280,7 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, fileList), 0),
+                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "pg file missing, ignoreMissing=true, no delta");
         TEST_RESULT_UINT(result.copySize + result.repoSize, 0, "copy/repo size 0");
         TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultSkip, "skip file");
@@ -1295,7 +1305,8 @@ testRun(void)
         lstAdd(fileList, &file);
 
         TEST_ERROR(
-            backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, fileList), FileMissingError,
+            backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList),
+            FileMissingError,
             "unable to open missing file '" TEST_PATH "/pg/missing' for read");
 
         // Create a pg file to backup
@@ -1332,7 +1343,7 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, fileList), 0),
+                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "file checksummed with pageChecksum enabled");
         TEST_RESULT_UINT(result.copySize, 9, "copy=pgFile size");
         TEST_RESULT_UINT(result.repoSize, 9, "repo=pgFile size");
@@ -1364,7 +1375,7 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, fileList), 0),
+                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "backup file");
         TEST_RESULT_UINT(result.copySize, 12, "copy size");
         TEST_RESULT_UINT(result.repoSize, 12, "repo size");
@@ -1397,7 +1408,7 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, fileList), 0),
+                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "file in db and repo, checksum equal, no ignoreMissing, no pageChecksum, delta, hasReference");
         TEST_RESULT_UINT(result.copySize, 9, "copy size set");
         TEST_RESULT_UINT(result.repoSize, 0, "repo size not set since already exists in repo");
@@ -1431,7 +1442,7 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, fileList), 0),
+                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "file in db and repo, pg checksum not equal, no ignoreMissing, no pageChecksum, delta, hasReference");
         TEST_RESULT_UINT(result.copySize, 9, "copy 9 bytes");
         TEST_RESULT_UINT(result.repoSize, 9, "repo=copy size");
@@ -1466,7 +1477,7 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, fileList), 0),
+                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "db & repo file, pg checksum same, pg size different, no ignoreMissing, no pageChecksum, delta, hasReference");
         TEST_RESULT_UINT(result.copySize, 12, "copy=pgFile size");
         TEST_RESULT_UINT(result.repoSize, 12, "repo=pgFile size");
@@ -1506,7 +1517,7 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, fileList), 0),
+                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "file in repo only, checksum in repo equal, ignoreMissing=true, no pageChecksum, delta, no hasReference");
         TEST_RESULT_UINT(result.copySize + result.repoSize, 0, "copy=repo=0 size");
         TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultSkip, "skip file");
@@ -1539,7 +1550,7 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 0, false, 0, compressTypeGz, 3, cipherTypeNone, NULL, fileList), 0),
+                backupFile(repoFile, 0, false, 0, compressTypeGz, 3, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "pg file exists, no checksum, no ignoreMissing, compression, no pageChecksum, no delta, no hasReference");
         TEST_RESULT_UINT(result.copySize, 9, "copy=pgFile size");
         TEST_RESULT_UINT(result.repoSize, 29, "repo compress size");
@@ -1579,7 +1590,7 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, fileList), 0),
+                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "zero-sized pg file exists, no repo file, no ignoreMissing, no pageChecksum, no delta, no hasReference");
         TEST_RESULT_UINT(result.copySize + result.repoSize, 0, "copy=repo=pgFile size 0");
         TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultCopy, "copy file");
@@ -1630,7 +1641,10 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeAes256Cbc, STRDEF(TEST_CIPHER_PASS), fileList), 0),
+                backupFile(
+                    repoFile, 0, false, 0, compressTypeNone, 1, cipherTypeAes256Cbc, STRDEF(TEST_CIPHER_PASS), POSTGRESQL_PAGE_SIZE,
+                    fileList),
+                0),
             "pg file exists, no repo file, no ignoreMissing, no pageChecksum, no delta, no hasReference");
         TEST_RESULT_UINT(result.copySize, 9, "copy size set");
         TEST_RESULT_UINT(result.repoSize, 32, "repo size set");
@@ -3145,49 +3159,49 @@ testRun(void)
             HRN_SYSTEM_FMT("ln -s %s-data %s ", strZ(pg1Path), strZ(pg1Path));
 
             // Zeroed file which passes page checksums
-            Buffer *relation = bufNew(PG_PAGE_SIZE_DEFAULT);
+            Buffer *relation = bufNew(POSTGRESQL_PAGE_SIZE);
             memset(bufPtr(relation), 0, bufSize(relation));
             bufUsedSet(relation, bufSize(relation));
 
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x00)) = (PageHeaderData){.pd_upper = 0};
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x00)) = (PageHeaderData){.pd_upper = 0};
 
             HRN_STORAGE_PUT(storagePgWrite(), PG_PATH_BASE "/1/1", relation, .timeModified = backupTimeStart);
 
             // File which will fail on alignment
-            relation = bufNew(PG_PAGE_SIZE_DEFAULT + 512);
+            relation = bufNew(POSTGRESQL_PAGE_SIZE + 512);
             memset(bufPtr(relation), 0, bufSize(relation));
             bufUsedSet(relation, bufSize(relation));
 
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x00)) = (PageHeaderData){.pd_upper = 0xFE};
-            ((PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x00)))->pd_checksum = pgPageChecksum(
-                bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x00), 0);
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x01)) = (PageHeaderData){.pd_upper = 0xFF};
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x00)) = (PageHeaderData){.pd_upper = 0xFE};
+            ((PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x00)))->pd_checksum = pgPageChecksum(
+                bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x00), 0, POSTGRESQL_PAGE_SIZE);
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x01)) = (PageHeaderData){.pd_upper = 0xFF};
 
             HRN_STORAGE_PUT(storagePgWrite(), PG_PATH_BASE "/1/2", relation, .timeModified = backupTimeStart);
             const char *rel1_2Sha1 = strZ(strNewEncode(encodingHex, cryptoHashOne(hashTypeSha1, relation)));
 
             // File with bad page checksums
-            relation = bufNew(PG_PAGE_SIZE_DEFAULT * 5);
+            relation = bufNew(POSTGRESQL_PAGE_SIZE * 5);
             memset(bufPtr(relation), 0, bufSize(relation));
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x00)) = (PageHeaderData){.pd_upper = 0xFF};
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x01)) = (PageHeaderData){.pd_upper = 0x00};
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x02)) = (PageHeaderData){.pd_upper = 0xFE};
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x03)) = (PageHeaderData){.pd_upper = 0xEF};
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x04)) = (PageHeaderData){.pd_upper = 0x00};
-            (bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x04))[PG_PAGE_SIZE_DEFAULT - 1] = 0xFF;
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x00)) = (PageHeaderData){.pd_upper = 0xFF};
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x01)) = (PageHeaderData){.pd_upper = 0x00};
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x02)) = (PageHeaderData){.pd_upper = 0xFE};
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x03)) = (PageHeaderData){.pd_upper = 0xEF};
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x04)) = (PageHeaderData){.pd_upper = 0x00};
+            (bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x04))[POSTGRESQL_PAGE_SIZE - 1] = 0xFF;
             bufUsedSet(relation, bufSize(relation));
 
             HRN_STORAGE_PUT(storagePgWrite(), PG_PATH_BASE "/1/3", relation, .timeModified = backupTimeStart);
             const char *rel1_3Sha1 = strZ(strNewEncode(encodingHex, cryptoHashOne(hashTypeSha1, relation)));
 
             // File with bad page checksum
-            relation = bufNew(PG_PAGE_SIZE_DEFAULT * 3);
+            relation = bufNew(POSTGRESQL_PAGE_SIZE * 3);
             memset(bufPtr(relation), 0, bufSize(relation));
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x00)) = (PageHeaderData){.pd_upper = 0x00};
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x01)) = (PageHeaderData){.pd_upper = 0x08};
-            *(PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x02)) = (PageHeaderData){.pd_upper = 0xFF};
-            ((PageHeaderData *)(bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x02)))->pd_checksum = pgPageChecksum(
-                bufPtr(relation) + (PG_PAGE_SIZE_DEFAULT * 0x02), 2);
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x00)) = (PageHeaderData){.pd_upper = 0x00};
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x01)) = (PageHeaderData){.pd_upper = 0x08};
+            *(PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x02)) = (PageHeaderData){.pd_upper = 0xFF};
+            ((PageHeaderData *)(bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x02)))->pd_checksum = pgPageChecksum(
+                bufPtr(relation) + (POSTGRESQL_PAGE_SIZE * 0x02), 2, POSTGRESQL_PAGE_SIZE);
             bufUsedSet(relation, bufSize(relation));
 
             HRN_STORAGE_PUT(storagePgWrite(), PG_PATH_BASE "/1/4", relation, .timeModified = backupTimeStart);
@@ -3521,14 +3535,14 @@ testRun(void)
                 .walSegmentSize = 1024 * 1024);
 
             // Set to a smaller values than the defaults allow
-            cfgOptionSet(cfgOptRepoBundleSize, cfgSourceParam, VARINT64(PG_PAGE_SIZE_DEFAULT));
-            cfgOptionSet(cfgOptRepoBundleLimit, cfgSourceParam, VARINT64(PG_PAGE_SIZE_DEFAULT));
+            cfgOptionSet(cfgOptRepoBundleSize, cfgSourceParam, VARINT64(POSTGRESQL_PAGE_SIZE));
+            cfgOptionSet(cfgOptRepoBundleLimit, cfgSourceParam, VARINT64(POSTGRESQL_PAGE_SIZE));
 
             // Zero-length file to be stored
             HRN_STORAGE_PUT_EMPTY(storagePgWrite(), "zero", .timeModified = backupTimeStart);
 
             // Zeroed file which passes page checksums
-            Buffer *relation = bufNew(PG_PAGE_SIZE_DEFAULT * 3);
+            Buffer *relation = bufNew(POSTGRESQL_PAGE_SIZE * 3);
             memset(bufPtr(relation), 0, bufSize(relation));
             bufUsedSet(relation, bufSize(relation));
 
@@ -3539,7 +3553,7 @@ testRun(void)
             HRN_STORAGE_PUT_Z(storagePgWrite(), "stuff.conf", "CONFIGSTUFF3", .timeModified = 1500000000);
 
             // File that will get skipped while bundling smaller files and end up a bundle by itself
-            Buffer *bigish = bufNew(PG_PAGE_SIZE_DEFAULT - 1);
+            Buffer *bigish = bufNew(POSTGRESQL_PAGE_SIZE - 1);
             memset(bufPtr(bigish), 0, bufSize(bigish));
             bufUsedSet(bigish, bufSize(bigish));
 
