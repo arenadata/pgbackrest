@@ -515,6 +515,30 @@ testRun(void)
             read, ioReadNewP(strNewZ("998"), .close = testIoReadClose, .open = testIoReadOpen, .read = testIoRead),
             "create io read object");
         TEST_RESULT_BOOL(ioReadDrain(read), false, "cannot open");
+
+        // Read actual size
+        read = NULL;
+        buffer = bufNew(2);
+        ioBufferSizeSet(2);
+
+        TEST_ASSIGN(
+            read, ioReadNewP(strNewZ("998"), .close = testIoReadClose, .open = testIoReadOpen, .read = testIoRead),
+            "create io read object");
+
+        TEST_RESULT_BOOL(ioReadOpen(read), false, "    open io object");
+
+        TEST_ASSIGN(
+            read, ioReadNewP(strNewZ("999"), .close = testIoReadClose, .open = testIoReadOpen, .read = testIoRead),
+            "create io read object");
+
+        TEST_RESULT_BOOL(ioReadOpen(read), true, "    open io object");
+        TEST_RESULT_BOOL(ioReadReadyP(read), true, "read defaults to ready");
+        TEST_RESULT_UINT(ioReadSize(read, buffer), 2, "    read 2 bytes");
+        TEST_RESULT_BOOL(ioReadEof(read), false, "    no eof");
+        TEST_RESULT_VOID(ioReadClose(read), "    close io object");
+        TEST_RESULT_BOOL(testIoReadCloseCalled, true, "    check io object closed");
+
+        TEST_RESULT_VOID(ioReadFree(read), "    free read object");
     }
 
     // *****************************************************************************************************************************
