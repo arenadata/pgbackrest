@@ -314,8 +314,8 @@ backupFile(
                                 }
 
                                 ioWrite(storageWriteIo(write), buffer);
-                                bufUsedZero(buffer);
                             }
+                            bufUsedZero(buffer);
                         }
                         while (!ioReadEof(storageReadIo(read)));
 
