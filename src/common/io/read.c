@@ -19,7 +19,6 @@ struct IoRead
     Buffer *input;                                                  // Input buffer
     Buffer *output;                                                 // Internal output buffer (extra output from buffered reads)
     size_t outputPos;                                               // Current position in the internal output buffer
-    size_t size;                                                    // Actual read size
 };
 
 /**********************************************************************************************************************************/
@@ -43,9 +42,9 @@ ioReadNew(void *const driver, const IoReadInterface interface)
                 .driver = objMoveToInterface(driver, this, memContextPrior()),
                 .interface = interface,
                 .filterGroup = ioFilterGroupNew(),
+                .size = 0,
             },
             .input = bufNew(ioBufferSize()),
-            .size = 0,
         };
     }
     OBJ_NEW_END();
@@ -137,7 +136,7 @@ ioReadInternal(IoRead *this, Buffer *buffer, bool block)
 
                     this->pub.interface.read(this->pub.driver, this->input, block);
                     bufLimitClear(this->input);
-                    this->size += bufUsed(this->input);
+                    this->pub.size += bufUsed(this->input);
                 }
                 // Set input to NULL and flush (no need to actually free the buffer here as it will be freed with the mem context)
                 else
@@ -197,16 +196,6 @@ ioRead(IoRead *this, Buffer *buffer)
     ioReadInternal(this, buffer, true);
 
     FUNCTION_LOG_RETURN(SIZE, outputRemains - bufRemains(buffer));
-}
-
-/***********************************************************************************************************************************
-Same as ioRead(), but returns the actual read size.
-***********************************************************************************************************************************/
-FN_EXTERN size_t
-ioReadSize(IoRead *this, Buffer *buffer)
-{
-    (void)ioRead(this, buffer);
-    return this->size;
 }
 
 /**********************************************************************************************************************************/

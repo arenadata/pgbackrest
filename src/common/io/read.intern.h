@@ -41,6 +41,7 @@ typedef struct IoReadPub
     IoReadInterface interface;                                      // Driver interface
     IoFilterGroup *filterGroup;                                     // IO filters
     bool eofAll;                                                    // Is the read done (read and filters complete)?
+    size_t size;                                                    // Actual read size
 
 #ifdef DEBUG
     bool opened;                                                    // Has the io been opened?
@@ -60,6 +61,13 @@ FN_INLINE_ALWAYS const IoReadInterface *
 ioReadInterface(const IoRead *const this)
 {
     return &THIS_PUB(IoRead)->interface;
+}
+
+// Returns the actual read size
+FN_INLINE_ALWAYS size_t
+ioReadSize(IoRead *const this)
+{
+    return THIS_PUB(IoRead)->size;
 }
 
 /***********************************************************************************************************************************

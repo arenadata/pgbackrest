@@ -292,8 +292,9 @@ backupFile(
 
                         do
                         {
+                            ioRead(storageReadIo(read), buffer);
                             // open destination and copy the file only if read something or not bundling
-                            if (ioReadSize(storageReadIo(read), buffer) > 0 || bundleId == 0)
+                            if (ioReadSize(storageReadIo(read)) > 0 || bundleId == 0)
                             {
                                 // Setup the repo file for write. There is no need to write the file atomically (e.g.
                                 // via a temp file on Posix) because checksums are tested on resume after a failed

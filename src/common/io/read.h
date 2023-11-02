@@ -56,9 +56,6 @@ FN_EXTERN bool ioReadOpen(IoRead *this);
 // Read data from IO and process filters
 FN_EXTERN size_t ioRead(IoRead *this, Buffer *buffer);
 
-// Same as ioRead(), but returns the actual read size.
-FN_EXTERN size_t ioReadSize(IoRead *this, Buffer *buffer);
-
 // Same as ioRead() but optimized for small reads (intended for making repetitive reads that are smaller than ioBufferSize())
 FN_EXTERN size_t ioReadSmall(IoRead *this, Buffer *buffer);
 
