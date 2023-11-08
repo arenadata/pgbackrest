@@ -1664,6 +1664,27 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("create truncated to zero sized file - checksum will be set but in backupManifestUpdate it will not be copied");
 
+        // Create zero sized file in pg
+        HRN_STORAGE_PUT_EMPTY(storagePgWrite(), "zerofile");
+
+        fileList = lstNewP(sizeof(BackupFile));
+
+        file = (BackupFile)
+        {
+            .pgFile = STRDEF("zerofile"),
+            .pgFileIgnoreMissing = false,
+            .pgFileSize = 10,
+            .pgFileCopyExactSize = true,
+            .pgFileChecksum = NULL,
+            .pgFileChecksumPage = false,
+            .manifestFile = STRDEF("zerofile"),
+            .manifestFileHasReference = false,
+        };
+
+        lstAdd(fileList, &file);
+
+        repoFile = strNewFmt(STORAGE_REPO_BACKUP "/%s/%s", strZ(backupLabel), strZ(file.manifestFile));
+
         // No prior checksum, no compression, no pageChecksum, no delta, no hasReference
         TEST_ASSIGN(
             result,
