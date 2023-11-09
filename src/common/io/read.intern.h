@@ -63,13 +63,6 @@ ioReadInterface(const IoRead *const this)
     return &THIS_PUB(IoRead)->interface;
 }
 
-// Returns the actual read size
-FN_INLINE_ALWAYS size_t
-ioReadSize(IoRead *const this)
-{
-    return THIS_PUB(IoRead)->interface.size;
-}
-
 /***********************************************************************************************************************************
 Macros for function logging
 ***********************************************************************************************************************************/
