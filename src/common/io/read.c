@@ -135,7 +135,7 @@ ioReadInternal(IoRead *this, Buffer *buffer, bool block)
 
                     this->pub.interface.read(this->pub.driver, this->input, block);
                     bufLimitClear(this->input);
-                    this->pub.interface.size += bufUsed(this->input);
+                    this->pub.interface.totalBytesRead += bufUsed(this->input);
                 }
                 // Set input to NULL and flush (no need to actually free the buffer here as it will be freed with the mem context)
                 else
