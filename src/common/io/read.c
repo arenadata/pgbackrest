@@ -45,7 +45,6 @@ ioReadNew(void *const driver, const IoReadInterface interface)
             },
             .input = bufNew(ioBufferSize()),
         };
-        this->pub.interface.size = 0;
     }
     OBJ_NEW_END();
 
