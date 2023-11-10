@@ -147,9 +147,6 @@ storageReadPosix(THIS_VOID, Buffer *buffer, bool block)
             this->eof = true;
     }
 
-    // Total bytes read into the buffer
-    actualBytes = (ssize_t)bufUsed(buffer);
-
     FUNCTION_LOG_RETURN(SIZE, (size_t)actualBytes);
 }
 
