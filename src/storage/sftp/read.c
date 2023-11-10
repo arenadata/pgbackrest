@@ -123,7 +123,10 @@ storageReadSftp(THIS_VOID, Buffer *const buffer, const bool block)
                 rc = libssh2_sftp_read(this->sftpHandle, (char *)bufRemainsPtr(buffer), bufRemains(buffer));
                 // Account/shift for bytes read
                 if (rc > 0)
+                {
                     bufUsedInc(buffer, (size_t)rc);
+                    actualBytes += rc;
+                }
             }
             while (storageSftpWaitFd(this->storage, rc));
 
@@ -132,9 +135,6 @@ storageReadSftp(THIS_VOID, Buffer *const buffer, const bool block)
                 break;
         }
         while (!bufFull(buffer));
-
-        // Total bytes read into the buffer
-        actualBytes = (ssize_t)bufUsed(buffer);
 
         // Error occurred during read
         if (rc < 0)
@@ -163,9 +163,6 @@ storageReadSftp(THIS_VOID, Buffer *const buffer, const bool block)
         if ((size_t)actualBytes != expectedBytes || this->current == this->limit)
             this->eof = true;
     }
-
-    // Total bytes read into the buffer
-    actualBytes = (ssize_t)bufUsed(buffer);
 
     FUNCTION_LOG_RETURN(SIZE, (size_t)actualBytes);
 }
