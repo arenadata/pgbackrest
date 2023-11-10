@@ -175,6 +175,9 @@ storageReadRemote(THIS_VOID, Buffer *buffer, bool block)
         while (!this->eof && !bufFull(buffer));
     }
 
+    // Total bytes read into the buffer
+    result = bufUsed(buffer);
+
     FUNCTION_LOG_RETURN(SIZE, result);
 }
 

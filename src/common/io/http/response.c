@@ -185,6 +185,9 @@ httpResponseRead(THIS_VOID, Buffer *buffer, bool block)
         MEM_CONTEXT_TEMP_END();
     }
 
+    // Total bytes read into the buffer
+    actualBytes = bufUsed(buffer);
+
     FUNCTION_LOG_RETURN(SIZE, (size_t)actualBytes);
 }
 
