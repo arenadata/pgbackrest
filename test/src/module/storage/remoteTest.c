@@ -278,6 +278,7 @@ testRun(void)
         TEST_RESULT_BOOL(ioReadOpen(storageReadIo(fileReadRaw)), true, "open read");
         TEST_RESULT_UINT(storageReadRemote(fileReadRaw->driver, bufferOut, true), bufSize(contentBuf), "read file");
         TEST_RESULT_VOID(ioReadClose(storageReadIo(fileReadRaw)), "close");
+        TEST_RESULT_BOOL(bufFull(bufferOut), true, "get file");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("read file without compression");
