@@ -265,6 +265,22 @@ testRun(void)
             "raised from remote-0 shim protocol: " STORAGE_ERROR_READ_MISSING, TEST_PATH "/pg256/test.txt");
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("raw read file without compression");
+
+        HRN_STORAGE_PUT(storageTest, TEST_PATH "/repo128/test.txt", contentBuf);
+
+        // Disable protocol compression in the storage object
+        ((StorageRemote *)storageDriver(storageRepo))->compressLevel = 0;
+
+        StorageRead *fileReadRaw = NULL;
+        Buffer *bufferOut = bufNew(ioBufferSize());
+        TEST_ASSIGN(fileReadRaw, storageNewReadP(storageRepo, STRDEF("test.txt")), "new file");
+        TEST_RESULT_BOOL(ioReadOpen(storageReadIo(fileReadRaw)), true, "open read");
+        TEST_RESULT_UINT(storageReadRemote(fileReadRaw->driver, bufferOut, true), 16384, "read file");
+        TEST_RESULT_VOID(ioReadClose(storageReadIo(fileReadRaw)), "close");
+        TEST_RESULT_UINT(((StorageReadRemote *)fileReadRaw->driver)->protocolReadBytes, bufUsed(bufferOut), "check read size");
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("read file without compression");
 
         HRN_STORAGE_PUT(storageTest, TEST_PATH "/repo128/test.txt", contentBuf);

@@ -144,6 +144,7 @@ storageReadRemote(THIS_VOID, Buffer *buffer, bool block)
                         protocolClientDataEndGet(this->client);
                     }
 
+                    result += this->remaining;
 #ifdef DEBUG
                     this->protocolReadBytes += this->remaining;
 #endif
