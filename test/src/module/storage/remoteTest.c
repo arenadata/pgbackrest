@@ -276,7 +276,9 @@ testRun(void)
         Buffer *buffer = bufNew(bufSize(contentBuf));
         TEST_ASSIGN(fileReadRaw, storageNewReadP(storageRepo, STRDEF("test.txt")), "new file");
         TEST_RESULT_BOOL(ioReadOpen(storageReadIo(fileReadRaw)), true, "open read");
-        TEST_RESULT_UINT(storageReadRemote(fileReadRaw->driver, buffer, true), bufUsed(contentBuf), "read file and check returned size");
+        size_t size;
+        TEST_ASSIGN(size, storageReadRemote(fileReadRaw->driver, buffer, true), "read file and save returned size");
+        TEST_RESULT_UINT(size, bufUsed(buffer), "check returned size");
         TEST_RESULT_VOID(ioReadClose(storageReadIo(fileReadRaw)), "close");
         TEST_RESULT_BOOL(bufFull(buffer), true, "check if fill buffer");
 
