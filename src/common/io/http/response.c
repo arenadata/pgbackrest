@@ -120,7 +120,7 @@ httpResponseRead(THIS_VOID, Buffer *buffer, bool block)
                 IoRead *const rawRead = httpSessionIoReadP(
                     this->session, .ignoreUnexpectedEof = httpResponseReadIgnoreUnexpectedEof(this));
 
-                actualBytes += ioRead(rawRead, buffer);
+                ioRead(rawRead, buffer);
                 this->contentEof = ioReadEof(rawRead);
             }
             // Else read using specified encoding or size
@@ -150,9 +150,8 @@ httpResponseRead(THIS_VOID, Buffer *buffer, bool block)
                         if (bufRemains(buffer) > this->contentRemaining)
                             bufLimitSet(buffer, bufSize(buffer) - (bufRemains(buffer) - (size_t)this->contentRemaining));
 
-                        size_t size = ioRead(rawRead, buffer);
-                        actualBytes += size;
-                        this->contentRemaining -= size;
+                        actualBytes = bufRemains(buffer);
+                        this->contentRemaining -= ioRead(rawRead, buffer);
 
                         // Error if EOF but content read is not complete
                         if (ioReadEof(rawRead))
