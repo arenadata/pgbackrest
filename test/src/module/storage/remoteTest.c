@@ -272,11 +272,11 @@ testRun(void)
         // Disable protocol compression in the storage object
         ((StorageRemote *)storageDriver(storageRepo))->compressLevel = 0;
 
-        StorageRead *fileReadRaw = NULL;
         Buffer *buffer = bufNew(bufUsed(contentBuf));
+        size_t size;
+        StorageRead *fileReadRaw;
         TEST_ASSIGN(fileReadRaw, storageNewReadP(storageRepo, STRDEF("test.txt")), "new file");
         TEST_RESULT_BOOL(ioReadOpen(storageReadIo(fileReadRaw)), true, "open read");
-        size_t size;
         TEST_ASSIGN(size, storageReadRemote(fileReadRaw->driver, buffer, true), "read file and save returned size");
         TEST_RESULT_UINT(size, bufUsed(buffer), "check returned size");
         TEST_RESULT_UINT(size, bufUsed(contentBuf), "returned size should be the same as the file size");
