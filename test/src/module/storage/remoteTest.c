@@ -273,12 +273,12 @@ testRun(void)
         ((StorageRemote *)storageDriver(storageRepo))->compressLevel = 0;
 
         StorageRead *fileReadRaw = NULL;
-        Buffer *bufferOut = bufNew(bufSize(contentBuf));
+        Buffer *buffer = bufNew(bufSize(contentBuf));
         TEST_ASSIGN(fileReadRaw, storageNewReadP(storageRepo, STRDEF("test.txt")), "new file");
         TEST_RESULT_BOOL(ioReadOpen(storageReadIo(fileReadRaw)), true, "open read");
-        TEST_RESULT_UINT(storageReadRemote(fileReadRaw->driver, bufferOut, true), bufSize(contentBuf), "read file");
+        TEST_RESULT_UINT(storageReadRemote(fileReadRaw->driver, buffer, true), bufSize(contentBuf), "read file");
         TEST_RESULT_VOID(ioReadClose(storageReadIo(fileReadRaw)), "close");
-        TEST_RESULT_BOOL(bufFull(bufferOut), true, "get file");
+        TEST_RESULT_BOOL(bufFull(buffer), true, "check full");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("read file without compression");
@@ -311,7 +311,7 @@ testRun(void)
 
         size_t bufferOld = ioBufferSize();
         ioBufferSizeSet(11);
-        Buffer *buffer = bufNew(11);
+        buffer = bufNew(11);
 
         TEST_ASSIGN(fileRead, storageNewReadP(storageRepo, STRDEF("test.txt"), .limit = VARUINT64(11)), "get file");
         TEST_RESULT_BOOL(ioReadOpen(storageReadIo(fileRead)), true, "open read");
