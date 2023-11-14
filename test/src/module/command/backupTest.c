@@ -1692,7 +1692,7 @@ testRun(void)
                 backupFile(repoFile, 1, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "zero-sized pg file exists, no repo file, no ignoreMissing, no pageChecksum, no delta, no hasReference");
         TEST_RESULT_UINT(result.copySize + result.repoSize, 0, "copy=repo=pgFile size 0");
-        TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultTruncate, "copy file");
+        TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultTruncate, "truncated file");
         TEST_RESULT_PTR_NE(result.copyChecksum, NULL, "checksum set");
         TEST_RESULT_PTR(result.copyChecksum, HASH_TYPE_SHA1_ZERO_BUF, "checksum eq");
         TEST_RESULT_PTR(result.pageChecksumResult, NULL, "page checksum result is NULL");
