@@ -293,7 +293,7 @@ backupFile(
                         do
                         {
                             ioRead(storageReadIo(read), buffer);
-                            // Copy the file in bundling mode or if the file size is not zero
+                            // Copy the file in non-bundling mode or if the file size is not zero
                             if (bundleId == 0 || ioReadInterface(storageReadIo(read))->totalBytesRead != 0)
                             {
                                 // Setup the repo file for write. There is no need to write the file atomically (e.g.
