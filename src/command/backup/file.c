@@ -328,13 +328,7 @@ backupFile(
                             fileResult->copySize = pckReadU64P(
                                 ioFilterGroupResultP(ioReadFilterGroup(storageReadIo(read)), SIZE_FILTER_TYPE, .idx = 0));
 
-                            // When bundling, zero-size file is not put in the bundle, but it is marked as truncated
-                            if (bundleId != 0 && fileResult->copySize == 0)
-                            {
-                                fileResult->backupCopyResult = backupCopyResultTruncate;
-                                fileResult->copyChecksum = (Buffer *)HASH_TYPE_SHA1_ZERO_BUF;
-                            }
-                            else
+                            if (bundleId == 0 || fileResult->copySize != 0)
                             {
                                 // Get sizes and checksum
                                 fileResult->bundleOffset = bundleOffset;
@@ -364,6 +358,11 @@ backupFile(
                                         ioFilterGroupResultP(
                                             ioReadFilterGroup(storageReadIo(read)), CRYPTO_HASH_FILTER_TYPE, .idx = 1));
                                 }
+                            }
+                            else
+                            {
+                                fileResult->backupCopyResult = backupCopyResultTruncate;
+                                fileResult->copyChecksum = (Buffer *)HASH_TYPE_SHA1_ZERO_BUF;
                             }
                         }
                         MEM_CONTEXT_END();
