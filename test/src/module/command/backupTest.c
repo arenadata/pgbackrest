@@ -1662,7 +1662,7 @@ testRun(void)
             .comment = "copy zero file to repo success");
 
         // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("create truncated to zero sized file - checksum will be set but in backupManifestUpdate it will not be copied");
+        TEST_TITLE("file of non-zero size is truncated to zero size");
 
         // Create zero sized file in pg
         HRN_STORAGE_PUT_EMPTY(storagePgWrite(), "zerofile");
