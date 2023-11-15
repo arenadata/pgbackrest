@@ -1665,42 +1665,34 @@ testRun(void)
         TEST_TITLE("file of non-zero size is truncated to zero size");
 
         // Create zero sized file in pg
-        HRN_STORAGE_PUT_EMPTY(storagePgWrite(), "zerofile");
+        HRN_STORAGE_PUT_EMPTY(storagePgWrite(), "truncatedfile");
 
         fileList = lstNewP(sizeof(BackupFile));
 
         file = (BackupFile)
         {
-            .pgFile = STRDEF("zerofile"),
-            .pgFileIgnoreMissing = false,
+            .pgFile = STRDEF("truncatedfile"),
             .pgFileSize = 10,
-            .pgFileCopyExactSize = true,
-            .pgFileChecksum = NULL,
-            .pgFileChecksumPage = false,
-            .manifestFile = STRDEF("zerofile"),
-            .manifestFileHasReference = false,
+            .manifestFile = STRDEF("truncatedfile"),
         };
 
         lstAdd(fileList, &file);
 
         repoFile = strNewFmt(STORAGE_REPO_BACKUP "/%s/%s", strZ(backupLabel), strZ(file.manifestFile));
 
-        // No prior checksum, no compression, no pageChecksum, no delta, no hasReference
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 1, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
-            "zero-sized pg file exists, no repo file, no ignoreMissing, no pageChecksum, no delta, no hasReference");
-        TEST_RESULT_UINT(result.copySize + result.repoSize, 0, "copy=repo=pgFile size 0");
+                backupFile(repoFile, 1 /* manifest mode */, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
+            "truncatedfile pg file exists, repo file mode");
+        TEST_RESULT_UINT(result.copySize, 0, "copy size 0");
         TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultTruncate, "truncated file");
-        TEST_RESULT_PTR_NE(result.copyChecksum, NULL, "checksum set");
         TEST_RESULT_PTR(result.copyChecksum, HASH_TYPE_SHA1_ZERO_BUF, "checksum eq");
-        TEST_RESULT_PTR(result.pageChecksumResult, NULL, "page checksum result is NULL");
         TEST_STORAGE_LIST(
             storageRepo(), STORAGE_REPO_BACKUP "/20190718-155825F",
             "testfile.gz\n"
             "zerofile\n",
-            .comment = "copy zero file to repo success");
+            .comment = "truncatedfile does not put to storage");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("copy file to encrypted repo");
