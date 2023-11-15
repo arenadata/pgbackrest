@@ -2331,14 +2331,22 @@ testRun(void)
         job = protocolParallelJobNew(VARSTRDEF("pg_data/test1"), protocolCommandNew(strIdFromZ("x")));
 
         PackWrite *const resultPack1 = protocolPackNew();
-        pckWriteStrP(resultPack1, STRDEF("pg_data/test1")); // manifestFile
-        pckWriteU32P(resultPack1, backupCopyResultTruncate); // backupCopyResult
-        pckWriteU64P(resultPack1, 0); // copySize
-        pckWriteU64P(resultPack1, 0); // bundleOffset
-        pckWriteU64P(resultPack1, 0); // blockIncrMapSize
-        pckWriteU64P(resultPack1, 0); // repoSize
-        pckWriteBinP(resultPack1, (Buffer *)HASH_TYPE_SHA1_ZERO_BUF); // copyChecksum
-        pckWriteStrP(resultPack1, NULL); // repoChecksum
+        const BackupFileResult fileResult = {
+            .manifestFile = STRDEF("pg_data/test1"),
+            .backupCopyResult = backupCopyResultTruncate,
+            .copyChecksum = (Buffer *)HASH_TYPE_SHA1_ZERO_BUF,
+        };
+
+        pckWriteStrP(resultPack1, fileResult.manifestFile);
+        pckWriteU32P(resultPack1, fileResult.backupCopyResult);
+        pckWriteU64P(resultPack1, fileResult.copySize);
+        pckWriteU64P(resultPack1, fileResult.bundleOffset);
+        pckWriteU64P(resultPack1, fileResult.blockIncrMapSize);
+        pckWriteU64P(resultPack1, fileResult.repoSize);
+        pckWriteBinP(resultPack1, fileResult.copyChecksum);
+        pckWriteBinP(resultPack1, fileResult.repoChecksum);
+        pckWritePackP(resultPack1, fileResult.pageChecksumResult);
+
         pckWriteEndP(resultPack1);
 
         protocolParallelJobResultSet(job, pckReadNew(pckWriteResult(resultPack1)));
