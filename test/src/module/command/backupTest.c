@@ -2373,6 +2373,11 @@ testRun(void)
             "log truncate result");
         TEST_RESULT_VOID(lockRelease(true), "release backup lock");
 
+        ManifestFile file = manifestFileFind(manifest, STRDEF("pg_data/test1"));
+        TEST_RESULT_UINT(file.bundleId, 0, "check bandle");
+        TEST_RESULT_UINT(file.size, 0, "check size");
+        TEST_RESULT_BOOL(bufEq(HASH_TYPE_SHA1_ZERO_BUF, BUF(file.checksumSha1, HASH_TYPE_SHA1_SIZE)), true, "checksum eq");
+
         TEST_RESULT_LOG("P00 DETAIL: backup file host:" TEST_PATH "/test1 (0B, 100.00%)");
     }
 
