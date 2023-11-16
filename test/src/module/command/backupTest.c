@@ -1683,16 +1683,13 @@ testRun(void)
         TEST_ASSIGN(
             result,
             *(BackupFileResult *)lstGet(
-                backupFile(repoFile, 1 /* manifest mode */, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
-            "truncatedfile pg file exists, repo file mode");
+                backupFile(repoFile, 1 /* bundle mode */, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
+            "truncatedfile pg file exists, bundle mode");
         TEST_RESULT_UINT(result.copySize, 0, "copy size is 0");
         TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultTruncate, "truncated file");
         TEST_RESULT_PTR(result.copyChecksum, HASH_TYPE_SHA1_ZERO_BUF, "checksum eq");
-        TEST_STORAGE_LIST(
-            storageRepo(), STORAGE_REPO_BACKUP "/20190718-155825F",
-            "testfile.gz\n"
-            "zerofile\n",
-            .comment = "truncatedfile is not put to storage");
+        TEST_STORAGE_EXISTS(storageRepo(), strZ(repoFile), NULL, .not_exists = true, .comment = "truncatedfile is not put to storage");
+        //TEST_ERROR(ioWrite(write, buffer), AssertError, "should not be possible to see two misaligned pages in a row");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("copy file to encrypted repo");
@@ -2352,12 +2349,10 @@ testRun(void)
         protocolParallelJobResultSet(job, pckReadNew(pckWriteResult(resultPack1)));
 
         // Create manifest with file
-        manifest = NULL;
-
         OBJ_NEW_BASE_BEGIN(Manifest, .childQty = MEM_CONTEXT_QTY_MAX)
         {
             manifest = manifestNewInternal();
-            HRN_MANIFEST_FILE_ADD(manifest, .name = "pg_data/test1");
+            HRN_MANIFEST_FILE_ADD(manifest, .name = "pg_data/test1", .size = 10);
         }
         OBJ_NEW_END();
 
@@ -2378,7 +2373,7 @@ testRun(void)
         TEST_RESULT_UINT(file.size, 0, "check size");
         TEST_RESULT_BOOL(bufEq(HASH_TYPE_SHA1_ZERO_BUF, BUF(file.checksumSha1, HASH_TYPE_SHA1_SIZE)), true, "checksum eq");
 
-        TEST_RESULT_LOG("P00 DETAIL: backup file host:" TEST_PATH "/test1 (0B, 100.00%)");
+        TEST_RESULT_LOG("P00 DETAIL: backup file host:" TEST_PATH "/test1 (10B->0B, 100.00%)");
     }
 
     // Offline tests should only be used to test offline functionality and errors easily tested in offline mode

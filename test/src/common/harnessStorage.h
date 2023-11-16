@@ -44,6 +44,7 @@ typedef struct TestStorageExistsParam
 {
     VAR_PARAM_HEADER;
     bool remove;                                                    // Remove file after testing?
+    bool not_exists;                                                // File not exists?
     const char *comment;                                            // Comment
 } TestStorageExistsParam;
 
