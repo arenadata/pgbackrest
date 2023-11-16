@@ -1673,7 +1673,7 @@ testRun(void)
         {
             .pgFile = STRDEF("truncatedfile"),
             .pgFileSize = 10,
-            .manifestFile = STRDEF("truncatedfile"),
+            .manifestFile = STRDEF("bundlefile"),
         };
 
         lstAdd(fileList, &file);
@@ -1688,7 +1688,7 @@ testRun(void)
         TEST_RESULT_UINT(result.copySize, 0, "copy size is 0");
         TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultTruncate, "truncated file");
         TEST_RESULT_PTR(result.copyChecksum, HASH_TYPE_SHA1_ZERO_BUF, "checksum eq");
-        TEST_STORAGE_EXISTS(storageRepo(), strZ(repoFile), .not_exists = true, .comment = "truncatedfile is not put to storage");
+        TEST_STORAGE_EXISTS(storageRepo(), strZ(repoFile), .not_exists = true, .comment = "bundlefile is not put to storage");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("copy file to encrypted repo");
