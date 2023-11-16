@@ -1685,14 +1685,14 @@ testRun(void)
             *(BackupFileResult *)lstGet(
                 backupFile(repoFile, 1 /* manifest mode */, false, 0, compressTypeNone, 1, cipherTypeNone, NULL, POSTGRESQL_PAGE_SIZE, fileList), 0),
             "truncatedfile pg file exists, repo file mode");
-        TEST_RESULT_UINT(result.copySize, 0, "copy size 0");
+        TEST_RESULT_UINT(result.copySize, 0, "copy size is 0");
         TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultTruncate, "truncated file");
         TEST_RESULT_PTR(result.copyChecksum, HASH_TYPE_SHA1_ZERO_BUF, "checksum eq");
         TEST_STORAGE_LIST(
             storageRepo(), STORAGE_REPO_BACKUP "/20190718-155825F",
             "testfile.gz\n"
             "zerofile\n",
-            .comment = "truncatedfile does not put to storage");
+            .comment = "truncatedfile is not put to storage");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("copy file to encrypted repo");
