@@ -1688,8 +1688,7 @@ testRun(void)
         TEST_RESULT_UINT(result.copySize, 0, "copy size is 0");
         TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultTruncate, "truncated file");
         TEST_RESULT_PTR(result.copyChecksum, HASH_TYPE_SHA1_ZERO_BUF, "checksum eq");
-        TEST_STORAGE_EXISTS(storageRepo(), strZ(repoFile),
-            .not_exists = true, .comment = "truncated file is not added to bundle, bundle is not created");
+        TEST_STORAGE_NOT_EXISTS(storageRepo(), strZ(repoFile), .comment = "truncated file is not added to bundle, bundle is not created");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("copy file to encrypted repo");
