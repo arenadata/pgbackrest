@@ -1689,7 +1689,6 @@ testRun(void)
         TEST_RESULT_UINT(result.backupCopyResult, backupCopyResultTruncate, "truncated file");
         TEST_RESULT_PTR(result.copyChecksum, HASH_TYPE_SHA1_ZERO_BUF, "checksum eq");
         TEST_STORAGE_EXISTS(storageRepo(), strZ(repoFile), NULL, .not_exists = true, .comment = "truncatedfile is not put to storage");
-        //TEST_ERROR(ioWrite(write, buffer), AssertError, "should not be possible to see two misaligned pages in a row");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("copy file to encrypted repo");
