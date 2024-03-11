@@ -1,14 +1,18 @@
+Данная инструкция описывает, как скомпилировать pgBackRest, создать с его помощью резервную копию кластера Greenplum и восстановиться из нее.
+
 # 1. Поддерживаемые версии Greenplum
 
-На данный момент поддерживается только Greenplum 6.
+На данный момент поддерживается только [Greenplum 6](https://docs.vmware.com/en/VMware-Greenplum/6/greenplum-database/landing-index.html).
 
 # 2. Компиляция pgBackRest
 
 - Установить зависимости
 
+Приведенные ниже команды требуется выполнить от имени суперпользователя.
+
 для CentOS 7:
 ```
-yum install gcc openssl-devel libxml2-devel bzip2-devel libzstd-devel lz4-devel libyaml-devel
+yum install git gcc openssl-devel libxml2-devel bzip2-devel libzstd-devel lz4-devel libyaml-devel
 ```
 
 для ALT Linux p10
@@ -66,8 +70,9 @@ mkdir -p /tmp/backup/log
 
 - Создать конфигурационный файл
 
-Для **стандартного демонстрационного кластера**, созданного с `DATADIRS=/tmp/gpdb`, этот файл будет выглядеть так:
+В дальнейших примерах команд предполагается, что конфигурационный файл имеет стандартное имя - `/etc/pgbackrest.conf`. Если требуется использовать другой файл, то его имя можно передать через параметр `--config`. Для **стандартного демонстрационного кластера**, созданного с `DATADIRS=/tmp/gpdb`, команда создания конфигурационного файла потребует права суперпользователя и будет выглядеть так:
 ```
+cat <<EOF > /etc/pgbackrest.conf
 [seg-1]
 pg1-path=/tmp/gpdb/qddir/demoDataDir-1
 pg1-port=6000
@@ -89,9 +94,8 @@ repo1-path=/tmp/backup
 log-path=/tmp/backup/log
 start-fast=y
 fork=GPDB
+EOF
 ```
-
-В дальнейших примерах команд предполагается, что конфигурационный файл имеет стандартное имя - `/etc/pgbackrest.conf`. Если требуется использовать другой файл, то его имя можно передать через параметр `--config`.
 
 Так как данная версия pgBackRest может применяться для бэкапа как PostgreSQL, так и Greenplum, следует указать в параметре `fork`, бэкап какой СУБД выполняется. Описание остальных параметров можно найти в [документации](https://pgbackrest.org/configuration.html) или в `build/help/help.xml`.
 
@@ -111,7 +115,9 @@ gpconfig -c archive_command -v "'PGOPTIONS=\"-c gp_session_role=utility\" /usr/l
 gpstop -ar
 ```
 
-- Установить расширение gp_pitr 
+- Установить расширение gp_pitr
+
+Выполнить приведенный ниже запрос в любом клиентском приложении, например в psql.
 ```
 create extension gp_pitr;
 ```
@@ -135,12 +141,14 @@ do
     PGOPTIONS="-c gp_session_role=utility" pgbackrest --stanza=seg$i backup
 done
 ```
-Если потребуется остановить прерванный бэкап, то это можно сделать командой
+Если потребуется остановить прерванный бэкап, то это можно сделать запросом
 ```
 select pg_stop_backup() from gp_dist_random('gp_id');
 ```
 
 4.2 Создать именованную точку восстановления
+
+Выполнить запрос
 ```
 select gp_create_restore_point('backup1');
 ```
@@ -148,7 +156,7 @@ select gp_create_restore_point('backup1');
 
 4.3 Отправить в архив файлы, хранящие созданную точку восстановления.
 
-Отправка осуществляется через переключение логов предзаписи координатора и сегментов на новые файлы.
+Отправка осуществляется через переключение логов предзаписи координатора и сегментов на новые файлы с помощью запроса
 ```
 select gp_switch_wal();
 ```
@@ -204,4 +212,11 @@ gprecoverseg -aF
 - Восстановить резервный координатор
 ```
 gpinitstandby -as $HOSTNAME -S /tmp/gpdb/standby -P 6001
+```
+
+- Убедиться, что все компоненты кластера восстановились и работают
+
+Выполнить запрос
+```
+select * from gp_segment_configuration order by content, role;
 ```
