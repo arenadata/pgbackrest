@@ -8,20 +8,26 @@
 
 - Установить зависимости
 
-Приведенные ниже команды требуется выполнить от имени суперпользователя.
+Приведенные ниже команды установки требуется выполнить от имени суперпользователя.
 
 для CentOS 7:
 ```
-yum install git gcc openssl-devel libxml2-devel bzip2-devel libzstd-devel lz4-devel libyaml-devel
+yum install git gcc openssl-devel libxml2-devel bzip2-devel libzstd-devel lz4-devel libyaml-devel zlib-devel libssh2-devel
 ```
 
 для ALT Linux p10
 ```
 apt-get update
-apt-get install git gcc openssl-devel libxml2-devel bzip2-devel libzstd-devel libyaml-devel zlib-devel 
+apt-get install git gcc openssl-devel libxml2-devel bzip2-devel libzstd-devel liblz4-devel libyaml-devel zlib-devel libssh2-devel
 ```
 
-- Добавить в переменную окружения PATH путь к pg_config Greenplum
+- Установить переменные окружения
+
+В `PATH` должен быть путь к `pg_config` Greenplum, а в `LD_LIBRARY_PATH` - путь к `libpq.so.5`.
+
+```
+source <GPDB_DIR>/greenplum_path.sh
+```
 
 - Скачать репозиторий
 ```
@@ -189,7 +195,7 @@ gpstart -am
 gpinitstandby -ar
 ```
 
-- Отметить зеркала сегментов как недоступные
+- Отметить зеркальные сегменты как недоступные
 ```
 PGOPTIONS="-c gp_session_role=utility" psql postgres -c "
 set allow_system_table_mods to true;
@@ -220,3 +226,5 @@ gpinitstandby -as $HOSTNAME -S /tmp/gpdb/standby -P 6001
 ```
 select * from gp_segment_configuration order by content, role;
 ```
+
+Должно быть выведено по одной строке для координатора, резервного координатора, каждого первичного и зеркального сегмента. Во всех строках в столбце `status` должно быть значение `u`.

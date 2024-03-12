@@ -1,23 +1,33 @@
+This manual describes how to compile pgBackRest, use it to create a backup copy of the Greenplum cluster and recover from it.
+
 # 1. Supported versions of Greenplum
 
-Currently, only Greenplum 6 is supported.
+Currently, only [Greenplum 6](https://docs.vmware.com/en/VMware-Greenplum/6/greenplum-database/landing-index.html) is supported.
 
 # 2. pgBackRest compilation
 
 - Install dependencies
 
+The following installation commands must be executed as root.
+
 on CentOS 7:
 ```
-yum install gcc openssl-devel libxml2-devel bzip2-devel libzstd-devel lz4-devel libyaml-devel
+yum install git gcc openssl-devel libxml2-devel bzip2-devel libzstd-devel lz4-devel libyaml-devel zlib-devel libssh2-devel
 ```
 
 on ALT Linux p10
 ```
 apt-get update
-apt-get install git gcc openssl-devel libxml2-devel bzip2-devel libzstd-devel libyaml-devel zlib-devel 
+apt-get install git gcc openssl-devel libxml2-devel bzip2-devel libzstd-devel liblz4-devel libyaml-devel zlib-devel libssh2-devel
 ```
 
-- Add path to pg_config of Greenplum to the PATH environment variable
+- Set environment variables
+
+The `PATH` variable should contain a path to `pg_config` of Greenplum, and `LD_LIBRARY_PATH` should contain a path to `libpq.so.5`.
+
+```
+source <GPDB_DIR>/greenplum_path.sh
+```
 
 - Download the repository
 ```
@@ -66,8 +76,9 @@ mkdir -p /tmp/backup/log
 
 - Create a configuration file
 
-For **standard demo cluster** created with `DATADIRS=/tmp/gpdb` this file will look like this:
+In the following command examples, it is assumed that the configuration file has a standard name - `/etc/pgbackrest.conf`. If you need to use another file, its name can be passed through the `--config` parameter. For **standard demo cluster** created with `DATADIRS=/tmp/gpdb` the command to create a configuration file will require superuser rights and will look like this:
 ```
+cat <<EOF > /etc/pgbackrest.conf
 [seg-1]
 pg1-path=/tmp/gpdb/qddir/demoDataDir-1
 pg1-port=6000
@@ -89,9 +100,8 @@ repo1-path=/tmp/backup
 log-path=/tmp/backup/log
 start-fast=y
 fork=GPDB
+EOF
 ```
-
-In the following command examples, it is assumed that the configuration file has a standard name - `/etc/pgbackrest.conf`. If you need to use another file, its name can be passed through the `--config` parameter.
 
 This version of pgBackRest can be used for both PostgreSQL and Greenplum backups, so you should specify in the `fork` parameter which DBMS is backed up. Description of the remaining parameters can be found in the [documentation](https://pgbackrest.org/configuration.html) or in `build/help/help.xml`.
 
@@ -111,6 +121,8 @@ gpstop -ar
 ```
 
 - Install the gp_pitr extension
+
+Run the query below in any client application, for example in psql.
 ```
 create extension gp_pitr;
 ```
@@ -134,12 +146,14 @@ do
     PGOPTIONS="-c gp_session_role=utility" pgbackrest --stanza=seg$i backup
 done
 ```
-If you need to stop an interrupted backup, you can do this with the command
+If you need to stop an interrupted backup, you can do this with the query
 ```
 select pg_stop_backup() from gp_dist_random('gp_id');
 ```
 
 4.2 Сreate a named restore point
+
+Run the query
 ```
 select gp_create_restore_point('backup1');
 ```
@@ -147,7 +161,7 @@ The record of the restore point will be stored in WAL.
 
 4.3 Archive the files that store the created restore point.
 
-Sending to the archive is carried out by switching WALs on coordinator and segments to new files.
+Sending to the archive is carried out by switching WALs on coordinator and segments to new files using the query
 ```
 select gp_switch_wal();
 ```
@@ -180,7 +194,7 @@ gpstart -am
 gpinitstandby -ar
 ```
 
-- Mark segment mirrors as unavailable
+- Mark mirror segments as unavailable
 ```
 PGOPTIONS="-c gp_session_role=utility" psql postgres -c "
 set allow_system_table_mods to true;
@@ -204,3 +218,12 @@ gprecoverseg -aF
 ```
 gpinitstandby -as $HOSTNAME -S /tmp/gpdb/standby -P 6001
 ```
+
+- Make sure that all cluster components are restored and working
+
+Run the query
+```
+select * from gp_segment_configuration order by content, role;
+```
+
+One line should be output for the coordinator, backup coordinator, and each primary and mirror segment. All rows in the `status` column must have the `u` value.
