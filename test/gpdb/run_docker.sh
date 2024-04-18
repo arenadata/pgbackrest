@@ -16,6 +16,6 @@ fi
 docker run --rm --privileged -e TEST_OS=centos \
 -e GPDB_ROOT=$DOCKER_GPDB_SRC_PATH \
 --sysctl kernel.sem="500 1024000 200 4096" \
--v $PROJECT_ROOT:/tmp/pg_backrest \
+-v $PROJECT_ROOT:/tmp/pg_backrest:ro \
 -v $LOG_DIR:$DOCKER_GPDB_SRC_PARENT/test_pgbackrest/logs \
 ${DOCKERIMAGE} /bin/bash -c "bash /tmp/pg_backrest/test/gpdb/test_in_docker.sh"
