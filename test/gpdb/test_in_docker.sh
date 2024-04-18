@@ -23,7 +23,7 @@ function run_tests() {
     tests_dir=$1
     for test_script in "$tests_dir"/*.sh; do
         echo "Running test: $(basename "$test_script")"
-        if sudo -u gpadmin bash -c "$test_script $2 $3 $4 $GPHOME"; then
+        if sudo -u gpadmin bash -c "bash $test_script $2 $3 $4 $GPHOME"; then
              SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
         else
             echo "Test failed $(basename "$test_script")"

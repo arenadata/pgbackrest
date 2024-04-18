@@ -9,13 +9,13 @@ It is preferable to have a conainer build from GPDB repo's [Dockerfile](https://
 **Launch**
 To run the tests, execute the script:
 ```
-./run_docker.sh <container_id> \
+bash run_docker.sh <container_id> \
  <path to GPDB sources inside the container like /home/gpadmin/gpdb_src> \
  <desirable log directory>
 ```
 If 2nd or 3rd argument is missing some default values are choosen. For the container mentioned above you can simply run
 ```
-./run_docker.sh <container_id>
+bash run_docker.sh <container_id>
 ```
 The log directory in this case will be created in the folder with the run_docker.sh script.
 
