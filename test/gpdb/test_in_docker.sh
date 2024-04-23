@@ -12,7 +12,7 @@ function install_pgbackrest() {
     su gpadmin -c "
     ./configure &&
     make -j`nproc` -s &&
-    make install DESTDIR=$1 bindir=$2 &&
+    make install DESTDIR=$1 bindir="" &&
     make clean"
     popd
 }
