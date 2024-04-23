@@ -10,9 +10,9 @@ fi
 function install_pgbackrest() {
     pushd $GPDB_PARENT/pgbackrest/src
     su gpadmin -c "
-    ./configure &&
+    ./configure --prefix=$1 --bindir=$1 --enable-test &&
     make -j`nproc` -s &&
-    make install DESTDIR=$1 bindir="" &&
+    make install &&
     make clean"
     popd
 }
