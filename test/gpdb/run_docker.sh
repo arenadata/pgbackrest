@@ -2,8 +2,8 @@
 set -ex 
 
 DOCKERIMAGE="$1"
-DOCKER_GPDB_SRC_PATH="${2:-/home/gpadmin/gpdb_src}"
-LOG_DIR="${3:-$(pwd)/logs}"
+LOG_DIR="${2:-$(pwd)/logs}"
+DOCKER_GPDB_SRC_PATH=/home/gpadmin/gpdb_src
 DOCKER_GPDB_SRC_PARENT=$(dirname "$DOCKER_GPDB_SRC_PATH")
 SCRIPT_PATH=$(dirname $(realpath -s $0))
 PROJECT_ROOT=$(dirname $(dirname "$SCRIPT_PATH"))
