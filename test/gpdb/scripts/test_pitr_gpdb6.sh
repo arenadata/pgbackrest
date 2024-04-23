@@ -123,23 +123,14 @@ done
 
 echo "Checking the presence of first backup" > /dev/null
 function check_backup(){
-    found=0
-    for dir in $PGBACKREST_TEST_DIR/$TEST_NAME/backup/seg$1/*; do
-        if [ -d "$dir" ]; then
-            dirname=$(basename "$dir")
-            current_date=$(date +%Y%m%d)
-            if [[ "$dirname" =~ ^${current_date}-[0-9]{6}F$ ]]; then
-                if [ "$(ls -A "$dir")" ]; then
-                    echo "Found a backup directory for segment $1: $dirname" \
-                    > /dev/null
-                    found=1
-                    break
-                fi
-            fi
-        fi
-    done
-    if [ $found -eq 0 ]; then
-        echo "The backup directory for segment $1 wasn't found" > /dev/null
+    segment_backup_dir=$PGBACKREST_TEST_DIR/$TEST_NAME/backup/seg$1
+    current_date=$(date +%Y%m%d)
+    if [[ $(find $segment_backup_dir -maxdepth 1 -type d -name \
+        "${current_date}-??????F" -not -empty ) ]];
+    then
+        echo "Found a backup directory for segment $1: $dirname" > /dev/null
+    else
+        echo "The backup directory for segment $1 was not found" > /dev/null
         exit 1
     fi
 }
