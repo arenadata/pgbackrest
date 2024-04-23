@@ -35,6 +35,10 @@ function run_tests() {
     echo "Tests run: $((SUCCESS_COUNT + FAILURE_COUNT))"
     echo "Passed: $SUCCESS_COUNT"
     echo "Failed: $FAILURE_COUNT"
+
+    if [ $FAILURE_COUNT -gt 0 ]; then
+        exit 1
+    fi
 }
 
 # we are doing copy here because the /tmp/pg_backrest/ dir is a readonly volume,
