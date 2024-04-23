@@ -8,11 +8,6 @@ DOCKER_GPDB_SRC_PARENT=$(dirname "$DOCKER_GPDB_SRC_PATH")
 SCRIPT_PATH=$(dirname $(realpath -s $0))
 PROJECT_ROOT=$(dirname $(dirname "$SCRIPT_PATH"))
 
-if [ ! -d "$LOG_DIR" ]; then
-	echo "Directory $LOG_DIR does not exist. Creating now."
-	mkdir -p "$LOG_DIR"
-fi
-
 docker run --rm --privileged -e TEST_OS=centos \
 -e GPDB_ROOT=$DOCKER_GPDB_SRC_PATH \
 --sysctl kernel.sem="500 1024000 200 4096" \
