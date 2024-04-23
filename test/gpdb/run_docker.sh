@@ -8,7 +8,7 @@ DOCKER_GPDB_SRC_PARENT=$(dirname "$DOCKER_GPDB_SRC_PATH")
 SCRIPT_PATH=$(dirname $(realpath -s $0))
 PROJECT_ROOT=$(dirname $(dirname "$SCRIPT_PATH"))
 
-docker run --rm --privileged -e TEST_OS=centos \
+docker run --rm  \
 -e GPDB_ROOT=$DOCKER_GPDB_SRC_PATH \
 --sysctl kernel.sem="500 1024000 200 4096" \
 -v $PROJECT_ROOT:/tmp/pg_backrest:ro \

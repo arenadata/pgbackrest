@@ -43,6 +43,7 @@ cp -r /tmp/pg_backrest/ $GPDB_PARENT/pgbackrest/
 
 # configure GPDB
 source $GPDB_ROOT/concourse/scripts/common.bash
+TEST_OS=$(cat /etc/*-release | grep -e "^ID=" | cut -d "=" -f 2)
 $GPDB_ROOT/concourse/scripts/setup_gpadmin_user.bash "$TEST_OS"
 install_and_configure_gpdb
 
