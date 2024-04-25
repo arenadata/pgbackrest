@@ -1,42 +1,20 @@
 #!/usr/bin/env bash
 set -exo pipefail
 
-GPDB_ROOT=${1:-$GPDB_ROOT}
-PGBACKREST_TEST_DIR=${2:-$PG_BACKREST_TEST_DIR}
-PGBACKREST_BIN=${3:-$PG_BACKREST_BIN}
-GPHOME=${4:-/usr/local/greenplum-db-devel}
-
-if [ ! -d "$GPDB_ROOT" ]; then
-    echo "Directory with GPDB sources $GPDB_ROOT does not exist. Exiting." \
-    > /dev/null
-    exit 1
-fi
-
-if [ ! -d "$PGBACKREST_TEST_DIR" ]; then
-    echo "Test directory for pgbackrest does not exist. Creating now." \
-    > /dev/null
-
-    PGBACKREST_TEST_DIR=$(dirname "$GPDB_ROOT")/test_pgbackrest
-    mkdir -p "$PGBACKREST_TEST_DIR"
-fi
-
-if [ ! -d "$PGBACKREST_BIN" ]; then
-    PGBACKREST_BIN=/usr/local/bin
-fi
+PGBACKREST_TEST_DIR=/home/gpadmin/test_pgbackrest
+PGBACKREST_BIN=/usr/local/bin
+GPHOME=/usr/local/greenplum-db-devel
 
 echo "Starting up demo cluster" > /dev/null
 source $GPHOME/greenplum_path.sh
-pushd $GPDB_ROOT/gpAux/gpdemo
+pushd gpdb_src/gpAux/gpdemo
 make create-demo-cluster WITH_MIRRORS=true
 source gpdemo-env.sh
 popd
 
 
 echo "Creating backup and log directories for pgbackrest..." > /dev/null
-TEST_NAME=$(basename $0)
-TEST_NAME=${TEST_NAME%.sh}
-mkdir -p "$PGBACKREST_TEST_DIR"
-mkdir -p "$PGBACKREST_TEST_DIR/logs"
+TEST_NAME=$(basename "${0%.sh}")
 mkdir -p "$PGBACKREST_TEST_DIR/logs/$TEST_NAME"
 mkdir -p "$PGBACKREST_TEST_DIR/$TEST_NAME"
 
@@ -206,17 +184,18 @@ psql -d gpdb_pitr_database -c "SELECT * FROM t1 ORDER BY id;" \
 psql -d gpdb_pitr_database -c "SELECT * FROM t2 ORDER BY id;" \
 -o $PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_restored.out
 
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_original.out" \
-"$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_restored.out" \
-&& echo "Rows match." > /dev/null \
-|| echo "Discrepancy in rows found." > /dev/null
+if diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_original.out" \
+"$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_restored.out"; then
+    echo "Rows match." > /dev/null
+else
+    echo "Discrepancy in rows found." > /dev/null
+    exit 1
+fi
 
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_original.out" \
-"$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_restored.out" \
-&& echo "Rows match." > /dev/null \
-|| echo "Discrepancy in rows found." > /dev/null
-
-echo "Cleaning up" > /dev/null
-gpstop -af
-chmod o+r $PGBACKREST_TEST_DIR/logs/$TEST_NAME/*
-rm -rf $PGBACKREST_TEST_DIR/$TEST_NAME $DATADIR
+if diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_original.out" \
+"$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_restored.out"; then
+    echo "Rows match." > /dev/null
+else
+    echo "Discrepancy in rows found." > /dev/null
+    exit 1
+fi

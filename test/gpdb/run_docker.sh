@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
-set -ex 
+set -exo pipefail
 
 DOCKERIMAGE="$1"
-LOG_DIR="${2:-$(pwd)/logs}"
-DOCKER_GPDB_SRC_PATH=/home/gpadmin/gpdb_src
-DOCKER_GPDB_SRC_PARENT=$(dirname "$DOCKER_GPDB_SRC_PATH")
+LOG_DIR="$2"
 SCRIPT_PATH=$(dirname $(realpath -s $0))
 PROJECT_ROOT=$(dirname $(dirname "$SCRIPT_PATH"))
 
-docker run --rm  \
--e GPDB_ROOT=$DOCKER_GPDB_SRC_PATH \
---sysctl kernel.sem="500 1024000 200 4096" \
--v $PROJECT_ROOT:/tmp/pg_backrest:ro \
--v $LOG_DIR:$DOCKER_GPDB_SRC_PARENT/test_pgbackrest/logs \
-${DOCKERIMAGE} /bin/bash -c "bash /tmp/pg_backrest/test/gpdb/test_in_docker.sh"
+if [ -z "$(docker images -q pgbackrest:test 2> /dev/null)" ]; then
+  docker build -t pgbackrest:test -f $SCRIPT_PATH/Dockerfile \
+  $PROJECT_ROOT --build-arg GPDB_IMAGE=$DOCKERIMAGE
+fi
+
+
+if [ ! -d "$LOG_DIR" ]; then
+	docker run --rm  \
+    --sysctl kernel.sem="500 1024000 200 4096" \
+    -v $LOG_DIR:/home/gpadmin/test_pgbackrest/logs pgbackrest:test \
+    /bin/bash -c "bash /home/gpadmin/pgbackrest/test/gpdb/test_in_docker.sh"
+else
+    docker run --rm  \
+    --sysctl kernel.sem="500 1024000 200 4096" pgbackrest:test \
+    /bin/bash -c "bash /home/gpadmin/pgbackrest/test/gpdb/test_in_docker.sh"
+fi
