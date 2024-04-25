@@ -11,7 +11,7 @@ To run the tests, execute the script:
 ```
 bash run_docker.sh <container_id> <desirable log directory>
 ```
-If 3rd argument is missing the log directory is created in directory with the script. For the container mentioned above you can simply run
+If 3rd argument is missing the log directory is not created. For the container mentioned above you can simply run
 ```
 bash run_docker.sh <image_id>
 ```
