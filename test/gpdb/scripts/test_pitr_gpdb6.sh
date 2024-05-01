@@ -5,7 +5,7 @@ PGBACKREST_TEST_DIR=/home/gpadmin/test_pgbackrest
 PGBACKREST_BIN=/usr/local/bin
 GPHOME=/usr/local/greenplum-db-devel
 
-echo "Starting up demo cluster" > /dev/null
+echo "Starting up demo cluster..." > /dev/null
 source $GPHOME/greenplum_path.sh
 pushd gpdb_src/gpAux/gpdemo
 make create-demo-cluster WITH_MIRRORS=true
@@ -31,7 +31,7 @@ PRIMARY1_PORT=6002
 PRIMARY2_PORT=6003
 PRIMARY3_PORT=6004
 
-echo "Filling the pgbackrest.conf configuration file" > /dev/null
+echo "Filling the pgbackrest.conf configuration file..." > /dev/null
 cat <<EOF > $PGBACKREST_TEST_DIR/pgbackrest.conf
 [seg-1]
 pg1-path=$MASTER
@@ -56,14 +56,14 @@ start-fast=y
 fork=GPDB
 EOF
 
-echo "Initiallizing pgbackrest for GPDB" > /dev/null
+echo "Initializing pgbackrest for GPDB..." > /dev/null
 for i in -1 0 1 2
 do 
     PGOPTIONS="-c gp_session_role=utility" $PGBACKREST_BIN/pgbackrest \
     --config $PGBACKREST_TEST_DIR/pgbackrest.conf --stanza=seg$i stanza-create
 done
 
-echo "Configuring WAL archiving command" > /dev/null
+echo "Configuring WAL archiving command..." > /dev/null
 gpconfig -c archive_mode -v on
 
 gpconfig -c archive_command -v "'PGOPTIONS=\"-c gp_session_role=utility\" \
@@ -72,10 +72,10 @@ $PGBACKREST_BIN/pgbackrest --config $PGBACKREST_TEST_DIR/pgbackrest.conf \
 
 gpstop -ar
 
-echo "pgbackrest health check" > /dev/null
+echo "pgbackrest health check..." > /dev/null
 for i in -1 0 1 2
 do 
-	PGOPTIONS="-c gp_session_role=utility" $PGBACKREST_BIN/pgbackrest \
+    PGOPTIONS="-c gp_session_role=utility" $PGBACKREST_BIN/pgbackrest \
     --config $PGBACKREST_TEST_DIR/pgbackrest.conf --stanza=seg$i check
 done
 
@@ -99,7 +99,7 @@ do
     --type=full backup
 done
 
-echo "Checking the presence of first backup" > /dev/null
+echo "Checking the presence of first backup..." > /dev/null
 function check_backup(){
     segment_backup_dir=$PGBACKREST_TEST_DIR/$TEST_NAME/backup/seg$1
     current_date=$(date +%Y%m%d)
@@ -135,13 +135,13 @@ do
     --type=full backup
 done
 
-echo "Checking the presence of second backup" > /dev/null
+echo "Checking the presence of second backup..." > /dev/null
 for i in 1 2
 do 
    check_backup $i
 done
 
-echo "Creating a distributed restore point" > /dev/null
+echo "Creating a distributed restore point..." > /dev/null
 psql -d gpdb_pitr_database -c "create extension gp_pitr;"
 psql -d gpdb_pitr_database -c "select gp_create_restore_point('test_pitr');"
 psql -d gpdb_pitr_database -c "select gp_switch_wal();"
@@ -157,12 +157,12 @@ rm -rf $MIRROR1/* $MIRROR2/* $MIRROR3/* $DATADIR/standby/*
 echo "Restoring cluster..." > /dev/null
 for i in -1 0 1 2
 do 
-	PGOPTIONS="-c gp_session_role=utility" $PGBACKREST_BIN/pgbackrest --config \
+    PGOPTIONS="-c gp_session_role=utility" $PGBACKREST_BIN/pgbackrest --config \
     $PGBACKREST_TEST_DIR/pgbackrest.conf --stanza=seg$i --type=name \
     --target=test_pitr restore
 done
 
-echo "Configure mirrors after primary restore" > /dev/null
+echo "Configuring mirrors after primary restore..." > /dev/null
 gpstart -am
 gpinitstandby -ar
 
@@ -177,7 +177,7 @@ gpstop -ar
 gprecoverseg -aF
 gpinitstandby -as $HOSTNAME -S $DATADIR/standby/ -P 6001
 
-echo "Checking data integrity" > /dev/null
+echo "Checking data integrity..." > /dev/null
 psql -d gpdb_pitr_database -c "SELECT * FROM t1 ORDER BY id;" \
 -o $PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_restored.out
 
@@ -186,16 +186,16 @@ psql -d gpdb_pitr_database -c "SELECT * FROM t2 ORDER BY id;" \
 
 if diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_original.out" \
 "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_restored.out"; then
-    echo "Rows match." > /dev/null
+    echo "Rows match" > /dev/null
 else
-    echo "Discrepancy in rows found." > /dev/null
+    echo "Discrepancy in rows found" > /dev/null
     exit 1
 fi
 
 if diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_original.out" \
 "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_restored.out"; then
-    echo "Rows match." > /dev/null
+    echo "Rows match" > /dev/null
 else
-    echo "Discrepancy in rows found." > /dev/null
+    echo "Discrepancy in rows found" > /dev/null
     exit 1
 fi

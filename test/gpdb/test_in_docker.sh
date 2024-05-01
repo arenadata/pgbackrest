@@ -3,9 +3,9 @@ set -eo pipefail
 
 function install_pgbackrest() {
     pushd /home/gpadmin/pgbackrest/src
-    ./configure --enable-test &&
-    make -j`nproc` -s &&
-    make install &&
+    ./configure --enable-test
+    make -j`nproc` -s
+    make install
     make clean
     popd
 }
@@ -15,15 +15,13 @@ function stop_and_clear_gpdb() {
     DATADIR="${MASTER_DATA_DIRECTORY%*/*/*}"
     # Attempt to stop the Greenplum Database cluster gracefully
     echo "Attempting to stop GPDB cluster gracefully..."
-    su - gpadmin -c "
+    if ! su - gpadmin -c "
         export MASTER_DATA_DIRECTORY=$MASTER_DATA_DIRECTORY
         source /usr/local/greenplum-db-devel/greenplum_path.sh &&
-        gpstop -af "
-
-    # In case gpstop didn't work, force stop all postgres processes
-    # This approach is a catch-all attempt in case the cluster is in a
-    # very broken state
-    if [ $? -ne 0 ]; then
+        gpstop -af "; then
+        # In case gpstop didn't work, force stop all postgres processes
+        # This approach is a catch-all attempt in case the cluster is in a
+        # very broken state
         echo "Graceful stop failed. Attempting to force stop any \
         remaining postgres processes..."
         pkill -9 postgres
@@ -33,11 +31,7 @@ function stop_and_clear_gpdb() {
     # Now that all processes are ensured to be stopped,
     # clear the data directories.
     echo "Clearing GPDB data directories..."
-    for dir in $DATADIR; do
-        if [ -d "$dir" ]; then
-            rm -rf "$dir"/* || true
-        fi
-    done
+    rm -rf $DATADIR/*
 }
 
 
@@ -49,16 +43,16 @@ function run_tests() {
     for test_script in "$tests_dir"/*.sh; do
         TEST_NAME=$(basename "${test_script%.sh}")
         echo "Running test: $TEST_NAME"
-        if sudo -u gpadmin bash -c "bash $test_script"; then
+        if sudo -u gpadmin bash "$test_script"; then
              SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
         else
             echo "Test failed $TEST_NAME"
             FAILURE_COUNT=$((FAILURE_COUNT + 1))
         fi
-        rm -r /home/gpadmin/test_pgbackrest/$TEST_NAME 2>/dev/null || true
+        rm -rf /home/gpadmin/test_pgbackrest/$TEST_NAME 2>/dev/null
         chmod o+r /home/gpadmin/test_pgbackrest/logs/$TEST_NAME/*
         stop_and_clear_gpdb
-	done
+    done
 
     echo "======================="
     echo "Tests run: $((SUCCESS_COUNT + FAILURE_COUNT))"
