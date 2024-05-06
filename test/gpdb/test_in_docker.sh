@@ -34,8 +34,6 @@ function stop_and_clear_gpdb() {
     rm -rf $DATADIR/*
 }
 
-
-
 function run_tests() {
     SUCCESS_COUNT=0
     FAILURE_COUNT=0
@@ -43,13 +41,13 @@ function run_tests() {
     for test_script in "$tests_dir"/*.sh; do
         TEST_NAME=$(basename "${test_script%.sh}")
         echo "Running test: $TEST_NAME"
-        if sudo -u gpadmin bash "$test_script"; then
+        if su - gpadmin -c "bash $test_script"; then
              SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
         else
             echo "Test failed $TEST_NAME"
             FAILURE_COUNT=$((FAILURE_COUNT + 1))
         fi
-        rm -rf /home/gpadmin/test_pgbackrest/$TEST_NAME 2>/dev/null
+        rm -rf /home/gpadmin/test_pgbackrest/$TEST_NAME
         chmod o+r /home/gpadmin/test_pgbackrest/logs/$TEST_NAME/*
         stop_and_clear_gpdb
     done
@@ -72,3 +70,5 @@ install_and_configure_gpdb
 # configure pgbackrest
 install_pgbackrest
 run_tests /home/gpadmin/pgbackrest/test/gpdb/scripts
+
+

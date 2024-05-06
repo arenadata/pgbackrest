@@ -9,10 +9,6 @@ It is preferable to have a container build from GPDB repo's [Dockerfile](https:/
 **Launch**
 To run the tests, execute the script:
 ```
-bash run_docker.sh <image_id> <desirable log directory>
-```
-If 3rd argument is missing the log directory is not created. For the container mentioned above you can simply run
-```
 bash run_docker.sh <image_id>
 ```
 
