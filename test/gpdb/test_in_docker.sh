@@ -70,5 +70,3 @@ install_and_configure_gpdb
 # configure pgbackrest
 install_pgbackrest
 run_tests /home/gpadmin/pgbackrest/test/gpdb/scripts
-
-
