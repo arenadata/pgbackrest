@@ -88,9 +88,6 @@ psql -d gpdb_pitr_database -c \
 psql -d gpdb_pitr_database -c \
 "INSERT INTO t1 SELECT i, 'text'||i FROM generate_series(1,30) i;"
 
-psql -d gpdb_pitr_database -c "SELECT * FROM t1 ORDER BY id;" \
--o $PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_original.out
-
 echo "Creating full backup on master and seg0..." > /dev/null
 for i in -1 0
 do 
@@ -103,10 +100,10 @@ echo "Checking the presence of first backup..." > /dev/null
 function check_backup(){
     segment_backup_dir=$PGBACKREST_TEST_DIR/$TEST_NAME/backup/seg$1
     current_date=$(date +%Y%m%d)
-    if [[ $(find $segment_backup_dir -maxdepth 1 -type d -name \
+    if [[ $(find "$segment_backup_dir" -maxdepth 1 -type d -name \
         "${current_date}-??????F" -not -empty ) ]];
     then
-        echo "Found a backup directory for segment $1: $dirname" > /dev/null
+        echo "Found a backup directory for segment $1" > /dev/null
     else
         echo "The backup directory for segment $1 was not found" > /dev/null
         exit 1
@@ -125,7 +122,17 @@ psql -d gpdb_pitr_database -c \
 "INSERT INTO t2 SELECT i, 'text'||i FROM generate_series(1,30) i;"
 
 psql -d gpdb_pitr_database -c "SELECT * FROM t2 ORDER BY id;" \
--o $PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_original.out
+-o "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_original.out"
+
+
+echo "Filling the first table with more data at seg0 after the first backup..."\
+> /dev/null 
+
+psql -d gpdb_pitr_database -c \
+"INSERT INTO t1 SELECT 3, 'text'||i FROM generate_series(1,10) i;"
+
+psql -d gpdb_pitr_database -c "SELECT * FROM t1 ORDER BY id;" \
+-o "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_original.out"
 
 echo "Creating full backup on seg1 and seg2..." > /dev/null
 for i in 1 2
@@ -151,8 +158,8 @@ psql -d gpdb_pitr_database -c "drop table t1;"
 psql -d gpdb_pitr_database -c "truncate table t2;"
 
 gpstop -a
-rm -rf $MASTER/* $PRIMARY1/* $PRIMARY2/* $PRIMARY3/*
-rm -rf $MIRROR1/* $MIRROR2/* $MIRROR3/* $DATADIR/standby/*
+rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
+rm -rf "${MIRROR1:?}/"* "${MIRROR2:?}/"* "${MIRROR3:?}/"* "$DATADIR/standby/*"
 
 echo "Restoring cluster..." > /dev/null
 for i in -1 0 1 2
@@ -175,14 +182,14 @@ EOF
 
 gpstop -ar
 gprecoverseg -aF
-gpinitstandby -as $HOSTNAME -S $DATADIR/standby/ -P 6001
+gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby/" -P 6001
 
 echo "Checking data integrity..." > /dev/null
 psql -d gpdb_pitr_database -c "SELECT * FROM t1 ORDER BY id;" \
--o $PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_restored.out
+-o "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_restored.out"
 
 psql -d gpdb_pitr_database -c "SELECT * FROM t2 ORDER BY id;" \
--o $PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_restored.out
+-o "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_restored.out"
 
 if diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_original.out" \
 "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_restored.out"; then

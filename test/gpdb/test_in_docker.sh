@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+LOG_EXTENSION=${LOG_EXTENSION:-"pg_log"}
+ARCH=${ARCH:-"x86-64"}
+
 function install_pgbackrest() {
     pushd /home/gpadmin/pgbackrest/src
     ./configure --enable-test
-    make -j`nproc` -s
+    make -j"$(nproc)" -s
     make install
     make clean
     popd
@@ -31,7 +34,17 @@ function stop_and_clear_gpdb() {
     # Now that all processes are ensured to be stopped,
     # clear the data directories.
     echo "Clearing GPDB data directories..."
-    rm -rf $DATADIR/*
+    rm -rf "${DATADIR:?}/"*
+}
+
+function save_gpdb_logs() {
+    find gpdb_src/gpAux/gpdemo/datadirs/ -name "${LOG_EXTENSION}" \
+    -type d -exec tar -rf "$1/${ARCH}_${LOG_EXTENSION}.tar" "{}" \;
+    if [ -f "$1/${ARCH}_${LOG_EXTENSION}.tar" ]; then
+        gzip -9 "$1/${ARCH}_${LOG_EXTENSION}.tar"
+    fi
+    tar -czf "$1/${ARCH}_gpAdminLogs.tar.gz" gpAdminLogs/
+    tar -czf "$1/${ARCH}_gpAux.tar.gz" gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs/
 }
 
 function run_tests() {
@@ -47,8 +60,9 @@ function run_tests() {
             echo "Test failed $TEST_NAME"
             FAILURE_COUNT=$((FAILURE_COUNT + 1))
         fi
-        rm -rf /home/gpadmin/test_pgbackrest/$TEST_NAME
-        chmod o+r /home/gpadmin/test_pgbackrest/logs/$TEST_NAME/*
+        rm -rf "/home/gpadmin/test_pgbackrest/$TEST_NAME"
+        save_gpdb_logs "/home/gpadmin/test_pgbackrest/logs/$TEST_NAME"
+        chmod o+r "/home/gpadmin/test_pgbackrest/logs/$TEST_NAME/"*
         stop_and_clear_gpdb
     done
 
@@ -64,9 +78,8 @@ function run_tests() {
 
 # configure GPDB
 source gpdb_src/concourse/scripts/common.bash
-gpdb_src/concourse/scripts/setup_gpadmin_user.bash
 install_and_configure_gpdb
-
+gpdb_src/concourse/scripts/setup_gpadmin_user.bash
 # configure pgbackrest
 install_pgbackrest
 run_tests /home/gpadmin/pgbackrest/test/gpdb/scripts
