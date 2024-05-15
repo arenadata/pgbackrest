@@ -124,7 +124,6 @@ psql -d gpdb_pitr_database -c \
 psql -d gpdb_pitr_database -c "SELECT * FROM t2 ORDER BY id;" \
 -o "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_original.out"
 
-
 echo "Filling the first table with more data at seg0 after the first backup..."\
 > /dev/null 
 
@@ -159,7 +158,7 @@ psql -d gpdb_pitr_database -c "truncate table t2;"
 
 gpstop -a
 rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
-rm -rf "${MIRROR1:?}/"* "${MIRROR2:?}/"* "${MIRROR3:?}/"* "$DATADIR/standby/*"
+rm -rf "${MIRROR1:?}/"* "${MIRROR2:?}/"* "${MIRROR3:?}/"* "$DATADIR/standby/"*
 
 echo "Restoring cluster..." > /dev/null
 for i in -1 0 1 2

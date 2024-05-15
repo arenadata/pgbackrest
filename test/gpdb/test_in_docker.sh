@@ -38,6 +38,7 @@ function stop_and_clear_gpdb() {
 }
 
 function save_gpdb_logs() {
+    rm -f "$1/"*.gz
     find gpdb_src/gpAux/gpdemo/datadirs/ -name "${LOG_EXTENSION}" \
     -type d -exec tar -rf "$1/${ARCH}_${LOG_EXTENSION}.tar" "{}" \;
     if [ -f "$1/${ARCH}_${LOG_EXTENSION}.tar" ]; then
