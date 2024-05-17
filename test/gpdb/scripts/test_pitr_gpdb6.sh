@@ -6,7 +6,7 @@ PGBACKREST_BIN=/usr/local/bin
 GPHOME=/usr/local/greenplum-db-devel
 
 # Starting up demo cluster
-source $GPHOME/greenplum_path.sh
+source "$GPHOME/greenplum_path.sh"
 pushd gpdb_src/gpAux/gpdemo
 make create-demo-cluster WITH_MIRRORS=true
 source gpdemo-env.sh
@@ -93,7 +93,7 @@ done
 function check_backup(){
     segment_backup_dir=$PGBACKREST_TEST_DIR/$TEST_NAME/backup/seg$1
     current_date=$(date +%Y%m%d)
-    [[ -n $(find "$segment_backup_dir" -maxdepth 1 -type d -name "${current_date}-??????F" -not -empty) ]]
+    test -n "$(find "$segment_backup_dir" -maxdepth 1 -type d -name "${current_date}-??????F" -not -empty)"
 }
 for i in -1 0
 do 
