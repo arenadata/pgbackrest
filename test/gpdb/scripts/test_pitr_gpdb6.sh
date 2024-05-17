@@ -75,8 +75,8 @@ done
 
 # The test scenario starts here
 # Creating initial dataset
-createdb gpdb_pitr_database
 export PGDATABASE=gpdb_pitr_database
+createdb
 psql -c "CREATE TABLE t1 (id int, text varchar(255)) DISTRIBUTED BY (id);"
 
 psql -c "INSERT INTO t1 SELECT i, 'text'||i FROM generate_series(1,30) i;"
