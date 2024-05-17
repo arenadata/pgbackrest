@@ -72,9 +72,7 @@ function run_tests() {
     echo "Passed: $SUCCESS_COUNT"
     echo "Failed: $FAILURE_COUNT"
 
-    if [ $FAILURE_COUNT -gt 0 ]; then
-        exit 1
-    fi
+    [ $FAILURE_COUNT -gt 0 ] && exit 1
 }
 
 # configure GPDB
