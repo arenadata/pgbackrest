@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -exo pipefail
+
 PGBACKREST_TEST_DIR=/home/gpadmin/test_pgbackrest
 PGBACKREST_BIN=/usr/local/bin
 GPHOME=/usr/local/greenplum-db-devel
