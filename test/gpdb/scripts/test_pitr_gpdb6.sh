@@ -77,9 +77,7 @@ done
 # Creating initial dataset
 export PGDATABASE=gpdb_pitr_database
 createdb
-psql -c "CREATE TABLE t1 (id int, text varchar(255)) DISTRIBUTED BY (id);"
-
-psql -c "INSERT INTO t1 SELECT i, 'text'||i FROM generate_series(1,30) i;"
+psql -c "CREATE TABLE t1 AS SELECT id, 'text'||id AS text FROM generate_series(1,30) id DISTRIBUTED BY (id);"
 
 # Creating full backup on master and seg0
 for i in -1 0
@@ -101,9 +99,7 @@ do
 done
 
 # Creating additional table
-psql -c "CREATE TABLE t2 (id int, text varchar(255)) DISTRIBUTED BY (id);"
-
-psql -c "INSERT INTO t2 SELECT i, 'text'||i FROM generate_series(1,30) i;"
+psql -c "CREATE TABLE t2 AS SELECT id, 'text'||id AS text FROM generate_series(1,30) id DISTRIBUTED BY (id);"
 
 psql -c "SELECT * FROM t2 ORDER BY id;" \
 -o "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_original.out"
