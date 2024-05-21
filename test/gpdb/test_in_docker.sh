@@ -29,7 +29,11 @@ function stop_and_clear_gpdb() {
         remaining postgres processes..."
         pkill -9 postgres
     fi
-    sleep 2 # Giving it a moment before proceeding to the next steps
+    #Waiting for all Postgres processes to terminate...
+    while pgrep postgres >/dev/null; do
+        #Postgres processes are still running. Waiting...
+        sleep 1
+    done
 
     # Now that all processes are ensured to be stopped,
     # clear the data directories.
