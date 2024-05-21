@@ -30,7 +30,7 @@ function stop_and_clear_gpdb() {
         pkill -9 postgres
     fi
     #Waiting for all Postgres processes to terminate...
-    while pgrep postgres >/dev/null; do
+    while pgrep postgres > /dev/null; do
         #Postgres processes are still running. Waiting...
         sleep 1
     done
