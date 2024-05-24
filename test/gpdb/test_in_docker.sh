@@ -85,4 +85,6 @@ install_and_configure_gpdb
 gpdb_src/concourse/scripts/setup_gpadmin_user.bash
 # configure pgbackrest
 install_pgbackrest
+touch /etc/pgbackrest.conf
+chmod o+w /etc/pgbackrest.conf
 run_tests /home/gpadmin/pgbackrest/test/gpdb/scripts

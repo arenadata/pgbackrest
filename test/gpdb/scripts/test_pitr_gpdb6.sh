@@ -24,7 +24,7 @@ MIRROR2=${DATADIR}/dbfast_mirror2/demoDataDir1
 MIRROR3=${DATADIR}/dbfast_mirror3/demoDataDir2
 
 # Filling the pgbackrest.conf configuration file
-cat <<EOF > $PGBACKREST_TEST_DIR/pgbackrest.conf
+cat <<EOF > /etc/pgbackrest.conf
 [seg-1]
 pg1-path=$MASTER
 pg1-port=6000
@@ -51,22 +51,21 @@ EOF
 # Initializing pgbackrest for GPDB
 for i in -1 0 1 2
 do 
-    PGOPTIONS="-c gp_session_role=utility" pgbackrest --config $PGBACKREST_TEST_DIR/pgbackrest.conf --stanza=seg$i stanza-create
+    PGOPTIONS="-c gp_session_role=utility" pgbackrest --stanza=seg$i stanza-create
 done
 
 # Configuring WAL archiving command
 gpconfig -c archive_mode -v on
 
 gpconfig -c archive_command -v "'PGOPTIONS=\"-c gp_session_role=utility\" \
-pgbackrest --config $PGBACKREST_TEST_DIR/pgbackrest.conf \
---stanza=seg%c archive-push %p'" --skipvalidation
+pgbackrest --stanza=seg%c archive-push %p'" --skipvalidation
 
 gpstop -ar
 
 # pgbackrest health check
 for i in -1 0 1 2
 do 
-    PGOPTIONS="-c gp_session_role=utility" pgbackrest --config $PGBACKREST_TEST_DIR/pgbackrest.conf --stanza=seg$i check
+    PGOPTIONS="-c gp_session_role=utility" pgbackrest --stanza=seg$i check
 done
 
 # The test scenario starts here
@@ -78,7 +77,7 @@ psql -c "CREATE TABLE t1 AS SELECT id, 'text'||id AS text FROM generate_series(1
 # Creating full backup on master and seg0
 for i in -1 0
 do 
-    PGOPTIONS="-c gp_session_role=utility" pgbackrest --config $PGBACKREST_TEST_DIR/pgbackrest.conf --stanza=seg$i --type=full backup
+    PGOPTIONS="-c gp_session_role=utility" pgbackrest --stanza=seg$i --type=full backup
 done
 
 # Checking the presence of first backup
@@ -107,7 +106,7 @@ psql -c "SELECT * FROM t1 ORDER BY id;" \
 # Creating full backup on seg1 and seg2
 for i in 1 2
 do 
-    PGOPTIONS="-c gp_session_role=utility" pgbackrest --config $PGBACKREST_TEST_DIR/pgbackrest.conf --stanza=seg$i --type=full backup
+    PGOPTIONS="-c gp_session_role=utility" pgbackrest --stanza=seg$i --type=full backup
 done
 
 # Checking the presence of second backup
@@ -132,7 +131,7 @@ rm -rf "${MIRROR1:?}/"* "${MIRROR2:?}/"* "${MIRROR3:?}/"* "$DATADIR/standby/"*
 # Restoring cluster
 for i in -1 0 1 2
 do 
-    pgbackrest --config $PGBACKREST_TEST_DIR/pgbackrest.conf --stanza=seg$i --type=name --target=test_pitr restore
+    pgbackrest --stanza=seg$i --type=name --target=test_pitr restore
 done
 
 # Configuring mirrors after primary restore
