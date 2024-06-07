@@ -84,7 +84,11 @@ done
 function check_backup(){
     segment_backup_dir=$PGBACKREST_TEST_DIR/$TEST_NAME/backup/seg$1
     current_date=$(date +%Y%m%d)
-    test -n "$(find "$segment_backup_dir" -maxdepth 1 -type d -name "${current_date}-??????F" -not -empty)"
+        
+    if [[ -z $(find "$segment_backup_dir" -maxdepth 1 -type d -name "${current_date}-??????F" -not -empty ) ]];
+    then
+        echo "The backup directory for segment $1 was not found" > /dev/null && exit 1
+    fi
 }
 for i in -1 0
 do 
