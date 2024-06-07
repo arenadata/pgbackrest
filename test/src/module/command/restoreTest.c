@@ -388,7 +388,8 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("system time UTC");
 
-        setenv("TZ", "UTC", true);
+        hrnTzSet("UTC");
+
         TEST_RESULT_INT(getEpoch(STRDEF("2020-01-08 09:18:15-0700")), 1578500295, "epoch with timezone");
         TEST_RESULT_INT(getEpoch(STRDEF("2020-01-08 16:18:15.0000")), 1578500295, "same epoch no timezone");
         TEST_RESULT_INT(getEpoch(STRDEF("2020-01-08 16:18:15.0000+00")), 1578500295, "same epoch timezone 0");
@@ -398,10 +399,13 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("system time America/New_York");
 
-        setenv("TZ", "America/New_York", true);
+        hrnTzSet("America/New_York");
+
         time_t testTime = 1573754569;
         char timeBuffer[20];
-        strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%S", localtime(&testTime));
+        struct tm timePart;
+        strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%S", localtime_r(&testTime, &timePart));
+
         TEST_RESULT_Z(timeBuffer, "2019-11-14 13:02:49", "check timezone set");
         TEST_RESULT_INT(getEpoch(STRDEF("2019-11-14 13:02:49-0500")), 1573754569, "offset same as local");
         TEST_RESULT_INT(getEpoch(STRDEF("2019-11-14 13:02:49")), 1573754569, "GMT-0500 (EST)");
@@ -417,7 +421,7 @@ testRun(void)
             "HINT: time format must be YYYY-MM-DD HH:MM:SS with optional msec and optional timezone (+/- HH or HHMM or HH:MM) - if"
             " timezone is omitted, local time is assumed (for UTC use +00)");
 
-        setenv("TZ", "UTC", true);
+        hrnTzSet("UTC");
     }
 
     // *****************************************************************************************************************************
@@ -491,7 +495,8 @@ testRun(void)
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("target time");
-        setenv("TZ", "UTC", true);
+
+        hrnTzSet("UTC");
 
         const String *repoPath2 = STRDEF(TEST_PATH "/repo2");
 
@@ -2503,6 +2508,8 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("incremental delta");
 
+        const char *pgControlSha1 = NULL;
+
         argList = strLstNew();
         hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
         hrnCfgArgRaw(argList, cfgOptRepoPath, repoPath);
@@ -2548,13 +2555,12 @@ testRun(void)
             HRN_MANIFEST_PATH_ADD(manifest, .name = TEST_PGDATA PG_PATH_GLOBAL);
 
             // global/pg_control
-            Buffer *fileBuffer = bufNew(8192);
-            memset(bufPtr(fileBuffer), 255, bufSize(fileBuffer));
-            bufUsedSet(fileBuffer, bufSize(fileBuffer));
+            Buffer *fileBuffer = hrnPgControlToBuffer(0, 0, (PgControl){.version = PG_VERSION_10});
+            pgControlSha1 = strZ(strNewEncode(encodingHex, cryptoHashOne(hashTypeSha1, fileBuffer)));
 
             HRN_MANIFEST_FILE_ADD(
                 manifest, .name = TEST_PGDATA PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL, .size = 8192, .timestamp = 1482182860,
-                .checksumSha1 = "5e2b96c19c4f5c63a5afa2de504d29fe64a4c908");
+                .checksumSha1 = pgControlSha1);
             HRN_STORAGE_PUT(storageRepoWrite(), TEST_REPO_PATH PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL, fileBuffer);
 
             // global/888
@@ -2834,7 +2840,7 @@ testRun(void)
 
         TEST_RESULT_VOID(cmdRestore(), "successful restore");
 
-        TEST_RESULT_LOG(
+        TEST_RESULT_LOG_FMT(
             "P00   INFO: repo1: restore backup set 20161219-212741F_20161219-212918I\n"
             "P00   INFO: map link 'pg_hba.conf' to '../config/pg_hba.conf'\n"
             "P00   INFO: map link 'pg_wal' to '../wal'\n"
@@ -2865,7 +2871,7 @@ testRun(void)
             "P01 DETAIL: restore file " TEST_PATH "/pg/base/16384/16385 (16KB, [PCT]) checksum"
             " d74e5f7ebe52a3ed468ba08c5b6aefaccd1ca88f\n"
             "P01 DETAIL: restore file " TEST_PATH "/pg/global/pg_control.pgbackrest.tmp (8KB, [PCT])"
-            " checksum 5e2b96c19c4f5c63a5afa2de504d29fe64a4c908\n"
+            " checksum %s\n"
             "P01 DETAIL: restore file " TEST_PATH "/pg/base/1/2 (8KB, [PCT]) checksum 4d7b2a36c5387decf799352a3751883b7ceb96aa\n"
             "P01 DETAIL: restore file " TEST_PATH "/pg/postgresql.conf (15B, [PCT]) checksum"
             " 98b8abb2e681e2a5a7d8ab082c0a79727887558d\n"
@@ -2911,7 +2917,8 @@ testRun(void)
             "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc/1/PG_10_201707211'\n"
             "P00   INFO: restore global/pg_control (performed last to ensure aborted restores cannot be started)\n"
             "P00 DETAIL: sync path '" TEST_PATH "/pg/global'\n"
-            "P00   INFO: restore size = [SIZE], file total = 23");
+            "P00   INFO: restore size = [SIZE], file total = 23",
+            pgControlSha1);
 
         TEST_STORAGE_LIST(
             storagePg(), NULL,
@@ -3028,7 +3035,7 @@ testRun(void)
 
         TEST_RESULT_VOID(cmdRestore(), "successful restore");
 
-        TEST_RESULT_LOG(
+        TEST_RESULT_LOG_FMT(
             "P00   INFO: repo2: restore backup set 20161219-212741F_20161219-212918I, recovery will start at [TIME]\n"
             "P00   INFO: map link 'pg_hba.conf' to '../config/pg_hba.conf'\n"
             "P00   INFO: map link 'pg_wal' to '../wal'\n"
@@ -3058,7 +3065,7 @@ testRun(void)
             "P01 DETAIL: restore file " TEST_PATH "/pg/base/16384/16385 - exists and matches backup (16KB, [PCT])"
             " checksum d74e5f7ebe52a3ed468ba08c5b6aefaccd1ca88f\n"
             "P01 DETAIL: restore file " TEST_PATH "/pg/global/pg_control.pgbackrest.tmp (8KB, [PCT])"
-            " checksum 5e2b96c19c4f5c63a5afa2de504d29fe64a4c908\n"
+            " checksum %s\n"
             "P01 DETAIL: restore file " TEST_PATH "/pg/base/1/2 (8KB, [PCT]) checksum 4d7b2a36c5387decf799352a3751883b7ceb96aa\n"
             "P01 DETAIL: restore file " TEST_PATH "/pg/postgresql.conf - exists and matches backup (15B, [PCT])"
             " checksum 98b8abb2e681e2a5a7d8ab082c0a79727887558d\n"
@@ -3104,7 +3111,8 @@ testRun(void)
             "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc/1/PG_10_201707211'\n"
             "P00   INFO: restore global/pg_control (performed last to ensure aborted restores cannot be started)\n"
             "P00 DETAIL: sync path '" TEST_PATH "/pg/global'\n"
-            "P00   INFO: restore size = [SIZE], file total = 23");
+            "P00   INFO: restore size = [SIZE], file total = 23",
+            pgControlSha1);
 
         // Check stanza archive spool path was removed
         TEST_STORAGE_LIST_EMPTY(storageSpool(), STORAGE_PATH_ARCHIVE);
@@ -3138,7 +3146,7 @@ testRun(void)
         const String *repoPath = STRDEF(TEST_PATH "/repo");
 
         // Created pg_control and PG_VERSION
-        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_15, .pageChecksum = false);
+        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_15);
         HRN_STORAGE_PUT_Z(storagePgWrite(), PG_FILE_PGVERSION, PG_VERSION_15_Z);
 
         // Create encrypted stanza
@@ -3164,6 +3172,13 @@ testRun(void)
         bufUsedSet(relation, bufSize(relation));
 
         HRN_STORAGE_PUT(storagePgWrite(), PG_PATH_BASE "/1/2", relation, .timeModified = timeBase - 2);
+
+        // Zeroed file large enough to use block incr (that will be truncated to zero before restore)
+        relation = bufNew(16 * 1024);
+        memset(bufPtr(relation), 0, bufSize(relation));
+        bufUsedSet(relation, bufSize(relation));
+
+        HRN_STORAGE_PUT(storagePgWrite(), PG_PATH_BASE "/1/44", relation, .timeModified = timeBase - 2);
 
         // Add postgresql.auto.conf to contain recovery settings
         HRN_STORAGE_PUT_EMPTY(storagePgWrite(), PG_FILE_POSTGRESQLAUTOCONF, .timeModified = timeBase - 1);
@@ -3234,6 +3249,7 @@ testRun(void)
             "base/1/\n"
             "base/1/2\n"
             "base/1/3\n"
+            "base/1/44\n"
             "global/\n"
             "global/pg_control\n"
             "postgresql.auto.conf\n",
@@ -3244,6 +3260,9 @@ testRun(void)
 
         // Use detail log level to catch block incremental restore message
         harnessLogLevelSet(logLevelDetail);
+
+        // Truncate file to ensure delta is skipped
+        HRN_STORAGE_PUT_EMPTY(storagePgWrite(), PG_PATH_BASE "/1/44");
 
         // Shrink file to make sure block incremental delta will reuse it
         relation = bufNew(128 * 1024);
@@ -3271,6 +3290,7 @@ testRun(void)
             "base/1/\n"
             "base/1/2\n"
             "base/1/3\n"
+            "base/1/44\n"
             "global/\n"
             "global/pg_control\n"
             "postgresql.auto.conf\n",

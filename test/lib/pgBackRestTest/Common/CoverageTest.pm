@@ -26,7 +26,31 @@ use pgBackRestTest::Common::ContainerTest;
 use pgBackRestTest::Common::DefineTest;
 use pgBackRestTest::Common::ExecuteTest;
 use pgBackRestTest::Common::ListTest;
-use pgBackRestTest::Common::RunTest;
+
+####################################################################################################################################
+# testRunName
+#
+# Create module/test names by upper-casing the first letter and then inserting capitals after each -.
+####################################################################################################################################
+sub testRunName
+{
+    my $strName = shift;
+    my $bInitCapFirst = shift;
+
+    $bInitCapFirst = defined($bInitCapFirst) ? $bInitCapFirst : true;
+    my $bFirst = true;
+
+    my @stryName = split('\-', $strName);
+    $strName = undef;
+
+    foreach my $strPart (@stryName)
+    {
+        $strName .= ($bFirst && $bInitCapFirst) || !$bFirst ? ucfirst($strPart) : $strPart;
+        $bFirst = false;
+    }
+
+    return $strName;
+}
 
 ####################################################################################################################################
 # Generate an lcov configuration file
@@ -960,8 +984,8 @@ sub coverageDocSummaryGenerate
 
     foreach my $strFileCov (sort(keys(%{$rhManifest})))
     {
-        # Skip test modules (this includes modules that start with src/ since src/ is stripped from core modules)
-        next if $strFileCov =~ /^test\// || $strFileCov =~ /^src\//;
+        # Skip doc/test modules (this includes modules that start with src/ since src/ is stripped from core modules)
+        next if $strFileCov =~ /^doc\// || $strFileCov =~ /^test\// || $strFileCov =~ /^src\//;
 
         if ($strFileCov =~ /\.lcov$/)
         {

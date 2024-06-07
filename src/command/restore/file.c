@@ -48,12 +48,10 @@ restoreFile(
     ASSERT(repoFile != NULL);
 
     // Restore file results
-    List *result = NULL;
+    List *const result = lstNewP(sizeof(RestoreFileResult));
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        result = lstNewP(sizeof(RestoreFileResult));
-
         // Check files to determine which ones need to be restored
         for (unsigned int fileIdx = 0; fileIdx < lstSize(fileList); fileIdx++)
         {
@@ -88,8 +86,10 @@ restoreFile(
                         // Else use size and checksum
                         else
                         {
-                            // Only continue delta if the file size is as expected or larger
-                            if (info.size >= file->size || file->blockIncrMapSize != 0)
+                            // Only continue delta if the file size is as expected or larger (for normal files) or if block
+                            // incremental and the file to delta is not zero-length. Block incremental can potentially use almost
+                            // any portion of an existing file, but of course zero-length files do not have anything to reuse.
+                            if (info.size >= file->size || (file->blockIncrMapSize != 0 && info.size != 0))
                             {
                                 const char *const fileName = strZ(storagePathP(storagePg(), file->name));
 
@@ -193,7 +193,7 @@ restoreFile(
                 if (fileResult->result == restoreResultCopy && (file->size == 0 || file->zero))
                 {
                     // Create destination file
-                    StorageWrite *pgFileWrite = storageNewWriteP(
+                    StorageWrite *const pgFileWrite = storageNewWriteP(
                         storagePgWrite(), file->name, .modeFile = file->mode, .user = file->user, .group = file->group,
                         .timeModified = file->timeModified, .noAtomic = true, .noCreatePath = true, .noSyncPath = true);
 
@@ -282,7 +282,7 @@ restoreFile(
                     }
 
                     // Create pg file
-                    StorageWrite *pgFileWrite = storageNewWriteP(
+                    StorageWrite *const pgFileWrite = storageNewWriteP(
                         storagePgWrite(), file->name, .modeFile = file->mode, .user = file->user, .group = file->group,
                         .timeModified = file->timeModified, .noAtomic = true, .noCreatePath = true, .noSyncPath = true,
                         .noTruncate = file->blockChecksum != NULL);
@@ -376,7 +376,7 @@ restoreFile(
                     // Else normal file
                     else
                     {
-                        IoFilterGroup *filterGroup = ioWriteFilterGroup(storageWriteIo(pgFileWrite));
+                        IoFilterGroup *const filterGroup = ioWriteFilterGroup(storageWriteIo(pgFileWrite));
 
                         // Add decryption filter
                         if (cipherPass != NULL)
@@ -425,8 +425,6 @@ restoreFile(
             }
             MEM_CONTEXT_TEMP_END();
         }
-
-        lstMove(result, memContextPrior());
     }
     MEM_CONTEXT_TEMP_END();
 

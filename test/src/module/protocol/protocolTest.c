@@ -299,7 +299,7 @@ testRun(void)
         OBJ_NEW_BASE_BEGIN(Exec, .childQty = MEM_CONTEXT_QTY_MAX, .callbackQty = 1)
         {
             protocolHelperClient.exec = OBJ_NEW_ALLOC();
-            *protocolHelperClient.exec = (Exec){.name = strNewZ("test"), .command = strNewZ("test"), .processId = INT_MAX};
+            *protocolHelperClient.exec = (Exec){.pub = {.command = strNewZ("test")}, .name = strNewZ("test"), .processId = INT_MAX};
             memContextCallbackSet(memContextCurrent(), execFreeResource, protocolHelperClient.exec);
         }
         OBJ_NEW_END();
@@ -817,8 +817,8 @@ testRun(void)
             HRN_FORK_PARENT_BEGIN()
             {
                 IoServer *const tlsServer = tlsServerNew(
-                    STRDEF("localhost"), STRDEF(HRN_SERVER_CA), STRDEF(HRN_SERVER_KEY), STRDEF(HRN_SERVER_CERT), 5000);
-                IoServer *const socketServer = sckServerNew(STRDEF("localhost"), testPort, 5000);
+                    STRDEF("127.0.0.1"), STRDEF(HRN_SERVER_CA), STRDEF(HRN_SERVER_KEY), STRDEF(HRN_SERVER_CERT), 5000);
+                IoServer *const socketServer = sckServerNew(STRDEF("127.0.0.1"), testPort, 5000);
                 ProtocolServer *server = NULL;
 
                 // Server ping

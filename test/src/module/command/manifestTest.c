@@ -23,7 +23,7 @@ testRun(void)
     FUNCTION_HARNESS_VOID();
 
     // The tests expect the timezone to be UTC
-    setenv("TZ", "UTC", true);
+    hrnTzSet("UTC");
 
     // Install local command handler shim
     static const ProtocolServerHandler testLocalHandlerList[] = {PROTOCOL_SERVER_HANDLER_BACKUP_LIST};
@@ -73,7 +73,7 @@ testRun(void)
             HRN_CFG_LOAD(cfgCmdStanzaCreate, argList);
 
             // Create pg_control and run stanza-create
-            HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_95, .pageChecksum = false);
+            HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_95);
             TEST_RESULT_VOID(cmdStanzaCreate(), "stanza create");
         }
 

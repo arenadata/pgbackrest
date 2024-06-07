@@ -94,7 +94,7 @@
                     apt-get install rsync git devscripts build-essential valgrind lcov autoconf
                     autoconf-archive libssl-dev zlib1g-dev libxml2-dev libpq-dev pkg-config
                     libxml-checker-perl libyaml-perl libdbd-pg-perl liblz4-dev liblz4-tool
-                    zstd libzstd-dev bzip2 libbz2-dev libyaml-dev ccache meson
+                    zstd libzstd-dev bzip2 libbz2-dev libyaml-dev ccache python3-distutils meson
                 </exe-cmd>
                 <exe-cmd-extra>-y 2>&amp;1</exe-cmd-extra>
             </execute>
@@ -398,7 +398,7 @@ pgbackrest/doc/doc.pl --help
                     <title>Run a Specific Test Run</title>
 
                     <execute output="y">
-                        <exe-cmd>pgbackrest/test/test.pl {[dash]}-vm=u20 {[dash]}-module=mock {[dash]}-test=archive {[dash]}-run=2</exe-cmd>
+                        <exe-cmd>pgbackrest/test/test.pl {[dash]}-vm=u20 {[dash]}-module=postgres {[dash]}-test=interface {[dash]}-run=2</exe-cmd>
                         <exe-cmd-extra>{[test-cmd-extra]}</exe-cmd-extra>
                     </execute>
                 </execute-list>

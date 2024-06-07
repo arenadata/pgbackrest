@@ -9,7 +9,6 @@ Socket Common Functions
 #include <sys/socket.h>
 
 #include "common/debug.h"
-#include "common/io/fd.h"
 #include "common/io/socket/address.h"
 #include "common/io/socket/common.h"
 #include "common/log.h"
@@ -32,7 +31,8 @@ static struct SocketLocal
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-sckInit(bool block, bool keepAlive, int tcpKeepAliveCount, int tcpKeepAliveIdle, int tcpKeepAliveInterval)
+sckInit(
+    const bool block, const bool keepAlive, const int tcpKeepAliveCount, const int tcpKeepAliveIdle, const int tcpKeepAliveInterval)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(BOOL, block);
@@ -58,7 +58,7 @@ sckInit(bool block, bool keepAlive, int tcpKeepAliveCount, int tcpKeepAliveIdle,
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-sckOptionSet(int fd)
+sckOptionSet(const int fd)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(INT, fd);
@@ -136,56 +136,4 @@ sckOptionSet(int fd)
     }
 
     FUNCTION_TEST_RETURN_VOID();
-}
-
-/**********************************************************************************************************************************/
-static bool
-sckConnectInProgress(int errNo)
-{
-    return errNo == EINPROGRESS || errNo == EINTR;
-}
-
-FN_EXTERN void
-sckConnect(int fd, const String *host, unsigned int port, const struct addrinfo *hostAddress, TimeMSec timeout)
-{
-    FUNCTION_LOG_BEGIN(logLevelTrace);
-        FUNCTION_LOG_PARAM(INT, fd);
-        FUNCTION_LOG_PARAM(STRING, host);
-        FUNCTION_LOG_PARAM(UINT, port);
-        FUNCTION_LOG_PARAM_P(VOID, hostAddress);
-        FUNCTION_LOG_PARAM(TIME_MSEC, timeout);
-    FUNCTION_LOG_END();
-
-    ASSERT(host != NULL);
-    ASSERT(hostAddress != NULL);
-
-    // Attempt connection
-    if (connect(fd, hostAddress->ai_addr, hostAddress->ai_addrlen) == -1)
-    {
-        // Save the error
-        int errNo = errno;
-
-        // The connection has started but since we are in non-blocking mode it has not completed yet
-        if (sckConnectInProgress(errNo))
-        {
-            // Wait for write-ready
-            if (!fdReadyWrite(fd, timeout))
-                THROW_FMT(HostConnectError, "timeout connecting to '%s'", strZ(addrInfoToName(host, port, hostAddress)));
-
-            // Check for success or error. If the connection was successful this will set errNo to 0.
-            socklen_t errNoLen = sizeof(errNo);
-
-            THROW_ON_SYS_ERROR(
-                getsockopt(fd, SOL_SOCKET, SO_ERROR, &errNo, &errNoLen) == -1, HostConnectError, "unable to get socket error");
-        }
-
-        // Throw error if it is still set
-        if (errNo != 0)
-        {
-            THROW_SYS_ERROR_CODE_FMT(
-                errNo, HostConnectError, "unable to connect to '%s'", strZ(addrInfoToName(host, port, hostAddress)));
-        }
-    }
-
-    FUNCTION_LOG_RETURN_VOID();
 }

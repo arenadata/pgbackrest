@@ -87,6 +87,11 @@ something far larger needed but <= the minimum read size on just about any syste
 #define PG_WAL_HEADER_SIZE                                          ((unsigned int)(512))
 
 /***********************************************************************************************************************************
+Checkpoint written into pg_control on restore. This will prevent PostgreSQL from starting if backup_label is not present.
+***********************************************************************************************************************************/
+#define PG_CONTROL_CHECKPOINT_INVALID                               0xDEAD
+
+/***********************************************************************************************************************************
 PostgreSQL Control File Info
 ***********************************************************************************************************************************/
 typedef struct PgControl
@@ -101,7 +106,7 @@ typedef struct PgControl
     PgPageSize pageSize;
     unsigned int walSegmentSize;
 
-    bool pageChecksum;
+    unsigned int pageChecksumVersion;                               // Page checksum version (0 if no checksum, 1 if checksum)
 } PgControl;
 
 /***********************************************************************************************************************************
@@ -129,6 +134,9 @@ FN_EXTERN bool pgDbIsSystemId(unsigned int id);
 // Get info from pg_control
 FN_EXTERN Buffer *pgControlBufferFromFile(const Storage *storage, const String *pgVersionForce);
 FN_EXTERN PgControl pgControlFromFile(const Storage *storage, const String *pgVersionForce);
+
+// Invalidate checkpoint record in pg_control
+FN_EXTERN void pgControlCheckpointInvalidate(Buffer *buffer, const String *pgVersionForce);
 
 // Get the control version for a PostgreSQL version
 FN_EXTERN uint32_t pgControlVersion(unsigned int pgVersion);
