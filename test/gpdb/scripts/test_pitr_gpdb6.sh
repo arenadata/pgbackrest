@@ -74,6 +74,9 @@ export PGDATABASE=gpdb_pitr_database
 createdb
 psql -c "CREATE TABLE t1 AS SELECT id, 'text'||id AS text FROM generate_series(1,30) id DISTRIBUTED BY (id);"
 
+# Saving cluster configuration status
+psql -c "SELECT * FROM gp_segment_configuration ORDER BY dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
+
 # Creating full backup on master and seg0
 for i in -1 0
 do 
@@ -151,7 +154,12 @@ EOF
 
 gpstop -ar
 gprecoverseg -aF
-gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby/" -P 6001
+gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby" -P 6001
+
+# Checking cluster configuration after restore
+psql -c "SELECT * FROM gp_segment_configuration ORDER BY dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
+
+diff "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out" "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
 
 # Checking data integrity
 psql -c "SELECT * FROM t1 ORDER BY id;" \
