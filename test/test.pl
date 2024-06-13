@@ -654,6 +654,9 @@ eval
                 $strFile eq 'src/configure' ||
                 $strFile eq 'test/ci.pl' ||
                 $strFile eq 'test/test.pl' ||
+                $strFile eq 'test/gpdb/run_docker.sh' ||
+                $strFile eq 'test/gpdb/test_in_docker.sh' ||
+                $strFile =~ m{^test/gpdb/scripts/} ||
                 $hManifest->{$strFile}{type} eq 'd')
             {
                 $strExpectedMode = sprintf('%04o', oct($hManifest->{$strFile}{mode}) & 0777);
