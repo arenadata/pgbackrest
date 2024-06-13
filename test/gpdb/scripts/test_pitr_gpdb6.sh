@@ -27,19 +27,19 @@ MIRROR3=${DATADIR}/dbfast_mirror3/demoDataDir2
 cat <<EOF > /etc/pgbackrest.conf
 [seg-1]
 pg1-path=$MASTER
-pg1-port=6000
+pg1-port=$PGPORT
 
 [seg0]
 pg1-path=$PRIMARY1
-pg1-port=6002
+pg1-port=$((PGPORT+2))
 
 [seg1]
 pg1-path=$PRIMARY2
-pg1-port=6003
+pg1-port=$((PGPORT+3))
 
 [seg2]
 pg1-path=$PRIMARY3
-pg1-port=6004
+pg1-port=$((PGPORT+4))
 
 [global]
 repo1-path=$PGBACKREST_TEST_DIR/$TEST_NAME
@@ -154,7 +154,7 @@ EOF
 
 gpstop -ar
 gprecoverseg -aF
-gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby" -P 6001
+gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby" -P $((PGPORT+1))
 
 # Checking cluster configuration after restore
 psql -c "SELECT * FROM gp_segment_configuration ORDER BY dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"

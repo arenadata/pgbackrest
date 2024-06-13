@@ -9,7 +9,7 @@ It is preferable to have a container build from GPDB repo's [Dockerfile](https:/
 **Launch**
 To run the tests, execute the script:
 ```
-bash <path_to_pgbackrest>/test/gpdb/run_docker.sh <image_id>
+<path_to_pgbackrest>/test/gpdb/run_docker.sh <image_id>
 ```
 
 After launching the container the test scripts from `scripts` directory are executed.
