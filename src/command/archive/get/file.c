@@ -3,14 +3,20 @@ Archive Get File
 ***********************************************************************************************************************************/
 #include "build.auto.h"
 
+#include <fcntl.h>
+#include <unistd.h>
 #include "command/archive/common.h"
 #include "command/archive/get/file.h"
 #include "command/control/common.h"
 #include "common/compress/helper.h"
 #include "common/crypto/cipherBlock.h"
 #include "common/debug.h"
+#include "common/io/bufferWrite.h"
+#include "common/io/fdRead.h"
 #include "common/io/filter/group.h"
+#include "common/io/io.h"
 #include "common/log.h"
+#include "common/walFilter/walFilter.h"
 #include "config/config.h"
 #include "info/infoArchive.h"
 #include "postgres/interface.h"
@@ -71,6 +77,34 @@ archiveGetFile(
                     compressible = false;
                 }
 
+                if (cfgOptionTest(cfgOptFilter))
+                {
+                    if (cfgOptionStrId(cfgOptFork) != CFGOPTVAL_FORK_GPDB)
+                    {
+                        THROW(ConfigError, "WAL filtering is only available for Greenplum 6");
+                    }
+
+                    const String *filter_path = cfgOptionStrNull(cfgOptFilter);
+                    if (strZ(filter_path)[0] != '/')
+                    {
+                        THROW(AssertError, "The path to the filter is not absolute");
+                    }
+                    int fd = open(strZ(cfgOptionStrNull(cfgOptFilter)), O_RDONLY);
+                    if (fd == -1)
+                    {
+                        THROW_FMT(FileOpenError, "open filter file error: %s", strerror(errno));
+                    }
+
+                    Buffer *const buffer = bufNew(ioBufferSize());
+                    IoWrite *const write = ioBufferWriteNewOpen(buffer);
+
+                    ioCopyP(ioFdReadNewOpen(filter_path, fd, 0), write);
+                    ioWriteClose(write);
+
+                    ioFilterGroupAdd(ioWriteFilterGroup(storageWriteIo(destination)),
+                                     walFilterNew(jsonReadNew(strNewBuf(buffer))));
+                    close(fd);
+                }
                 // Copy the file
                 storageCopyP(
                     storageNewReadP(

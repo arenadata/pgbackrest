@@ -460,6 +460,16 @@ unit:
           - storage/remote/protocol
           - storage/remote/storage
           - storage/remote/write
+      # ----------------------------------------------------------------------------------------------------------------------------
+      - name: walFilter
+        total: 5
+        harness: wal
+
+        coverage:
+          - common/walFilter/walFilter
+          - common/walFilter/postgres_common
+          - common/walFilter/record_process
+          - postgres/interface/crc32
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: partialRestore
@@ -813,7 +823,7 @@ unit:
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: archive-get
-        total: 3
+        total: 4
         binReq: true
 
         coverage:

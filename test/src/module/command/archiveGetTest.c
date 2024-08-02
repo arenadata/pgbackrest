@@ -10,6 +10,7 @@ Test Archive Get Command
 #include "common/harnessPostgres.h"
 #include "common/harnessProtocol.h"
 #include "common/harnessStorage.h"
+#include "storage/posix/storage.h"
 
 /***********************************************************************************************************************************
 Test Run
@@ -1183,6 +1184,90 @@ testRun(void)
 
         // Check that the ok file was removed
         TEST_STORAGE_LIST_EMPTY(storageSpool(), STORAGE_SPOOL_ARCHIVE_IN);
+    }
+
+    if (testBegin("wal filter"))
+    {
+        StringList *argList;
+
+        StringList *argBaseList = strLstNew();
+        hrnCfgArgRawZ(argBaseList, cfgOptPgPath, TEST_PATH
+                      "/pg");
+        hrnCfgArgRawZ(argBaseList, cfgOptRepoPath, TEST_PATH
+                      "/repo");
+        hrnCfgArgRawZ(argBaseList, cfgOptStanza, "test1");
+        strLstAddZ(argBaseList, "000000010000000000000035");
+        strLstAddZ(argBaseList, TEST_PATH
+                   "/pg/pg_wal/RECOVERYXLOG");
+
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE,
+            "[db]\n"
+            "db-id=1\n"
+            "db-system-id=7374327172765320188\n"
+            "db-version=\"9.4\"\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-id\":" HRN_PG_SYSTEMID_94_Z ",\"db-version\":\"9.4\"}");
+
+        HRN_STORAGE_PATH_CREATE(storagePgWrite(), "pg_wal");
+        TEST_TITLE("wrong fork");
+        argList = strLstDup(argBaseList);
+        hrnCfgArgRawZ(argList, cfgOptFilter, "recovery_filter.json");
+        HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
+
+        HRN_STORAGE_PUT_Z(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000035-c2dc5aa4e7ec4d051c7e4c7f223ae61cc7d85356",
+            "");
+
+        HRN_PG_CONTROL_PUT(
+            storagePgWrite(), PG_VERSION_94);
+
+        TEST_ERROR(cmdArchiveGet(), FileReadError, "unable to get 000000010000000000000035:\n"
+                   "repo1: 9.4-1/0000000100000000/000000010000000000000035-c2dc5aa4e7ec4d051c7e4c7f223ae61cc7d85356 [ConfigError] WAL filtering is only available for Greenplum 6");
+
+        TEST_TITLE("not absolute path");
+        hrnCfgArgRawZ(argBaseList, cfgOptFork, CFGOPTVAL_FORK_GPDB_Z);
+
+        argList = strLstDup(argBaseList);
+        hrnCfgArgRawZ(argList, cfgOptFilter, "recovery_filter.json");
+
+        HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
+
+        Buffer *buffer = bufNew(64 * 1024 * 1024);
+        memset(bufPtr(buffer), 0, bufSize(buffer));
+        bufUsedSet(buffer, bufSize(buffer));
+
+        HRN_STORAGE_PUT(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000035-c2dc5aa4e7ec4d051c7e4c7f223ae61cc7d85356",
+            buffer);
+
+        HRN_PG_CONTROL_OVERRIDE_VERSION_PUT(
+            storagePgWrite(), PG_VERSION_94, 9420600, .systemId = HRN_PG_SYSTEMID_94, .catalogVersion = 301908232,
+            .pageSize = 32768, .walSegmentSize = 64 * 1024 * 1024);
+
+        TEST_ERROR(cmdArchiveGet(), AssertError, "The path to the filter is not absolute");
+        TEST_TITLE("filter file not exists");
+        argList = strLstDup(argBaseList);
+
+        hrnCfgArgRawZ(argList, cfgOptFilter, "/recovery_filter.json");
+
+        HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
+        TEST_ERROR(cmdArchiveGet(), FileReadError, "unable to get 000000010000000000000035:\n"
+                   "repo1: 9.4-1/0000000100000000/000000010000000000000035-c2dc5aa4e7ec4d051c7e4c7f223ae61cc7d85356 [FileOpenError] open filter file error: No such file or directory");
+        TEST_TITLE("valid filter");
+        argList = strLstDup(argBaseList);
+        hrnCfgArgRawZ(argList, cfgOptFilter, "/tmp/recovery_filter.json");
+        HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
+        Storage *storageTest = storagePosixNewP(STRDEF("/tmp"), .write = true);
+        HRN_STORAGE_PUT_Z(
+            storageTest, "/tmp/recovery_filter.json",
+            "[]");
+        // Accept the error so as not to complicate the test by creating a valid WAL file.
+        TEST_ERROR(cmdArchiveGet(), FileReadError, "unable to get 000000010000000000000035:\n"
+                   "repo1: 9.4-1/0000000100000000/000000010000000000000035-c2dc5aa4e7ec4d051c7e4c7f223ae61cc7d85356 [FormatError] wrong page magic");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();

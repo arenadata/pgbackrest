@@ -1954,6 +1954,30 @@ src/common/wait.c:
 src/common/wait.h:
   class: core
   type: c/h
+  
+src/common/walFilter/walFilter.c:
+  class: core
+  type: c
+
+src/common/walFilter/walFilter.h:
+  class: core
+  type: c/h
+
+src/common/walFilter/postgres_common.c:
+  class: core
+  type: c
+
+src/common/walFilter/postgres_common.h:
+  class: core
+  type: c/h
+
+src/common/walFilter/record_process.c:
+  class: core
+  type: c
+
+src/common/walFilter/record_process.h:
+  class: core
+  type: c/h
 
 src/config/common.c:
   class: core
@@ -3120,6 +3144,10 @@ test/src/module/common/userTest.c:
   type: c
 
 test/src/module/common/waitTest.c:
+  class: test/module
+  type: c
+
+test/src/module/common/walFilterTest.c:
   class: test/module
   type: c
 
