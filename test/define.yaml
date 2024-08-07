@@ -467,8 +467,7 @@ unit:
 
         coverage:
           - common/walFilter/walFilter
-          - common/walFilter/postgres_common
-          - common/walFilter/record_process
+          - common/walFilter/versions/recordProcessGPDB6
           - postgres/interface/crc32
 
       # ----------------------------------------------------------------------------------------------------------------------------

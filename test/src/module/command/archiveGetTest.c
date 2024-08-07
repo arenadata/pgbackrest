@@ -1221,12 +1221,6 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000035-c2dc5aa4e7ec4d051c7e4c7f223ae61cc7d85356",
             "");
 
-        HRN_PG_CONTROL_PUT(
-            storagePgWrite(), PG_VERSION_94);
-
-        TEST_ERROR(cmdArchiveGet(), FileReadError, "unable to get 000000010000000000000035:\n"
-                   "repo1: 9.4-1/0000000100000000/000000010000000000000035-c2dc5aa4e7ec4d051c7e4c7f223ae61cc7d85356 [ConfigError] WAL filtering is only available for Greenplum 6");
-
         TEST_TITLE("not absolute path");
         hrnCfgArgRawZ(argBaseList, cfgOptFork, CFGOPTVAL_FORK_GPDB_Z);
 
@@ -1255,8 +1249,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptFilter, "/recovery_filter.json");
 
         HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
-        TEST_ERROR(cmdArchiveGet(), FileReadError, "unable to get 000000010000000000000035:\n"
-                   "repo1: 9.4-1/0000000100000000/000000010000000000000035-c2dc5aa4e7ec4d051c7e4c7f223ae61cc7d85356 [FileOpenError] open filter file error: No such file or directory");
+        TEST_ERROR(cmdArchiveGet(), FileMissingError, "unable to open missing file '/recovery_filter.json' for read");
         TEST_TITLE("valid filter");
         argList = strLstDup(argBaseList);
         hrnCfgArgRawZ(argList, cfgOptFilter, "/tmp/recovery_filter.json");

@@ -1963,19 +1963,15 @@ src/common/walFilter/walFilter.h:
   class: core
   type: c/h
 
-src/common/walFilter/postgres_common.c:
-  class: core
-  type: c
-
 src/common/walFilter/postgres_common.h:
   class: core
   type: c/h
 
-src/common/walFilter/record_process.c:
+src/common/walFilter/versions/recordProcessGPDB6.c:
   class: core
   type: c
 
-src/common/walFilter/record_process.h:
+src/common/walFilter/versions/recordProcessGPDB6.h:
   class: core
   type: c/h
 

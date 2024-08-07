@@ -14,7 +14,7 @@ typedef enum InsertRecordFlags
     WRONG_REM_LEN = 1 << 5
 }InsertRecordFlags;
 
-XLogRecord *hrnGpdbCreateXRecord(enum ResourceManager rmid, uint8_t info, uint32_t body_size, void *body);
+XLogRecord *hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t body_size, void *body);
 void hrnGpdbWalInsertXRecord(
     Buffer *const walBuffer,
     XLogRecord *record,

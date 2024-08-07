@@ -152,8 +152,7 @@ SRCS = \
 	common/type/string.c \
 	common/type/xml.c \
 	common/walFilter/walFilter.c \
-	common/walFilter/postgres_common.c \
-	common/walFilter/record_process.c \
+	common/walFilter/versions/recordProcessGPDB6.c \
 	config/config.c \
 	config/exec.c \
 	config/load.c \

@@ -8,7 +8,22 @@
 
 #include "postgres/interface/crc32.h"
 #include "postgres_common.h"
-#include "record_process.h"
+#include "postgres/version.h"
+#include "config/config.h"
+#include "versions/recordProcessGPDB6.h"
+
+typedef struct WalInterface {
+    unsigned int pgVersion;
+    StringId fork;
+    
+    uint16_t header_magic;
+    void (*validXLogRecordHeader)(const XLogRecord* record);
+    void (*validXLogRecord)(const XLogRecord* record);
+}WalInterface;
+
+static WalInterface interfaces[] = {
+        {PG_VERSION_94, CFGOPTVAL_FORK_GPDB, GPDB6_XLOG_PAGE_MAGIC, validXLogRecordHeaderGPDB6, validXLogRecordGPDB6}
+};
 
 typedef struct WalFilter
 {
@@ -34,6 +49,8 @@ typedef struct WalFilter
     // Total size of record on current page
     size_t tot_len;
 
+    WalInterface* walInterface;
+    
     // Records count for debug
     int i;
 
@@ -75,7 +92,7 @@ walFilterToLog(const WalFilterState *const this, StringStatic *const debugLog)
 
 static inline
 void
-check_output_size(Buffer *output, size_t size)
+checkOutputSize(Buffer *output, size_t size)
 {
     if (bufRemains(output) <= size){
         bufResize(output, bufSize(output) + size);
@@ -86,7 +103,7 @@ check_output_size(Buffer *output, size_t size)
 // In this case, we should exit the process function to get a new input buffer.
 static inline
 bool
-read_page(WalFilterState *this, const Buffer *const input, Buffer *const output, int step)
+readPage(WalFilterState *this, const Buffer *const input, Buffer *const output, int step)
 {
     if (this->input_offset >= bufUsed(input))
     {
@@ -102,8 +119,8 @@ read_page(WalFilterState *this, const Buffer *const input, Buffer *const output,
     this->header = (XLogPageHeader) this->page;
     this->page_offset += MAXALIGN(XLogPageHeaderSize(this->header));
 
-    // Make sure that WAL belongs to Greenplum 6, since magic value is different in different versions.
-    if (this->header->xlp_magic != GPDB6_XLOG_PAGE_MAGIC)
+    // Make sure that WAL belongs to supported Greenplum version, since magic value is different in different versions.
+    if (this->header->xlp_magic != this->walInterface->header_magic)
     {
         THROW_FMT(FormatError, "wrong page magic");
     }
@@ -112,7 +129,7 @@ read_page(WalFilterState *this, const Buffer *const input, Buffer *const output,
     // Enlarge output buffer if needed
     // Do not increase the amount of used data in the output buffer, as this may lead to premature flush of the output buffer, which
     // Has not yet has record itself.
-    check_output_size(output, this->got_len + XLogPageHeaderSize(this->header));
+    checkOutputSize(output, this->got_len + XLogPageHeaderSize(this->header));
 
     memcpy(bufRemainsPtr(output) + this->got_len + this->total_headers_size, this->header,
            XLogPageHeaderSize(this->header));
@@ -121,7 +138,7 @@ read_page(WalFilterState *this, const Buffer *const input, Buffer *const output,
 }
 
 static inline uint32_t
-get_record_size(const unsigned char *buffer)
+getRecordSize(const unsigned char *buffer)
 {
     return ((XLogRecord *) (buffer))->xl_tot_len;
 }
@@ -148,7 +165,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         // We have an incomplete record at the end, write it as is
         if (this->current_step != 0)
         {
-            check_output_size(output, this->got_len);
+            checkOutputSize(output, this->got_len);
             memcpy(bufRemainsPtr(output), this->record, this->got_len);
             bufUsedInc(output, this->got_len);
         }
@@ -162,7 +179,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     {
         // Copy rest of current page
         size_t to_write = XLOG_BLCKSZ - this->page_offset;
-        check_output_size(output, to_write);
+        checkOutputSize(output, to_write);
         memcpy(bufRemainsPtr(output), this->page + this->page_offset, to_write);
         bufUsedInc(output, to_write);
         this->page_offset = 0;
@@ -170,7 +187,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         if (bufUsed(input) > this->input_offset)
         {
             to_write = bufUsed(input) - this->input_offset;
-            check_output_size(output, to_write);
+            checkOutputSize(output, to_write);
             memcpy(bufRemainsPtr(output), bufPtrConst(input) + this->input_offset, to_write);
             bufUsedInc(output, to_write);
             this->input_offset = 0;
@@ -196,7 +213,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     if (this->page_offset == 0 || this->page_offset >= XLOG_BLCKSZ)
     {
 step1:
-        if (read_page(this, input, output, 1))
+        if (readPage(this, input, output, 1))
         {
             FUNCTION_LOG_RETURN_VOID();
             return;
@@ -213,7 +230,7 @@ step1:
             if (this->header->xlp_info & XLP_FIRST_IS_CONTRECORD &&
                 !(this->header->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD))
             {
-                check_output_size(output, MAXALIGN(this->header->xlp_rem_len));
+                checkOutputSize(output, MAXALIGN(this->header->xlp_rem_len));
                 memcpy(bufRemainsPtr(output), this->page + this->page_offset, MAXALIGN(this->header->xlp_rem_len));
 
                 bufUsedInc(output, MAXALIGN(this->header->xlp_rem_len));
@@ -227,7 +244,7 @@ step1:
     }
 
     // Record header can be split between pages but first field xl_tot_len is always on single page
-    this->record_size = get_record_size(this->page + this->page_offset);
+    this->record_size = getRecordSize(this->page + this->page_offset);
 
     if (this->rec_buf_size < this->record_size)
     {
@@ -248,7 +265,7 @@ step1:
     {
         this->got_len = XLOG_BLCKSZ - this->page_offset;
 step2:
-        if (read_page(this, input, output, 2))
+        if (readPage(this, input, output, 2))
         {
             FUNCTION_LOG_RETURN_VOID();
             return;
@@ -278,7 +295,7 @@ step2:
     }
     this->got_len = SizeOfXLogRecord;
 
-    ValidXLogRecordHeader(this->record);
+    this->walInterface->validXLogRecordHeader(this->record);
     // Read rest of record on this page
     size_t to_read = Min(this->record->xl_tot_len - SizeOfXLogRecord, XLOG_BLCKSZ - this->page_offset - SizeOfXLogRecord);
     memcpy(XLogRecGetData(this->record), this->page + this->page_offset + this->header_offset, to_read);
@@ -291,7 +308,7 @@ step2:
     while (this->got_len != this->record->xl_tot_len)
     {
 step3:
-        if (read_page(this, input, output, 3))
+        if (readPage(this, input, output, 3))
         {
             FUNCTION_LOG_RETURN_VOID();
             return;
@@ -322,17 +339,18 @@ step3:
         this->page_offset += MAXALIGN(to_write);
         this->got_len += to_write;
     }
-    ValidXLogRecord(this->record);
+    this->walInterface->validXLogRecord(this->record);
     // From here we can use local variables
     this->current_step = 0;
 
-    if (this->record->xl_rmid == ResourceManager_XLOG && this->record->xl_info == XLOG_SWITCH)
+    if (this->record->xl_rmid == RM_XLOG_ID && this->record->xl_info == XLOG_SWITCH)
     {
         this->is_switch_wal = true;
     }
 
     RelFileNode node;
-    if (get_relfilenode(this->record, &node) && node.relNode >= 16384)
+    // If there are no filters, then we do nothing. This is very useful for debug.
+    if (this->filter_list_size != 0 && getRelFileNodeGPDB6(this->record, &node) && node.relNode >= 16384)
     {
         bool is_need_to_filter = true;
         // Do filter
@@ -350,10 +368,10 @@ step3:
                 break;
             }
         }
-        // If there are no filters, then we do nothing. This is very useful for debug.
-        if (is_need_to_filter && this->filter_list_size != 0)
+        
+        if (is_need_to_filter)
         {
-            this->record->xl_rmid = ResourceManager_XLOG;
+            this->record->xl_rmid = RM_XLOG_ID;
             this->record->xl_info = XLOG_NOOP;
             uint32_t crc = crc32cInit();
             crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(this->record), this->record->xl_len);
@@ -369,7 +387,7 @@ write:
     {
         size_t space_on_page = XLOG_BLCKSZ - bufUsed(output) % XLOG_BLCKSZ;
         size_t to_write = Min(space_on_page, this->got_len - wrote);
-        check_output_size(output, to_write);
+        checkOutputSize(output, to_write);
 
         memcpy(bufRemainsPtr(output), ((char *) this->record) + wrote, to_write);
         wrote += to_write;
@@ -385,7 +403,7 @@ write:
     }
 
     size_t align_size = MAXALIGN(this->got_len) - this->got_len;
-    check_output_size(output, align_size);
+    checkOutputSize(output, align_size);
     memset(bufRemainsPtr(output), 0, align_size);
     bufUsedInc(output, align_size);
 
@@ -522,7 +540,7 @@ build_filter_list(JsonRead *json, RelFileNode **filter_list, size_t *filter_list
 }
 
 FN_EXTERN IoFilter *
-walFilterNew(JsonRead *json)
+walFilterNew(unsigned int pgVersion, StringId fork, RelFileNode *filter_list, size_t filter_list_len)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
     FUNCTION_LOG_END();
@@ -533,7 +551,21 @@ walFilterNew(JsonRead *json)
         this->is_begin = true;
         this->record = memNew(BLCKSZ);
         this->rec_buf_size = BLCKSZ;
-        build_filter_list(json, &this->filter_list, &this->filter_list_size);
+        this->filter_list = filter_list;
+        this->filter_list_size = filter_list_len;
+
+        for (unsigned int i = 0; i < LENGTH_OF(interfaces); ++i)
+        {
+            if(interfaces[i].pgVersion == pgVersion && interfaces[i].fork == fork)
+            {
+                this->walInterface = &interfaces[i];
+                break;
+            }
+        }
+        if (this->walInterface == NULL)
+        {
+            THROW_FMT(VersionNotSupportedError, "WAL filtering is unsupported for this Greenplum version");
+        }
     }
     OBJ_NEW_END();
 

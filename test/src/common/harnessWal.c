@@ -6,7 +6,7 @@
 #include "string.h"
 
 XLogRecord *
-hrnGpdbCreateXRecord(enum ResourceManager rmid, uint8_t info, uint32_t body_size, void *body)
+hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t body_size, void *body)
 {
     XLogRecord header = {
         .xl_tot_len = (uint32_t) (SizeOfXLogRecord + body_size),

@@ -45,6 +45,33 @@ archiveGetFile(
     // Check all files in the actual list and return as soon as one is copied
     bool copied = false;
 
+    RelFileNode *filter_list = NULL;
+    size_t filter_list_len = 0;
+    unsigned int pgVersion = 0;
+    if(cfgOptionTest(cfgOptFilter))
+    {
+        const String *filter_path = cfgOptionStrNull(cfgOptFilter);
+        if (strZ(filter_path)[0] != '/')
+        {
+            THROW(AssertError, "The path to the filter is not absolute");
+        }
+
+        const PgControl pgControl = pgControlFromFile(storagePg(), cfgOptionStrNull(cfgOptPgVersionForce));
+        pgVersion = pgControl.version;
+        MEM_CONTEXT_TEMP_BEGIN()
+        {
+            const Storage *local_storage = storageLocal();
+            StorageRead *storageRead = storageNewReadP(local_storage, filter_path);
+            Buffer *jsonFile = storageGetP(storageRead);
+            JsonRead *jsonRead = jsonReadNew(strNewBuf(jsonFile));
+
+            MemContext *save_memory_context = memContextCurrent();
+            memContextSwitchBack();
+            build_filter_list(jsonRead, &filter_list, &filter_list_len);
+            memContextSwitch(save_memory_context);
+        }
+        MEM_CONTEXT_TEMP_END();
+    }
     for (unsigned int actualIdx = 0; actualIdx < lstSize(actualList); actualIdx++)
     {
         const ArchiveGetFile *const actual = lstGet(actualList, actualIdx);
@@ -77,33 +104,10 @@ archiveGetFile(
                     compressible = false;
                 }
 
-                if (cfgOptionTest(cfgOptFilter))
+                if (walIsSegment(request) && cfgOptionTest(cfgOptFilter))
                 {
-                    if (cfgOptionStrId(cfgOptFork) != CFGOPTVAL_FORK_GPDB)
-                    {
-                        THROW(ConfigError, "WAL filtering is only available for Greenplum 6");
-                    }
-
-                    const String *filter_path = cfgOptionStrNull(cfgOptFilter);
-                    if (strZ(filter_path)[0] != '/')
-                    {
-                        THROW(AssertError, "The path to the filter is not absolute");
-                    }
-                    int fd = open(strZ(cfgOptionStrNull(cfgOptFilter)), O_RDONLY);
-                    if (fd == -1)
-                    {
-                        THROW_FMT(FileOpenError, "open filter file error: %s", strerror(errno));
-                    }
-
-                    Buffer *const buffer = bufNew(ioBufferSize());
-                    IoWrite *const write = ioBufferWriteNewOpen(buffer);
-
-                    ioCopyP(ioFdReadNewOpen(filter_path, fd, 0), write);
-                    ioWriteClose(write);
-
                     ioFilterGroupAdd(ioWriteFilterGroup(storageWriteIo(destination)),
-                                     walFilterNew(jsonReadNew(strNewBuf(buffer))));
-                    close(fd);
+                                     walFilterNew(pgVersion, cfgOptionStrId(cfgOptFork), filter_list, filter_list_len));
                 }
                 // Copy the file
                 storageCopyP(
