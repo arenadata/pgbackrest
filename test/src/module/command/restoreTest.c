@@ -821,6 +821,8 @@ testRun(void)
         hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
         hrnCfgArgRawZ(argList, cfgOptTablespaceMap, "1=/1-2");
         hrnCfgArgRawZ(argList, cfgOptTablespaceMap, "ts2=/2-2");
+
+        // Postgres
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
         TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
@@ -832,8 +834,30 @@ testRun(void)
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/2"))->destination, "/2-2", "check tablespace 1 link");
 
         TEST_RESULT_LOG(
+            "P00   INFO: using tablespace 'pg_tblspc/1' in '/1'\n"
+            "P00   INFO: using tablespace 'pg_tblspc/2' in '/2'\n"
+            "P00   INFO: using tablespace 'pg_tblspc/1' in '/1'\n"
             "P00   INFO: map tablespace 'pg_tblspc/1' to '/1-2'\n"
+            "P00   INFO: using tablespace 'pg_tblspc/2' in '/2'\n"
             "P00   INFO: map tablespace 'pg_tblspc/2' to '/2-2'");
+
+        // Greenplum
+        hrnCfgArgRawZ(argList, cfgOptFork, "GPDB");
+        HRN_CFG_LOAD(cfgCmdRestore, argList);
+
+        TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
+        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/1"))->path, "/1-2/0", "check tablespace 1 target");
+        TEST_RESULT_STR_Z(
+            manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/1"))->destination, "/1-2/0", "check tablespace 1 link");
+        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/2"))->path, "/2-2/0", "check tablespace 1 target");
+        TEST_RESULT_STR_Z(
+            manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/2"))->destination, "/2-2/0", "check tablespace 1 link");
+
+        TEST_RESULT_LOG(
+            "P00   INFO: using tablespace 'pg_tblspc/1' in '/1-2'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/1' to '/1-2/0'\n"
+            "P00   INFO: using tablespace 'pg_tblspc/2' in '/2-2'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/2' to '/2-2/0'");
 
         // Remap a tablespace using just the id and map the rest with tablespace-map-all
         argList = strLstNew();
@@ -842,6 +866,8 @@ testRun(void)
         hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
         hrnCfgArgRawZ(argList, cfgOptTablespaceMap, "2=/2-3");
         hrnCfgArgRawZ(argList, cfgOptTablespaceMapAll, "/all");
+
+        // Postgres
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
         TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
@@ -853,8 +879,28 @@ testRun(void)
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/2"))->destination, "/2-3", "check tablespace 1 link");
 
         TEST_RESULT_LOG(
+            "P00   INFO: using tablespace 'pg_tblspc/1' in '/1-2/0'\n"
             "P00   INFO: map tablespace 'pg_tblspc/1' to '/all/1'\n"
+            "P00   INFO: using tablespace 'pg_tblspc/2' in '/2-2/0'\n"
             "P00   INFO: map tablespace 'pg_tblspc/2' to '/2-3'");
+
+        // Greenplum
+        hrnCfgArgRawZ(argList, cfgOptFork, "GPDB");
+        HRN_CFG_LOAD(cfgCmdRestore, argList);
+
+        TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
+        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/1"))->path, "/all/1/0", "check tablespace 1 target");
+        TEST_RESULT_STR_Z(
+            manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/1"))->destination, "/all/1/0", "check tablespace 1 link");
+        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/2"))->path, "/2-3/0", "check tablespace 1 target");
+        TEST_RESULT_STR_Z(
+            manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/2"))->destination, "/2-3/0", "check tablespace 1 link");
+
+        TEST_RESULT_LOG(
+            "P00   INFO: using tablespace 'pg_tblspc/1' in '/all/1'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/1' to '/all/1/0'\n"
+            "P00   INFO: using tablespace 'pg_tblspc/2' in '/2-3'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/2' to '/2-3/0'");
 
         // Remap all tablespaces with tablespace-map-all
         argList = strLstNew();
@@ -862,6 +908,8 @@ testRun(void)
         hrnCfgArgRaw(argList, cfgOptRepoPath, repoPath);
         hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
         hrnCfgArgRawZ(argList, cfgOptTablespaceMapAll, "/all2");
+
+        // Postgres
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
         TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
@@ -873,8 +921,28 @@ testRun(void)
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/2"))->destination, "/all2/ts2", "check tablespace 1 link");
 
         TEST_RESULT_LOG(
+            "P00   INFO: using tablespace 'pg_tblspc/1' in '/all/1/0'\n"
             "P00   INFO: map tablespace 'pg_tblspc/1' to '/all2/1'\n"
+            "P00   INFO: using tablespace 'pg_tblspc/2' in '/2-3/0'\n"
             "P00   INFO: map tablespace 'pg_tblspc/2' to '/all2/ts2'");
+
+        // Greenplum
+        hrnCfgArgRawZ(argList, cfgOptFork, "GPDB");
+        HRN_CFG_LOAD(cfgCmdRestore, argList);
+
+        TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
+        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/1"))->path, "/all2/1/0", "check tablespace 1 target");
+        TEST_RESULT_STR_Z(
+            manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/1"))->destination, "/all2/1/0", "check tablespace 1 link");
+        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/2"))->path, "/all2/ts2/0", "check tablespace 1 target");
+        TEST_RESULT_STR_Z(
+            manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/2"))->destination, "/all2/ts2/0", "check tablespace 1 link");
+
+        TEST_RESULT_LOG(
+            "P00   INFO: using tablespace 'pg_tblspc/1' in '/all2/1'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/1' to '/all2/1/0'\n"
+            "P00   INFO: using tablespace 'pg_tblspc/2' in '/all2/ts2'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/2' to '/all2/ts2/0'");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error on invalid link");
