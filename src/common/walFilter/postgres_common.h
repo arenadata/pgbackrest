@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "postgres/interface/static.vendor.h"
 
-//Common macros and constants for different versions of Greenplum
+// Common macros and constants for different versions of Greenplum
 
 // types
 typedef uint32_t TimeLineID;
@@ -27,7 +27,6 @@ typedef uint32_t BlockNumber;
 #define RM_XLOG_ID                      0
 #define XLOG_SWITCH                     0x40
 #define XLOG_NOOP                       0x20
-
 
 // macros
 #define MAXALIGN(LEN)           TYPEALIGN(MAXIMUM_ALIGNOF, (LEN))

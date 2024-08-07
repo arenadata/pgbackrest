@@ -622,7 +622,6 @@ testRun(void)
 
     if (testBegin("get RelFileNode from XRecord body - Greenplum 6"))
     {
-
         #define RM_XLOG_ID 0
         #define RM_TRANSACTION_ID 1
         #define RM_STORAGE_ID 2
@@ -643,7 +642,7 @@ testRun(void)
         #define RM_BITMAP_ID 17
         #define RM_DISTRIBUTEDLOG_ID 18
         #define RM_APPENDONLY_ID 19
-        
+
         // xlog
         #define XLOG_CHECKPOINT_SHUTDOWN        0x00
         #define XLOG_CHECKPOINT_ONLINE          0x10
@@ -658,11 +657,11 @@ testRun(void)
         #define XLOG_FPI                        0xA0
         #define XLOG_NEXTRELFILENODE            0xB0
         #define XLOG_OVERWRITE_CONTRECORD       0xC0
-        
+
         // storage
         #define XLOG_SMGR_CREATE    0x10
         #define XLOG_SMGR_TRUNCATE  0x20
-        
+
         // heap
         #define XLOG_HEAP2_REWRITE      0x00
         #define XLOG_HEAP2_CLEAN        0x10
@@ -675,13 +674,13 @@ testRun(void)
         #define XLOG_HEAP_INSERT        0x00
         #define XLOG_HEAP_DELETE        0x10
         #define XLOG_HEAP_UPDATE        0x20
-        
+
         #define XLOG_HEAP_HOT_UPDATE    0x40
         #define XLOG_HEAP_NEWPAGE       0x50
         #define XLOG_HEAP_LOCK          0x60
         #define XLOG_HEAP_INPLACE       0x70
         #define XLOG_HEAP_INIT_PAGE     0x80
-        
+
         // btree
         #define XLOG_BTREE_INSERT_LEAF  0x00
         #define XLOG_BTREE_INSERT_UPPER 0x10
@@ -697,7 +696,7 @@ testRun(void)
         #define XLOG_BTREE_MARK_PAGE_HALFDEAD 0xB0
         #define XLOG_BTREE_VACUUM       0xC0
         #define XLOG_BTREE_REUSE_PAGE   0xD0
-        
+
         // gin
         #define XLOG_GIN_CREATE_INDEX  0x00
         #define XLOG_GIN_CREATE_PTREE  0x10
@@ -709,15 +708,15 @@ testRun(void)
         #define XLOG_GIN_UPDATE_META_PAGE 0x60
         #define XLOG_GIN_INSERT_LISTPAGE  0x70
         #define XLOG_GIN_DELETE_LISTPAGE  0x80
-        
+
         // gist
         #define XLOG_GIST_PAGE_UPDATE       0x00
         #define XLOG_GIST_PAGE_SPLIT        0x30
         #define XLOG_GIST_CREATE_INDEX      0x50
-        
+
         // sequence
         #define XLOG_SEQ_LOG            0x00
-        
+
         // spgist
         #define XLOG_SPGIST_CREATE_INDEX    0x00
         #define XLOG_SPGIST_ADD_LEAF        0x10
@@ -728,21 +727,21 @@ testRun(void)
         #define XLOG_SPGIST_VACUUM_LEAF     0x60
         #define XLOG_SPGIST_VACUUM_ROOT     0x70
         #define XLOG_SPGIST_VACUUM_REDIRECT 0x80
-        
+
         // bitmap
         #define XLOG_BITMAP_INSERT_LOVITEM  0x20
         #define XLOG_BITMAP_INSERT_META     0x30
         #define XLOG_BITMAP_INSERT_BITMAP_LASTWORDS 0x40
-        
+
         #define XLOG_BITMAP_INSERT_WORDS        0x50
-        
+
         #define XLOG_BITMAP_UPDATEWORD          0x70
         #define XLOG_BITMAP_UPDATEWORDS         0x80
-        
+
         // appendonly
         #define XLOG_APPENDONLY_INSERT          0x00
         #define XLOG_APPENDONLY_TRUNCATE        0x10
-        
+
         XLogRecord *record;
 
         TEST_TITLE("XLOG");
@@ -950,11 +949,11 @@ testRun(void)
         #undef XLOG_FPI
         #undef XLOG_NEXTRELFILENODE
         #undef XLOG_OVERWRITE_CONTRECORD
-        
+
         // storage
         #undef XLOG_SMGR_CREATE
         #undef XLOG_SMGR_TRUNCATE
-        
+
         // heap
         #undef XLOG_HEAP2_REWRITE
         #undef XLOG_HEAP2_CLEAN
@@ -967,13 +966,13 @@ testRun(void)
         #undef XLOG_HEAP_INSERT
         #undef XLOG_HEAP_DELETE
         #undef XLOG_HEAP_UPDATE
-        
+
         #undef XLOG_HEAP_HOT_UPDATE
         #undef XLOG_HEAP_NEWPAGE
         #undef XLOG_HEAP_LOCK
         #undef XLOG_HEAP_INPLACE
         #undef XLOG_HEAP_INIT_PAGE
-        
+
         // btree
         #undef XLOG_BTREE_INSERT_LEAF
         #undef XLOG_BTREE_INSERT_UPPER
@@ -989,7 +988,7 @@ testRun(void)
         #undef XLOG_BTREE_MARK_PAGE_HALFDEAD
         #undef XLOG_BTREE_VACUUM
         #undef XLOG_BTREE_REUSE_PAGE
-        
+
         // gin
         #undef XLOG_GIN_CREATE_INDEX
         #undef XLOG_GIN_CREATE_PTREE
@@ -1001,15 +1000,15 @@ testRun(void)
         #undef XLOG_GIN_UPDATE_META_PAGE
         #undef XLOG_GIN_INSERT_LISTPAGE
         #undef XLOG_GIN_DELETE_LISTPAGE
-        
+
         // gist
         #undef XLOG_GIST_PAGE_UPDATE
         #undef XLOG_GIST_PAGE_SPLIT
         #undef XLOG_GIST_CREATE_INDEX
-        
+
         // sequence
         #undef XLOG_SEQ_LOG
-        
+
         // spgist
         #undef XLOG_SPGIST_CREATE_INDEX
         #undef XLOG_SPGIST_ADD_LEAF
@@ -1020,17 +1019,17 @@ testRun(void)
         #undef XLOG_SPGIST_VACUUM_LEAF
         #undef XLOG_SPGIST_VACUUM_ROOT
         #undef XLOG_SPGIST_VACUUM_REDIRECT
-        
+
         // bitmap
         #undef XLOG_BITMAP_INSERT_LOVITEM
         #undef XLOG_BITMAP_INSERT_META
         #undef XLOG_BITMAP_INSERT_BITMAP_LASTWORDS
-        
+
         #undef XLOG_BITMAP_INSERT_WORDS
-        
+
         #undef XLOG_BITMAP_UPDATEWORD
         #undef XLOG_BITMAP_UPDATEWORDS
-        
+
         // appendonly
         #undef XLOG_APPENDONLY_INSERT
         #undef XLOG_APPENDONLY_TRUNCATE
@@ -1109,7 +1108,7 @@ testRun(void)
         build_filter_list(json, &filter_list, &filter_list_len);
         TEST_RESULT_PTR_NE(filter_list, NULL, "filter list is empty");
         TEST_RESULT_UINT(filter_list_len, 4, "wrong filter list length");
-        
+
         filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, filter_list, filter_list_len);
         wal = bufNew(1024 * 1024);
         Buffer *expect_wal = bufNew(1024 * 1024);
@@ -1170,12 +1169,12 @@ testRun(void)
 
         #undef RM_HEAP_ID
         #undef RM_XLOG_ID
-        
+
         #undef XLOG_NOOP
         #undef XLOG_HEAP_INSERT
     }
-    
-    if(testBegin("Unsupported Greenplum verison"))
+
+    if (testBegin("Unsupported Greenplum verison"))
     {
         TEST_ERROR(walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_POSTGRESQL, NULL, 0), VersionNotSupportedError, "WAL filtering is unsupported for this Greenplum version");
         TEST_ERROR(walFilterNew(PG_VERSION_95, CFGOPTVAL_FORK_GPDB, NULL, 0), VersionNotSupportedError, "WAL filtering is unsupported for this Greenplum version");

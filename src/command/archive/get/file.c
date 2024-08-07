@@ -48,7 +48,7 @@ archiveGetFile(
     RelFileNode *filter_list = NULL;
     size_t filter_list_len = 0;
     unsigned int pgVersion = 0;
-    if(cfgOptionTest(cfgOptFilter))
+    if (cfgOptionTest(cfgOptFilter))
     {
         const String *filter_path = cfgOptionStrNull(cfgOptFilter);
         if (strZ(filter_path)[0] != '/')

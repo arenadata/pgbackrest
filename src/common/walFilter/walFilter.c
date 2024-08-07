@@ -6,23 +6,24 @@
 #include "common/log.h"
 #include "common/type/object.h"
 
-#include "postgres/interface/crc32.h"
-#include "postgres_common.h"
-#include "postgres/version.h"
 #include "config/config.h"
+#include "postgres/interface/crc32.h"
+#include "postgres/version.h"
+#include "postgres_common.h"
 #include "versions/recordProcessGPDB6.h"
 
-typedef struct WalInterface {
+typedef struct WalInterface
+{
     unsigned int pgVersion;
     StringId fork;
-    
+
     uint16_t header_magic;
-    void (*validXLogRecordHeader)(const XLogRecord* record);
-    void (*validXLogRecord)(const XLogRecord* record);
+    void (*validXLogRecordHeader)(const XLogRecord *record);
+    void (*validXLogRecord)(const XLogRecord *record);
 }WalInterface;
 
 static WalInterface interfaces[] = {
-        {PG_VERSION_94, CFGOPTVAL_FORK_GPDB, GPDB6_XLOG_PAGE_MAGIC, validXLogRecordHeaderGPDB6, validXLogRecordGPDB6}
+    {PG_VERSION_94, CFGOPTVAL_FORK_GPDB, GPDB6_XLOG_PAGE_MAGIC, validXLogRecordHeaderGPDB6, validXLogRecordGPDB6}
 };
 
 typedef struct WalFilter
@@ -49,8 +50,8 @@ typedef struct WalFilter
     // Total size of record on current page
     size_t tot_len;
 
-    WalInterface* walInterface;
-    
+    WalInterface *walInterface;
+
     // Records count for debug
     int i;
 
@@ -368,7 +369,7 @@ step3:
                 break;
             }
         }
-        
+
         if (is_need_to_filter)
         {
             this->record->xl_rmid = RM_XLOG_ID;
@@ -556,7 +557,7 @@ walFilterNew(unsigned int pgVersion, StringId fork, RelFileNode *filter_list, si
 
         for (unsigned int i = 0; i < LENGTH_OF(interfaces); ++i)
         {
-            if(interfaces[i].pgVersion == pgVersion && interfaces[i].fork == fork)
+            if (interfaces[i].pgVersion == pgVersion && interfaces[i].fork == fork)
             {
                 this->walInterface = &interfaces[i];
                 break;

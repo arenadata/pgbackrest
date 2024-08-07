@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "common/log.h"
-#include "recordProcessGPDB6.h"
 #include "postgres/interface/crc32.h"
+#include "recordProcessGPDB6.h"
 
 enum ResourceManager
 {
@@ -594,7 +594,7 @@ validXLogRecordHeaderGPDB6(const XLogRecord *const record)
         THROW_FMT(FormatError, "record with zero length");
     }
     if (record->xl_tot_len < SizeOfXLogRecord + record->xl_len ||
-                             record->xl_tot_len > SizeOfXLogRecord + record->xl_len +
+        record->xl_tot_len > SizeOfXLogRecord + record->xl_len +
         XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + BLCKSZ))
     {
         THROW_FMT(FormatError, "invalid record length");
