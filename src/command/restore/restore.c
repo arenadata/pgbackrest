@@ -485,7 +485,10 @@ restoreManifestMap(Manifest *const manifest)
                 // Is this a tablespace?
                 if (target->tablespaceId != 0)
                 {
+                    // Tablespace path without dbid
                     const String *tablespacePath = NULL;
+
+                    LOG_INFO_FMT("using tablespace '%s' in '%s'", strZ(target->name), strZ(target->path));
 
                     // Check for an individual mapping for this tablespace
                     if (tablespaceMap != NULL)
@@ -528,10 +531,16 @@ restoreManifestMap(Manifest *const manifest)
                     // Remap tablespace if a mapping was found
                     if (tablespacePath != NULL)
                     {
-                        LOG_INFO_FMT("map tablespace '%s' to '%s'", strZ(target->name), strZ(tablespacePath));
+                        // Append dbid to the path for Greenplum
+                        const String *const fixedTablespacePath =
+                            cfgOptionStrId(cfgOptFork) == CFGOPTVAL_FORK_GPDB ?
+                                strNewFmt("%s/%u", strZ(tablespacePath), manifestData(manifest)->pgId) : tablespacePath;
 
-                        manifestTargetUpdate(manifest, target->name, tablespacePath, NULL);
-                        manifestLinkUpdate(manifest, strNewFmt(MANIFEST_TARGET_PGDATA "/%s", strZ(target->name)), tablespacePath);
+                        LOG_INFO_FMT("map tablespace '%s' to '%s'", strZ(target->name), strZ(fixedTablespacePath));
+
+                        manifestTargetUpdate(manifest, target->name, fixedTablespacePath, NULL);
+                        manifestLinkUpdate(
+                            manifest, strNewFmt(MANIFEST_TARGET_PGDATA "/%s", strZ(target->name)), fixedTablespacePath);
                     }
                 }
             }
