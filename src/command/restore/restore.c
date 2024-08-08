@@ -532,15 +532,14 @@ restoreManifestMap(Manifest *const manifest)
                     if (tablespacePath != NULL)
                     {
                         // Append dbid to the path for Greenplum
-                        const String *const fixedTablespacePath =
-                            cfgOptionStrId(cfgOptFork) == CFGOPTVAL_FORK_GPDB ?
-                                strNewFmt("%s/%u", strZ(tablespacePath), manifestData(manifest)->pgId) : tablespacePath;
+                        if (cfgOptionStrId(cfgOptFork) == CFGOPTVAL_FORK_GPDB)
+                            tablespacePath = strNewFmt("%s/%u", strZ(tablespacePath), manifestData(manifest)->pgId);
 
-                        LOG_INFO_FMT("map tablespace '%s' to '%s'", strZ(target->name), strZ(fixedTablespacePath));
+                        LOG_INFO_FMT("map tablespace '%s' to '%s'", strZ(target->name), strZ(tablespacePath));
 
-                        manifestTargetUpdate(manifest, target->name, fixedTablespacePath, NULL);
+                        manifestTargetUpdate(manifest, target->name, tablespacePath, NULL);
                         manifestLinkUpdate(
-                            manifest, strNewFmt(MANIFEST_TARGET_PGDATA "/%s", strZ(target->name)), fixedTablespacePath);
+                            manifest, strNewFmt(MANIFEST_TARGET_PGDATA "/%s", strZ(target->name)), tablespacePath);
                     }
                 }
             }
