@@ -538,8 +538,7 @@ restoreManifestMap(Manifest *const manifest)
                         LOG_INFO_FMT("map tablespace '%s' to '%s'", strZ(target->name), strZ(tablespacePath));
 
                         manifestTargetUpdate(manifest, target->name, tablespacePath, NULL);
-                        manifestLinkUpdate(
-                            manifest, strNewFmt(MANIFEST_TARGET_PGDATA "/%s", strZ(target->name)), tablespacePath);
+                        manifestLinkUpdate(manifest, strNewFmt(MANIFEST_TARGET_PGDATA "/%s", strZ(target->name)), tablespacePath);
                     }
                 }
             }
