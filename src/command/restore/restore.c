@@ -488,8 +488,6 @@ restoreManifestMap(Manifest *const manifest)
                     // Tablespace path without dbid
                     const String *tablespacePath = NULL;
 
-                    LOG_INFO_FMT("using tablespace '%s' in '%s'", strZ(target->name), strZ(target->path));
-
                     // Check for an individual mapping for this tablespace
                     if (tablespaceMap != NULL)
                     {
@@ -535,7 +533,7 @@ restoreManifestMap(Manifest *const manifest)
                         if (cfgOptionStrId(cfgOptFork) == CFGOPTVAL_FORK_GPDB)
                             tablespacePath = strNewFmt("%s/%u", strZ(tablespacePath), manifestData(manifest)->pgId);
 
-                        LOG_INFO_FMT("map tablespace '%s' to '%s'", strZ(target->name), strZ(tablespacePath));
+                        LOG_INFO_FMT("map tablespace '%s' from '%s' to '%s'", strZ(target->name), strZ(target->path), strZ(tablespacePath));
 
                         manifestTargetUpdate(manifest, target->name, tablespacePath, NULL);
                         manifestLinkUpdate(manifest, strNewFmt(MANIFEST_TARGET_PGDATA "/%s", strZ(target->name)), tablespacePath);
