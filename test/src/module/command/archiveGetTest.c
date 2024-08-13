@@ -1242,7 +1242,7 @@ testRun(void)
             storagePgWrite(), PG_VERSION_94, 9420600, .systemId = HRN_PG_SYSTEMID_94, .catalogVersion = 301908232,
             .pageSize = 32768, .walSegmentSize = 64 * 1024 * 1024);
 
-        TEST_ERROR(cmdArchiveGet(), AssertError, "The path to the filter is not absolute");
+        TEST_ERROR(cmdArchiveGet(), AssertError, "The path to the filter info file is not absolute");
         TEST_TITLE("filter file not exists");
         argList = strLstDup(argBaseList);
 

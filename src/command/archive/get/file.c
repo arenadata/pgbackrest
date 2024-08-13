@@ -3,18 +3,13 @@ Archive Get File
 ***********************************************************************************************************************************/
 #include "build.auto.h"
 
-#include <fcntl.h>
-#include <unistd.h>
 #include "command/archive/common.h"
 #include "command/archive/get/file.h"
 #include "command/control/common.h"
 #include "common/compress/helper.h"
 #include "common/crypto/cipherBlock.h"
 #include "common/debug.h"
-#include "common/io/bufferWrite.h"
-#include "common/io/fdRead.h"
 #include "common/io/filter/group.h"
-#include "common/io/io.h"
 #include "common/log.h"
 #include "common/walFilter/walFilter.h"
 #include "config/config.h"
@@ -53,24 +48,21 @@ archiveGetFile(
         const String *filter_path = cfgOptionStrNull(cfgOptFilter);
         if (strZ(filter_path)[0] != '/')
         {
-            THROW(AssertError, "The path to the filter is not absolute");
+            THROW(AssertError, "The path to the filter info file is not absolute");
         }
 
         const PgControl pgControl = pgControlFromFile(storagePg(), cfgOptionStrNull(cfgOptPgVersionForce));
         pgVersion = pgControl.version;
-        MEM_CONTEXT_TEMP_BEGIN()
-        {
-            const Storage *local_storage = storageLocal();
-            StorageRead *storageRead = storageNewReadP(local_storage, filter_path);
-            Buffer *jsonFile = storageGetP(storageRead);
-            JsonRead *jsonRead = jsonReadNew(strNewBuf(jsonFile));
+        const Storage *local_storage = storageLocal();
+        StorageRead *storageRead = storageNewReadP(local_storage, filter_path);
+        Buffer *jsonFile = storageGetP(storageRead);
+        JsonRead *jsonRead = jsonReadNew(strNewBuf(jsonFile));
 
-            MemContext *save_memory_context = memContextCurrent();
-            memContextSwitchBack();
-            build_filter_list(jsonRead, &filter_list, &filter_list_len);
-            memContextSwitch(save_memory_context);
-        }
-        MEM_CONTEXT_TEMP_END();
+        buildFilterList(jsonRead, &filter_list, &filter_list_len);
+
+        jsonReadFree(jsonRead);
+        bufFree(jsonFile);
+        storageReadFree(storageRead);
     }
     for (unsigned int actualIdx = 0; actualIdx < lstSize(actualList); actualIdx++)
     {

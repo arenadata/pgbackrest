@@ -7,9 +7,9 @@
 #include "common/type/object.h"
 
 #include "config/config.h"
+#include "greenplumCommon.h"
 #include "postgres/interface/crc32.h"
 #include "postgres/version.h"
-#include "postgres_common.h"
 #include "versions/recordProcessGPDB6.h"
 
 typedef struct WalInterface
@@ -36,7 +36,7 @@ typedef struct WalFilter
     size_t page_offset;
     size_t input_offset;
 
-    XLogPageHeader header;
+    XLogPageHeaderData *header;
     // The total size of the headers encountered during the reading of the record.
     size_t total_headers_size;
 
@@ -117,7 +117,7 @@ readPage(WalFilterState *this, const Buffer *const input, Buffer *const output, 
     this->input_offset += XLOG_BLCKSZ;
     this->page_offset = 0;
     this->current_step = 0;
-    this->header = (XLogPageHeader) this->page;
+    this->header = (XLogPageHeaderData *) this->page;
     this->page_offset += MAXALIGN(XLogPageHeaderSize(this->header));
 
     // Make sure that WAL belongs to supported Greenplum version, since magic value is different in different versions.
@@ -349,21 +349,21 @@ step3:
         this->is_switch_wal = true;
     }
 
-    RelFileNode node;
+    RelFileNode *node;
     // If there are no filters, then we do nothing. This is very useful for debug.
-    if (this->filter_list_size != 0 && getRelFileNodeGPDB6(this->record, &node) && node.relNode >= 16384)
+    if (this->filter_list_size != 0 && getRelFileNodeGPDB6(this->record, &node) && node->relNode >= 16384)
     {
         bool is_need_to_filter = true;
         // Do filter
         for (size_t i = 0; i < this->filter_list_size; ++i)
         {
-            if (this->filter_list[i].dbNode == node.dbNode &&
+            if (this->filter_list[i].dbNode == node->dbNode &&
                 this->filter_list[i].relNode == 0)
             {
                 is_need_to_filter = true;
                 break;
             }
-            if (memcmp(&node, &this->filter_list[i], sizeof(RelFileNode)) == 0)
+            if (memcmp(node, &this->filter_list[i], sizeof(RelFileNode)) == 0)
             {
                 is_need_to_filter = false;
                 break;
@@ -441,7 +441,7 @@ WalFilterInputSame(const THIS_VOID)
 }
 
 static RelFileNode *
-append_relfilenode(RelFileNode *array, size_t *len, RelFileNode node)
+appendRelFileNode(RelFileNode *array, size_t *len, RelFileNode node)
 {
     if (array)
     {
@@ -459,7 +459,7 @@ append_relfilenode(RelFileNode *array, size_t *len, RelFileNode node)
 }
 
 FN_EXTERN void
-build_filter_list(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_len)
+buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_len)
 {
     size_t result_len = 0;
     RelFileNode *filter_list_result = NULL;
@@ -509,7 +509,7 @@ build_filter_list(JsonRead *json, RelFileNode **filter_list, size_t *filter_list
                         }
                     }
                     node.dbNode = dbOid;
-                    filter_list_result = append_relfilenode(filter_list_result, &result_len, node);
+                    filter_list_result = appendRelFileNode(filter_list_result, &result_len, node);
                     memset(&node, 0, sizeof(node));
 
                     jsonReadObjectEnd(json);
@@ -519,7 +519,7 @@ build_filter_list(JsonRead *json, RelFileNode **filter_list, size_t *filter_list
                 if (table_count == 0)
                 {
                     node.dbNode = dbOid;
-                    filter_list_result = append_relfilenode(filter_list_result, &result_len, node);
+                    filter_list_result = appendRelFileNode(filter_list_result, &result_len, node);
                     memset(&node, 0, sizeof(node));
                 }
 

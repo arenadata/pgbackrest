@@ -9,6 +9,6 @@
 
 FN_EXTERN IoFilter *walFilterNew(unsigned int pgVersion, StringId fork, RelFileNode *filter_list, size_t filter_list_len);
 
-FN_EXTERN void build_filter_list(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_len);
+FN_EXTERN void buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_len);
 
 #endif // PGBACKREST_WALFILTER_H

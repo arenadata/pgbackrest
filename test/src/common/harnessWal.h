@@ -1,7 +1,7 @@
 #ifndef PGBACKREST_HARNESSWAL_H
 #define PGBACKREST_HARNESSWAL_H
 #include "common/type/buffer.h"
-#include "common/walFilter/postgres_common.h"
+#include "common/walFilter/greenplumCommon.h"
 
 typedef enum InsertRecordFlags
 {

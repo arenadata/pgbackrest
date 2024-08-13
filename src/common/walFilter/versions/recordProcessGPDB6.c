@@ -1,8 +1,6 @@
 #include "build.auto.h"
 
-#include <malloc.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include "common/log.h"
 #include "postgres/interface/crc32.h"
 #include "recordProcessGPDB6.h"
@@ -56,22 +54,7 @@ enum ResourceManager
 
 // heap
 #define XLOG_HEAP2_REWRITE      0x00
-#define XLOG_HEAP2_CLEAN        0x10
-#define XLOG_HEAP2_FREEZE_PAGE  0x20
-#define XLOG_HEAP2_CLEANUP_INFO 0x30
-#define XLOG_HEAP2_VISIBLE      0x40
-#define XLOG_HEAP2_MULTI_INSERT 0x50
-#define XLOG_HEAP2_LOCK_UPDATED 0x60
 #define XLOG_HEAP2_NEW_CID      0x70
-#define XLOG_HEAP_INSERT        0x00
-#define XLOG_HEAP_DELETE        0x10
-#define XLOG_HEAP_UPDATE        0x20
-/* 0x030 is free, was XLOG_HEAP_MOVE */
-#define XLOG_HEAP_HOT_UPDATE    0x40
-#define XLOG_HEAP_NEWPAGE       0x50
-#define XLOG_HEAP_LOCK          0x60
-#define XLOG_HEAP_INPLACE       0x70
-#define XLOG_HEAP_INIT_PAGE     0x80
 
 // btree
 #define XLOG_BTREE_INSERT_LEAF  0x00    /* add index tuple without split */
@@ -227,10 +210,9 @@ typedef struct xl_heap_new_cid
 
 static
 bool
-getXlog(XLogRecord *record, RelFileNode *node)
+getXlog(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-    char *rec = XLogRecGetData(record);
     switch (info)
     {
         case XLOG_CHECKPOINT_SHUTDOWN:
@@ -250,38 +232,35 @@ getXlog(XLogRecord *record, RelFileNode *node)
 
         case XLOG_FPI:
         {
-            RelFileNode *rec_node = (RelFileNode *) rec;
-            *node = *rec_node;
-            return 1;
+            *node = (RelFileNode *) XLogRecGetData(record);
+            return true;
         }
 
         default:
             THROW_FMT(FormatError, "XLOG UNKNOWN: %d", info);
     }
-    return 0;
+    return false;
 }
 
 static
 bool
-getStorage(XLogRecord *record, RelFileNode *node)
+getStorage(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-    char *rec = XLogRecGetData(record);
     switch (info)
     {
         case XLOG_SMGR_CREATE:
         {
-            RelFileNode *rec_node = (RelFileNode *) rec;
-            *node = *rec_node;
-            return 1;
+            *node = (RelFileNode *) XLogRecGetData(record);
+            return true;
         }
 
         case XLOG_SMGR_TRUNCATE:
         {
-            xl_smgr_truncate *xlrec = (xl_smgr_truncate *) rec;
+            xl_smgr_truncate *xlrec = (xl_smgr_truncate *) XLogRecGetData(record);
 
-            *node = xlrec->rnode;
-            return 1;
+            *node = &xlrec->rnode;
+            return true;
         }
 
         default:
@@ -291,20 +270,20 @@ getStorage(XLogRecord *record, RelFileNode *node)
 
 static
 bool
-getHeap2(XLogRecord *record, RelFileNode *node)
+getHeap2(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-    char *rec = XLogRecGetData(record);
     info &= XLOG_HEAP_OPMASK;
 
-    if (info == XLOG_HEAP2_NEW_CID){
-        xl_heap_new_cid *xlrec = (xl_heap_new_cid *) rec;
-        *node = xlrec->target.node;
-        return 1;
+    if (info == XLOG_HEAP2_NEW_CID)
+    {
+        xl_heap_new_cid *xlrec = (xl_heap_new_cid *) XLogRecGetData(record);
+        *node = &xlrec->target.node;
+        return true;
     }
     else if (info == XLOG_HEAP2_REWRITE)
     {
-        return 0;
+        return false;
     }
 
     // XLOG_HEAP2_CLEAN
@@ -313,17 +292,14 @@ getHeap2(XLogRecord *record, RelFileNode *node)
     // XLOG_HEAP2_VISIBLE
     // XLOG_HEAP2_MULTI_INSERT
     // XLOG_HEAP2_LOCK_UPDATED
-    RelFileNode *rec_node = (RelFileNode *) rec;
-    *node = *rec_node;
-    return 1;
+    *node = (RelFileNode *) XLogRecGetData(record);
+    return true;
 }
 
 static
 bool
-getHeap(XLogRecord *record, RelFileNode *node)
+getHeap(XLogRecord *record, RelFileNode **node)
 {
-    char *rec = XLogRecGetData(record);
-
     // XLOG_HEAP_INSERT
     // XLOG_HEAP_DELETE
     // XLOG_HEAP_UPDATE
@@ -331,17 +307,15 @@ getHeap(XLogRecord *record, RelFileNode *node)
     // XLOG_HEAP_NEWPAGE
     // XLOG_HEAP_LOCK
     // XLOG_HEAP_INPLACE
-    RelFileNode *rec_node = (RelFileNode *) rec;
-    *node = *rec_node;
-    return 1;
+    *node = (RelFileNode *) XLogRecGetData(record);
+    return true;
 }
 
 static
 bool
-getBtree(XLogRecord *record, RelFileNode *node)
+getBtree(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-    char *rec = XLogRecGetData(record);
     switch (info)
     {
         case XLOG_BTREE_INSERT_LEAF:
@@ -359,9 +333,8 @@ getBtree(XLogRecord *record, RelFileNode *node)
         case XLOG_BTREE_NEWROOT:
         case XLOG_BTREE_REUSE_PAGE:
         {
-            RelFileNode *rec_node = (RelFileNode *) rec;
-            *node = *rec_node;
-            return 1;
+            *node = (RelFileNode *) XLogRecGetData(record);
+            return true;
         }
 
         default:
@@ -371,10 +344,9 @@ getBtree(XLogRecord *record, RelFileNode *node)
 
 static
 bool
-getGin(XLogRecord *record, RelFileNode *node)
+getGin(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-    char *rec = XLogRecGetData(record);
     switch (info)
     {
         case XLOG_GIN_CREATE_INDEX:
@@ -388,9 +360,8 @@ getGin(XLogRecord *record, RelFileNode *node)
         case XLOG_GIN_INSERT_LISTPAGE:
         case XLOG_GIN_DELETE_LISTPAGE:
         {
-            RelFileNode *rec_node = (RelFileNode *) rec;
-            *node = *rec_node;
-            return 1;
+            *node = (RelFileNode *) XLogRecGetData(record);
+            return true;
         }
 
         default:
@@ -400,20 +371,17 @@ getGin(XLogRecord *record, RelFileNode *node)
 
 static
 bool
-getGist(XLogRecord *record, RelFileNode *node)
+getGist(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-    char *rec = XLogRecGetData(record);
-
     switch (info)
     {
         case XLOG_GIST_PAGE_UPDATE:
         case XLOG_GIST_PAGE_SPLIT:
         case XLOG_GIST_CREATE_INDEX:
         {
-            RelFileNode *rec_node = (RelFileNode *) rec;
-            *node = *rec_node;
-            return 1;
+            *node = (RelFileNode *) XLogRecGetData(record);
+            return true;
         }
 
         default:
@@ -423,30 +391,26 @@ getGist(XLogRecord *record, RelFileNode *node)
 
 static
 bool
-getSeq(XLogRecord *record, RelFileNode *node)
+getSeq(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-    char *rec = XLogRecGetData(record);
-    switch (info)
+    if (info == XLOG_SEQ_LOG)
     {
-        case XLOG_SEQ_LOG:
-        {
-            RelFileNode *rec_node = (RelFileNode *) rec;
-            *node = *rec_node;
-            return 1;
-        }
-
-        default:
-            THROW_FMT(FormatError, "Sequence UNKNOWN: %d", info);
+        *node = (RelFileNode *) XLogRecGetData(record);
+        return true;
+    }
+    else
+    {
+        THROW_FMT(FormatError, "Sequence UNKNOWN: %d", info);
     }
 }
 
 static
 bool
-getSpgist(XLogRecord *record, RelFileNode *node)
+getSpgist(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-    char *rec = XLogRecGetData(record);
+//    char *rec = XLogRecGetData(record);
 
     switch (info)
     {
@@ -460,9 +424,8 @@ getSpgist(XLogRecord *record, RelFileNode *node)
         case XLOG_SPGIST_VACUUM_ROOT:
         case XLOG_SPGIST_VACUUM_REDIRECT:
         {
-            RelFileNode *rec_node = (RelFileNode *) rec;
-            *node = *rec_node;
-            return 1;
+            *node = (RelFileNode *) XLogRecGetData(record);
+            return true;
         }
 
         default:
@@ -472,10 +435,9 @@ getSpgist(XLogRecord *record, RelFileNode *node)
 
 static
 bool
-getBitmap(XLogRecord *record, RelFileNode *node)
+getBitmap(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-    char *rec = XLogRecGetData(record);
     switch (info)
     {
         case XLOG_BITMAP_INSERT_LOVITEM:
@@ -485,9 +447,8 @@ getBitmap(XLogRecord *record, RelFileNode *node)
         case XLOG_BITMAP_UPDATEWORD:
         case XLOG_BITMAP_UPDATEWORDS:
         {
-            RelFileNode *rec_node = (RelFileNode *) rec;
-            *node = *rec_node;
-            return 1;
+            *node = (RelFileNode *) XLogRecGetData(record);
+            return true;
         }
 
         default:
@@ -497,19 +458,16 @@ getBitmap(XLogRecord *record, RelFileNode *node)
 
 static
 bool
-getAppendonly(XLogRecord *record, RelFileNode *node)
+getAppendonly(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-    char *rec = XLogRecGetData(record);
-
     switch (info)
     {
         case XLOG_APPENDONLY_INSERT:
         case XLOG_APPENDONLY_TRUNCATE:
         {
-            RelFileNode *rec_node = (RelFileNode *) rec;
-            *node = *rec_node;
-            return 1;
+            *node = (RelFileNode *) XLogRecGetData(record);
+            return true;
         }
 
         default:
@@ -518,7 +476,7 @@ getAppendonly(XLogRecord *record, RelFileNode *node)
 }
 
 FN_EXTERN bool
-getRelFileNodeGPDB6(XLogRecord *record, RelFileNode *node)
+getRelFileNodeGPDB6(XLogRecord *record, RelFileNode **node)
 {
     switch (record->xl_rmid)
     {
@@ -564,15 +522,14 @@ getRelFileNodeGPDB6(XLogRecord *record, RelFileNode *node)
         case ResourceManager_Standby:
         case ResourceManager_DistributedLog:
             // skip
-            break;
+            return false;
 
         case ResourceManager_Hash:
-            THROW_FMT(FormatError, "Not supported in greenplum. shouldn't be here");
+            THROW(FormatError, "Not supported in greenplum. shouldn't be here");
 
         default:
-            THROW_FMT(FormatError, "Unknown resource manager");
+            THROW(FormatError, "Unknown resource manager");
     }
-    return 0;
 }
 
 FN_EXTERN void

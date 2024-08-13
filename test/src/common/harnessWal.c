@@ -17,7 +17,6 @@ hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t body_size, void *body)
         .xl_prev = 0xAABB
     };
     XLogRecord *record = memNew(SizeOfXLogRecord + body_size);
-    memset(record, 0, SizeOfXLogRecord + body_size);
     memcpy(record, &header, sizeof(header));
 
     if (body == NULL)
@@ -92,7 +91,6 @@ hrnGpdbWalInsertXRecord(
     {
         XLogPageHeaderData header = {0};
         header.xlp_magic = magic;
-        header.xlp_info = (flags & OVERWRITE) ? XLP_FIRST_IS_OVERWRITE_CONTRECORD : 0;
         header.xlp_tli = 1;
         header.xlp_pageaddr = bufUsed(walBuffer);
         header.xlp_rem_len = 0;
@@ -100,6 +98,14 @@ hrnGpdbWalInsertXRecord(
         if (flags & COND_FLAG)
         {
             header.xlp_info |= XLP_FIRST_IS_CONTRECORD;
+        }
+        else if (flags & OVERWRITE)
+        {
+            header.xlp_info = XLP_FIRST_IS_OVERWRITE_CONTRECORD;
+        }
+        else
+        {
+            header.xlp_info = 0;
         }
 
         memcpy(bufRemainsPtr(walBuffer), &header, sizeof(header));
@@ -133,7 +139,6 @@ hrnGpdbWalInsertXRecord(
             header.xlp_info = !(flags & NO_COND_FLAG) ? XLP_FIRST_IS_CONTRECORD : 0;
             header.xlp_tli = 1;
             header.xlp_pageaddr = bufUsed(walBuffer);
-            header.xlp_rem_len = (uint32_t) (record->xl_tot_len - wrote);
 
             if (flags & ZERO_REM_LEN)
             {
@@ -143,8 +148,12 @@ hrnGpdbWalInsertXRecord(
             {
                 header.xlp_rem_len = 1;
             }
+            else
+            {
+                header.xlp_rem_len = (uint32_t) (record->xl_tot_len - wrote);
+            }
 
-            memcpy(bufRemainsPtr(walBuffer), &header, sizeof(header));
+            *((XLogPageHeaderData *) bufRemainsPtr(walBuffer)) = header;
 
             bufUsedInc(walBuffer, sizeof(header));
 

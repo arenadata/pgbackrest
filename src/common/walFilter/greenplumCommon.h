@@ -1,5 +1,5 @@
-#ifndef PGBACKREST_POSTGRES_COMMON_H
-#define PGBACKREST_POSTGRES_COMMON_H
+#ifndef PGBACKREST_GREENPLUMCOMMON_H
+#define PGBACKREST_GREENPLUMCOMMON_H
 
 #include <stdint.h>
 #include "postgres/interface/static.vendor.h"
@@ -62,8 +62,6 @@ typedef struct XLogPageHeaderData
     uint32_t xlp_rem_len;         /* total len of remaining data for record */
 } XLogPageHeaderData;
 
-typedef XLogPageHeaderData *XLogPageHeader;
-
 typedef struct XLogLongPageHeaderData
 {
     XLogPageHeaderData std;     /* standard header fields */
@@ -88,4 +86,4 @@ typedef struct XLogRecord
     /* ACTUAL LOG DATA FOLLOWS AT END OF STRUCT */
 } XLogRecord;
 
-#endif // PGBACKREST_POSTGRES_COMMON_H
+#endif // PGBACKREST_GREENPLUMCOMMON_H

@@ -10,7 +10,7 @@ Test wal filter
 #include "common/walFilter/versions/recordProcessGPDB6.h"
 #include "postgres/interface/crc32.h"
 
-extern void build_filter_list(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_len);
+extern void buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_len);
 
 typedef enum WalFlags
 {
@@ -83,16 +83,14 @@ test_get_relfilenode(uint8_t rmid, uint8_t info, bool expect_not_skip)
 
     XLogRecord *record = hrnGpdbCreateXRecord(rmid, info, sizeof(node), &node);
 
-    RelFileNode node_result = {0};
+    RelFileNode *node_result = NULL;
     RelFileNode node_expect = {1, 2, 3};
     TEST_RESULT_BOOL(getRelFileNodeGPDB6(record, &node_result), expect_not_skip, "RelFileNode is different from expected");
     if (expect_not_skip)
-        TEST_RESULT_BOOL(memcmp(&node_expect, &node_result, sizeof(RelFileNode)), 0, "RelFileNode is different from expected");
+        TEST_RESULT_BOOL(memcmp(&node_expect, node_result, sizeof(RelFileNode)), 0, "RelFileNode is different from expected");
     else
     {
-        TEST_RESULT_UINT(node_result.spcNode, 0, "");
-        TEST_RESULT_UINT(node_result.dbNode, 0, "");
-        TEST_RESULT_UINT(node_result.relNode, 0, "");
+        TEST_RESULT_PTR(node_result, NULL, "node_result is not empty");
     }
     memFree(record);
 }
@@ -774,10 +772,10 @@ testRun(void)
             xlrec->rnode.dbNode = 2;
             xlrec->rnode.relNode = 3;
 
-            RelFileNode node = {0};
+            RelFileNode *node = NULL;
             RelFileNode node_expect = {1, 2, 3};
             TEST_RESULT_BOOL(getRelFileNodeGPDB6(record, &node), 1, "wrong result from get_relfilenode");
-            TEST_RESULT_BOOL(memcmp(&node_expect, &node, sizeof(RelFileNode)), 0, "RelFileNode is different from expected");
+            TEST_RESULT_BOOL(memcmp(&node_expect, node, sizeof(RelFileNode)), 0, "RelFileNode is different from expected");
         }
         memFree(record);
 
@@ -804,10 +802,10 @@ testRun(void)
             xlrec->target.node.dbNode = 2;
             xlrec->target.node.relNode = 3;
 
-            RelFileNode node = {0};
+            RelFileNode *node = NULL;
             RelFileNode node_expect = {1, 2, 3};
             TEST_RESULT_BOOL(getRelFileNodeGPDB6(record, &node), 1, "wrong result from get_relfilenode");
-            TEST_RESULT_BOOL(memcmp(&node_expect, &node, sizeof(RelFileNode)), 0, "RelFileNode is different from expected");
+            TEST_RESULT_BOOL(memcmp(&node_expect, node, sizeof(RelFileNode)), 0, "RelFileNode is different from expected");
         }
         memFree(record);
 
