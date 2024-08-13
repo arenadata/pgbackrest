@@ -792,6 +792,7 @@ testRun(void)
 
         TEST_ERROR(restoreManifestMap(manifest), TablespaceMapError, "unable to remap invalid tablespace 'bogus'");
 
+        // Add some tablespaces
         HRN_MANIFEST_TARGET_ADD(
             manifest, .name = "pg_tblspc/1", .path = "/1", .tablespaceId = 1, .tablespaceName = "1",
             .type = manifestTargetTypeLink);
@@ -822,7 +823,6 @@ testRun(void)
         hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
         hrnCfgArgRawZ(argList, cfgOptTablespaceMap, "1=/1-2");
         hrnCfgArgRawZ(argList, cfgOptTablespaceMap, "ts2=/2-2");
-
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
         TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
@@ -844,7 +844,6 @@ testRun(void)
         hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
         hrnCfgArgRawZ(argList, cfgOptTablespaceMap, "2=/2-3");
         hrnCfgArgRawZ(argList, cfgOptTablespaceMapAll, "/all");
-
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
         TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
@@ -865,7 +864,6 @@ testRun(void)
         hrnCfgArgRaw(argList, cfgOptRepoPath, repoPath);
         hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
         hrnCfgArgRawZ(argList, cfgOptTablespaceMapAll, "/all2");
-
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
         TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
