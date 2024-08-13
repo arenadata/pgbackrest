@@ -949,6 +949,7 @@ testRun(void)
         hrnCfgArgRaw(argList, cfgOptRepoPath, repoPath);
         hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
         hrnCfgArgRawZ(argList, cfgOptTablespaceMapAll, "/all2");
+
         hrnCfgArgRawZ(argList, cfgOptFork, "GPDB");
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
@@ -963,6 +964,28 @@ testRun(void)
         TEST_RESULT_LOG(
             "P00   INFO: map tablespace 'pg_tblspc/gpdb_1' from '/all/gpdb_1/0' to '/all2/gpdb_1/0'\n"
             "P00   INFO: map tablespace 'pg_tblspc/gpdb_2' from '/gpdb_2-3/1' to '/all2/gpdb_ts2/1'");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+
+        TEST_TITLE("error on invalid dbid folder for greenplum");
+
+        HRN_MANIFEST_TARGET_ADD(
+            manifest, .name = "pg_tblspc/gpdb_3", .path = "/gpdb_3/not_a_number", .tablespaceId = 5, .tablespaceName = "not_a_number",
+            .type = manifestTargetTypeLink);
+        HRN_MANIFEST_LINK_ADD(manifest, .name = "pg_data/pg_tblspc/gpdb_3", .destination = "/gpdb_3/not_a_number");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
+        hrnCfgArgRaw(argList, cfgOptRepoPath, repoPath);
+        hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
+        hrnCfgArgRawZ(argList, cfgOptTablespaceMap, "not_a_number=/gpdb_3-2");
+
+        hrnCfgArgRawZ(argList, cfgOptFork, "GPDB");
+        HRN_CFG_LOAD(cfgCmdRestore, argList);
+
+        TEST_ERROR(
+            restoreManifestMap(manifest), TablespaceMapError,
+            "greenplum-specific tablespace path '/gpdb_3/not_a_number' contains invalid dbid directory 'not_a_number'");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error on invalid link");

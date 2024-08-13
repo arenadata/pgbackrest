@@ -533,7 +533,23 @@ restoreManifestMap(Manifest *const manifest)
                         // We'll need to append dbid to the path for Greenplum. Currently, nothing really stores a correct dbid of
                         // a segment that was used, so just retrieve the last folder as a segment number.
                         if (cfgOptionStrId(cfgOptFork) == CFGOPTVAL_FORK_GPDB)
-                            tablespacePath = strNewFmt("%s/%d", strZ(tablespacePath), cvtZToInt(strBaseZ(target->path)));
+                        {
+                            const char *const dbid = strBaseZ(target->path);
+
+                            TRY_BEGIN()
+                            {
+                                // Try to convert dbid to a number and explode if it isn't one.
+                                tablespacePath = strNewFmt("%s/%d", strZ(tablespacePath), cvtZToInt(dbid));
+                            }
+                            CATCH_ANY()
+                            {
+                                THROW_FMT(
+                                    TablespaceMapError,
+                                    "greenplum-specific tablespace path '%s' contains invalid dbid directory '%s'",
+                                    strZ(target->path), dbid);
+                            }
+                            TRY_END();
+                        }
 
                         LOG_INFO_FMT("map tablespace '%s' from '%s' to '%s'", strZ(target->name), strZ(target->path), strZ(tablespacePath));
 
