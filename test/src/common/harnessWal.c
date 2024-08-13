@@ -20,7 +20,7 @@ hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t body_size, void *body)
     memcpy(record, &header, sizeof(header));
 
     size_t align_size = MAXALIGN(sizeof(header)) - sizeof(header);
-    memset(((char*) record) + sizeof(header), 0, align_size);
+    memset(((char *) record) + sizeof(header), 0, align_size);
 
     if (body == NULL)
     {
