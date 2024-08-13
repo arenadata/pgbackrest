@@ -1103,7 +1103,7 @@ testRun(void)
         JsonRead *json = jsonReadNew(jsonstr);
         RelFileNode *filter_list = NULL;
         size_t filter_list_len = 0;
-        build_filter_list(json, &filter_list, &filter_list_len);
+        buildFilterList(json, &filter_list, &filter_list_len);
         TEST_RESULT_PTR_NE(filter_list, NULL, "filter list is empty");
         TEST_RESULT_UINT(filter_list_len, 4, "wrong filter list length");
 
