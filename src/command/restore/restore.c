@@ -15,6 +15,7 @@ Restore Command
 #include "common/debug.h"
 #include "common/log.h"
 #include "common/regExp.h"
+#include "common/type/convert.h"
 #include "common/user.h"
 #include "config/config.h"
 #include "config/exec.h"
@@ -529,9 +530,10 @@ restoreManifestMap(Manifest *const manifest)
                     // Remap tablespace if a mapping was found
                     if (tablespacePath != NULL)
                     {
-                        // Append dbid to the path for Greenplum
+                        // We'll need to append dbid to the path for Greenplum. Currently, nothing really stores a correct dbid of
+                        // a segment that was used, so just retrieve the last folder as a segment number.
                         if (cfgOptionStrId(cfgOptFork) == CFGOPTVAL_FORK_GPDB)
-                            tablespacePath = strNewFmt("%s/%u", strZ(tablespacePath), manifestData(manifest)->pgId);
+                            tablespacePath = strNewFmt("%s/%d", strZ(tablespacePath), cvtZToInt(strBaseZ(target->path)));
 
                         LOG_INFO_FMT("map tablespace '%s' from '%s' to '%s'", strZ(target->name), strZ(target->path), strZ(tablespacePath));
 
