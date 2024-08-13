@@ -17,7 +17,7 @@ hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t body_size, void *body)
         .xl_prev = 0xAABB
     };
     XLogRecord *record = memNew(SizeOfXLogRecord + body_size);
-    memcpy(record, &header, sizeof(header));
+    *record = header;
 
     size_t align_size = MAXALIGN(sizeof(header)) - sizeof(header);
     memset(((char *) record) + sizeof(header), 0, align_size);

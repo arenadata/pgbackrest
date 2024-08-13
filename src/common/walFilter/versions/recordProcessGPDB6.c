@@ -281,7 +281,8 @@ getHeap2(XLogRecord *record, RelFileNode **node)
         *node = &xlrec->target.node;
         return true;
     }
-    else if (info == XLOG_HEAP2_REWRITE)
+
+    if (info == XLOG_HEAP2_REWRITE)
     {
         return false;
     }
@@ -399,10 +400,7 @@ getSeq(XLogRecord *record, RelFileNode **node)
         *node = (RelFileNode *) XLogRecGetData(record);
         return true;
     }
-    else
-    {
-        THROW_FMT(FormatError, "Sequence UNKNOWN: %d", info);
-    }
+    THROW_FMT(FormatError, "Sequence UNKNOWN: %d", info);
 }
 
 static
@@ -410,7 +408,6 @@ bool
 getSpgist(XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
-//    char *rec = XLogRecGetData(record);
 
     switch (info)
     {
