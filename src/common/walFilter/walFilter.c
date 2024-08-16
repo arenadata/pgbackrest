@@ -489,7 +489,7 @@ buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_l
                 // Read tables
                 while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
                 {
-                    RelFileNode node = {0};
+                    RelFileNode node = {.dbNode = dbOid};
                     jsonReadObjectBegin(json);
                     table_count++;
                     // Read table info
@@ -509,7 +509,6 @@ buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_l
                             jsonReadSkip(json);
                         }
                     }
-                    node.dbNode = dbOid;
                     filter_list_result = appendRelFileNode(filter_list_result, &result_len, node);
 
                     jsonReadObjectEnd(json);
@@ -519,9 +518,7 @@ buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_l
                 if (table_count == 0)
                 {
                     RelFileNode node = {
-                        .dbNode = dbOid,
-                        .spcNode = 0,
-                        .relNode = 0,
+                        .dbNode = dbOid
                     };
                     filter_list_result = appendRelFileNode(filter_list_result, &result_len, node);
                 }

@@ -9,14 +9,14 @@ XLogRecord *
 hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t body_size, void *body)
 {
     XLogRecord *record = memNew(SizeOfXLogRecord + body_size);
-    // memset header and alignment before filling to initialize paddings
-    memset(record, 0, MAXALIGN(sizeof(XLogRecord)));
-    record->xl_tot_len = (uint32_t) (SizeOfXLogRecord + body_size);
-    record->xl_xid = 0xADDE;
-    record->xl_len = body_size;
-    record->xl_info = info;
-    record->xl_rmid = (uint8_t) rmid;
-    record->xl_prev = 0xAABB;
+    *record = (XLogRecord){
+        .xl_tot_len = (uint32_t) (SizeOfXLogRecord + body_size),
+        .xl_xid = 0xADDE,
+        .xl_len = body_size,
+        .xl_info = info,
+        .xl_rmid = (uint8_t) rmid,
+        .xl_prev = 0xAABB
+    };
 
     if (body == NULL)
     {
