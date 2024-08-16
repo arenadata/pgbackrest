@@ -1954,7 +1954,7 @@ src/common/wait.c:
 src/common/wait.h:
   class: core
   type: c/h
-  
+
 src/common/walFilter/walFilter.c:
   class: core
   type: c

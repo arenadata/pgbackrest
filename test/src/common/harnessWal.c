@@ -8,19 +8,15 @@
 XLogRecord *
 hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t body_size, void *body)
 {
-    XLogRecord header = {
-        .xl_tot_len = (uint32_t) (SizeOfXLogRecord + body_size),
-        .xl_xid = 0xADDE,
-        .xl_len = body_size,
-        .xl_info = info,
-        .xl_rmid = (uint8_t) rmid,
-        .xl_prev = 0xAABB
-    };
     XLogRecord *record = memNew(SizeOfXLogRecord + body_size);
-    *record = header;
-
-    size_t align_size = MAXALIGN(sizeof(header)) - sizeof(header);
-    memset(((char *) record) + sizeof(header), 0, align_size);
+    // memset header and alignment before filling to initialize paddings
+    memset(record, 0, MAXALIGN(sizeof(XLogRecord)));
+    record->xl_tot_len = (uint32_t) (SizeOfXLogRecord + body_size);
+    record->xl_xid = 0xADDE;
+    record->xl_len = body_size;
+    record->xl_info = info;
+    record->xl_rmid = (uint8_t) rmid;
+    record->xl_prev = 0xAABB;
 
     if (body == NULL)
     {
@@ -28,7 +24,7 @@ hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t body_size, void *body)
     }
     else
     {
-        memcpy(XLogRecGetData(record),body, body_size);
+        memcpy(XLogRecGetData(record), body, body_size);
     }
 
     uint32_t crc = crc32cInit();

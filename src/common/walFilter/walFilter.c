@@ -95,7 +95,8 @@ static inline
 void
 checkOutputSize(Buffer *output, size_t size)
 {
-    if (bufRemains(output) <= size){
+    if (bufRemains(output) <= size)
+    {
         bufResize(output, bufSize(output) + size);
     }
 }
@@ -466,7 +467,6 @@ buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_l
 
     jsonReadArrayBegin(json);
 
-    RelFileNode node = {0};
     Oid dbOid = 0;
     // Read array of databases
     while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
@@ -477,11 +477,11 @@ buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_l
         while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
         {
             String *key1 = jsonReadKey(json);
-            if (strCmpZ(key1, "dbOid") == 0)
+            if (strEqZ(key1, "dbOid"))
             {
                 dbOid = jsonReadUInt(json);
             }
-            else if (strCmpZ(key1, "tables") == 0)
+            else if (strEqZ(key1, "tables"))
             {
                 jsonReadArrayBegin(json);
 
@@ -489,17 +489,18 @@ buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_l
                 // Read tables
                 while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
                 {
+                    RelFileNode node = {0};
                     jsonReadObjectBegin(json);
                     table_count++;
                     // Read table info
                     while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
                     {
                         String *key2 = jsonReadKey(json);
-                        if (strCmpZ(key2, "relfilenode") == 0)
+                        if (strEqZ(key2, "relfilenode"))
                         {
                             node.relNode = jsonReadUInt(json);
                         }
-                        else if (strCmpZ(key2, "tablespace") == 0)
+                        else if (strEqZ(key2, "tablespace"))
                         {
                             node.spcNode = jsonReadUInt(json);
                         }
@@ -510,7 +511,6 @@ buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_l
                     }
                     node.dbNode = dbOid;
                     filter_list_result = appendRelFileNode(filter_list_result, &result_len, node);
-                    memset(&node, 0, sizeof(node));
 
                     jsonReadObjectEnd(json);
                 }
@@ -518,9 +518,12 @@ buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_l
                 // If the database does not have any tables specified, then add RelFileNode where spcNode and dbNode are 0.
                 if (table_count == 0)
                 {
-                    node.dbNode = dbOid;
+                    RelFileNode node = {
+                        .dbNode = dbOid,
+                        .spcNode = 0,
+                        .relNode = 0,
+                    };
                     filter_list_result = appendRelFileNode(filter_list_result, &result_len, node);
-                    memset(&node, 0, sizeof(node));
                 }
 
                 jsonReadArrayEnd(json);
