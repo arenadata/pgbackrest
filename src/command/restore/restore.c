@@ -15,7 +15,6 @@ Restore Command
 #include "common/debug.h"
 #include "common/log.h"
 #include "common/regExp.h"
-#include "common/type/convert.h"
 #include "common/user.h"
 #include "config/config.h"
 #include "config/exec.h"
@@ -486,7 +485,6 @@ restoreManifestMap(Manifest *const manifest)
                 // Is this a tablespace?
                 if (target->tablespaceId != 0)
                 {
-                    // Tablespace path without dbid
                     const String *tablespacePath = NULL;
 
                     // Check for an individual mapping for this tablespace
@@ -533,25 +531,9 @@ restoreManifestMap(Manifest *const manifest)
                         // We'll need to append dbid to the path for Greenplum. Currently, nothing really stores a correct dbid of
                         // a segment that was used, so just retrieve the last folder as a segment number.
                         if (cfgOptionStrId(cfgOptFork) == CFGOPTVAL_FORK_GPDB)
-                        {
-                            const char *const dbid = strBaseZ(target->path);
+                            tablespacePath = strNewFmt("%s/%s", strZ(tablespacePath), strBaseZ(target->path));
 
-                            TRY_BEGIN()
-                            {
-                                // Try to convert dbid to a number and explode if it isn't one.
-                                tablespacePath = strNewFmt("%s/%d", strZ(tablespacePath), cvtZToInt(dbid));
-                            }
-                            CATCH_ANY()
-                            {
-                                THROW_FMT(
-                                    TablespaceMapError,
-                                    "greenplum-specific tablespace path '%s' contains invalid dbid directory '%s'",
-                                    strZ(target->path), dbid);
-                            }
-                            TRY_END();
-                        }
-
-                        LOG_INFO_FMT("map tablespace '%s' from '%s' to '%s'", strZ(target->name), strZ(target->path), strZ(tablespacePath));
+                        LOG_INFO_FMT("map tablespace '%s' to '%s'", strZ(target->name), strZ(tablespacePath));
 
                         manifestTargetUpdate(manifest, target->name, tablespacePath, NULL);
                         manifestLinkUpdate(manifest, strNewFmt(MANIFEST_TARGET_PGDATA "/%s", strZ(target->name)), tablespacePath);

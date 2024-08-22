@@ -814,8 +814,6 @@ testRun(void)
         TEST_ERROR(
             restoreManifestMap(manifest), TablespaceMapError, "tablespace remapped by name 'ts2' and id 2 with different paths");
 
-        // Postgres tests first
-
         // Remap one tablespace using the id and another with the name
         argList = strLstNew();
         hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
@@ -834,8 +832,8 @@ testRun(void)
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/2"))->destination, "/2-2", "check tablespace 1 link");
 
         TEST_RESULT_LOG(
-            "P00   INFO: map tablespace 'pg_tblspc/1' from '/1' to '/1-2'\n"
-            "P00   INFO: map tablespace 'pg_tblspc/2' from '/2' to '/2-2'");
+            "P00   INFO: map tablespace 'pg_tblspc/1' to '/1-2'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/2' to '/2-2'");
 
         // Remap a tablespace using just the id and map the rest with tablespace-map-all
         argList = strLstNew();
@@ -855,8 +853,8 @@ testRun(void)
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/2"))->destination, "/2-3", "check tablespace 1 link");
 
         TEST_RESULT_LOG(
-            "P00   INFO: map tablespace 'pg_tblspc/1' from '/1-2' to '/all/1'\n"
-            "P00   INFO: map tablespace 'pg_tblspc/2' from '/2-2' to '/2-3'");
+            "P00   INFO: map tablespace 'pg_tblspc/1' to '/all/1'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/2' to '/2-3'");
 
         // Remap all tablespaces with tablespace-map-all
         argList = strLstNew();
@@ -875,8 +873,8 @@ testRun(void)
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/2"))->destination, "/all2/ts2", "check tablespace 1 link");
 
         TEST_RESULT_LOG(
-            "P00   INFO: map tablespace 'pg_tblspc/1' from '/all/1' to '/all2/1'\n"
-            "P00   INFO: map tablespace 'pg_tblspc/2' from '/2-3' to '/all2/ts2'");
+            "P00   INFO: map tablespace 'pg_tblspc/1' to '/all2/1'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/2' to '/all2/ts2'");
 
         // Same tests, for Greenplum
 
@@ -915,8 +913,8 @@ testRun(void)
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/gpdb_2"))->destination, "/gpdb_2-2/1", "check tablespace 2 link");
 
         TEST_RESULT_LOG(
-            "P00   INFO: map tablespace 'pg_tblspc/gpdb_1' from '/gpdb_1/0' to '/gpdb_1-2/0'\n"
-            "P00   INFO: map tablespace 'pg_tblspc/gpdb_2' from '/gpdb_2/1' to '/gpdb_2-2/1'");
+            "P00   INFO: map tablespace 'pg_tblspc/gpdb_1' to '/gpdb_1-2/0'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/gpdb_2' to '/gpdb_2-2/1'");
 
         // Remap a tablespace using just the id and map the rest with tablespace-map-all
         argList = strLstNew();
@@ -938,8 +936,8 @@ testRun(void)
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/gpdb_2"))->destination, "/gpdb_2-3/1", "check tablespace 2 link");
 
         TEST_RESULT_LOG(
-            "P00   INFO: map tablespace 'pg_tblspc/gpdb_1' from '/gpdb_1-2/0' to '/all/gpdb_1/0'\n"
-            "P00   INFO: map tablespace 'pg_tblspc/gpdb_2' from '/gpdb_2-2/1' to '/gpdb_2-3/1'");
+            "P00   INFO: map tablespace 'pg_tblspc/gpdb_1' to '/all/gpdb_1/0'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/gpdb_2' to '/gpdb_2-3/1'");
 
         // Remap all tablespaces with tablespace-map-all
         argList = strLstNew();
@@ -960,30 +958,8 @@ testRun(void)
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/gpdb_2"))->destination, "/all2/gpdb_ts2/1", "check tablespace 2 link");
 
         TEST_RESULT_LOG(
-            "P00   INFO: map tablespace 'pg_tblspc/gpdb_1' from '/all/gpdb_1/0' to '/all2/gpdb_1/0'\n"
-            "P00   INFO: map tablespace 'pg_tblspc/gpdb_2' from '/gpdb_2-3/1' to '/all2/gpdb_ts2/1'");
-
-        // -------------------------------------------------------------------------------------------------------------------------
-
-        TEST_TITLE("error on invalid dbid folder for greenplum");
-
-        HRN_MANIFEST_TARGET_ADD(
-            manifest, .name = "pg_tblspc/gpdb_3", .path = "/gpdb_3/not_a_number", .tablespaceId = 5, .tablespaceName = "not_a_number",
-            .type = manifestTargetTypeLink);
-        HRN_MANIFEST_LINK_ADD(manifest, .name = "pg_data/pg_tblspc/gpdb_3", .destination = "/gpdb_3/not_a_number");
-
-        argList = strLstNew();
-        hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
-        hrnCfgArgRaw(argList, cfgOptRepoPath, repoPath);
-        hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
-        hrnCfgArgRawZ(argList, cfgOptTablespaceMap, "not_a_number=/gpdb_3-2");
-
-        hrnCfgArgRawZ(argList, cfgOptFork, "GPDB");
-        HRN_CFG_LOAD(cfgCmdRestore, argList);
-
-        TEST_ERROR(
-            restoreManifestMap(manifest), TablespaceMapError,
-            "greenplum-specific tablespace path '/gpdb_3/not_a_number' contains invalid dbid directory 'not_a_number'");
+            "P00   INFO: map tablespace 'pg_tblspc/gpdb_1' to '/all2/gpdb_1/0'\n"
+            "P00   INFO: map tablespace 'pg_tblspc/gpdb_2' to '/all2/gpdb_ts2/1'");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error on invalid link");
