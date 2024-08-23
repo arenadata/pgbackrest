@@ -905,10 +905,12 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
         TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
-        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_1"))->path, "/gpdb_1-2/0", "check tablespace 1 target");
+        TEST_RESULT_STR_Z(
+            manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_1"))->path, "/gpdb_1-2/0", "check tablespace 1 target");
         TEST_RESULT_STR_Z(
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/gpdb_1"))->destination, "/gpdb_1-2/0", "check tablespace 1 link");
-        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_2"))->path, "/gpdb_2-2/1", "check tablespace 2 target");
+        TEST_RESULT_STR_Z(
+            manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_2"))->path, "/gpdb_2-2/1", "check tablespace 2 target");
         TEST_RESULT_STR_Z(
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/gpdb_2"))->destination, "/gpdb_2-2/1", "check tablespace 2 link");
 
@@ -928,10 +930,13 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
         TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
-        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_1"))->path, "/all/gpdb_1/0", "check tablespace 1 target");
         TEST_RESULT_STR_Z(
-            manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/gpdb_1"))->destination, "/all/gpdb_1/0", "check tablespace 1 link");
-        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_2"))->path, "/gpdb_2-3/1", "check tablespace 2 target");
+            manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_1"))->path, "/all/gpdb_1/0", "check tablespace 1 target");
+        TEST_RESULT_STR_Z(
+            manifestLinkFind(
+                manifest, STRDEF("pg_data/pg_tblspc/gpdb_1"))->destination, "/all/gpdb_1/0", "check tablespace 1 link");
+        TEST_RESULT_STR_Z(
+            manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_2"))->path, "/gpdb_2-3/1", "check tablespace 2 target");
         TEST_RESULT_STR_Z(
             manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/gpdb_2"))->destination, "/gpdb_2-3/1", "check tablespace 2 link");
 
@@ -950,12 +955,16 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
         TEST_RESULT_VOID(restoreManifestMap(manifest), "remap tablespaces");
-        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_1"))->path, "/all2/gpdb_1/0", "check tablespace 1 target");
         TEST_RESULT_STR_Z(
-            manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/gpdb_1"))->destination, "/all2/gpdb_1/0", "check tablespace 1 link");
-        TEST_RESULT_STR_Z(manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_2"))->path, "/all2/gpdb_ts2/1", "check tablespace 2 target");
+            manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_1"))->path, "/all2/gpdb_1/0", "check tablespace 1 target");
         TEST_RESULT_STR_Z(
-            manifestLinkFind(manifest, STRDEF("pg_data/pg_tblspc/gpdb_2"))->destination, "/all2/gpdb_ts2/1", "check tablespace 2 link");
+            manifestLinkFind(
+                manifest, STRDEF("pg_data/pg_tblspc/gpdb_1"))->destination, "/all2/gpdb_1/0", "check tablespace 1 link");
+        TEST_RESULT_STR_Z(
+            manifestTargetFind(manifest, STRDEF("pg_tblspc/gpdb_2"))->path, "/all2/gpdb_ts2/1", "check tablespace 2 target");
+        TEST_RESULT_STR_Z(
+            manifestLinkFind(
+                manifest, STRDEF("pg_data/pg_tblspc/gpdb_2"))->destination, "/all2/gpdb_ts2/1", "check tablespace 2 link");
 
         TEST_RESULT_LOG(
             "P00   INFO: map tablespace 'pg_tblspc/gpdb_1' to '/all2/gpdb_1/0'\n"
