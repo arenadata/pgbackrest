@@ -370,6 +370,20 @@ testRun(void)
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
         bufFree(wal);
         bufFree(result);
+
+        TEST_TITLE("long record");
+        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, NULL, 0);
+        {
+            wal = bufNew(1024 * 1024);
+            XRecordInfo walRecords[] = {
+                {RM_XLOG_ID, XLOG_NOOP, 196608}
+            };
+            build_wal(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+        }
+        result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
+        TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
+        bufFree(wal);
+        bufFree(result);
     }
 
     if (testBegin("read invalid wal"))
