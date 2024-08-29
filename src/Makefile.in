@@ -195,7 +195,8 @@ SRCS = \
 	storage/sftp/helper.c \
 	storage/sftp/read.c \
 	storage/sftp/storage.c \
-	storage/sftp/write.c
+	storage/sftp/write.c \
+	common/partialRestore.c \
 
 ####################################################################################################################################
 # Compiler options

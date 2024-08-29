@@ -1947,6 +1947,14 @@ src/common/wait.h:
   class: core
   type: c/h
 
+src/common/partialRestore.c:
+  class: core
+  type: c
+
+src/common/partialRestore.h:
+  class: core
+  type: c/h
+
 src/config/common.c:
   class: core
   type: c
@@ -3108,6 +3116,10 @@ test/src/module/common/userTest.c:
   type: c
 
 test/src/module/common/waitTest.c:
+  class: test/module
+  type: c
+
+test/src/module/common/partialRestore.c:
   class: test/module
   type: c
 

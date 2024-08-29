@@ -219,6 +219,7 @@ src_pgbackrest = [
 	'common/type/json.c',
 	'common/type/string.c',
 	'common/type/xml.c',
+	'common/partialRestore.c',
 	'config/config.c',
 	'config/exec.c',
 	'config/load.c',
