@@ -2538,7 +2538,7 @@
                     </option>
 
                     <option id="filter" name="Filter">
-                        <summary>The absolute path to the JSON file with information about the tables to restore</summary>
+                        <summary>The absolute path to the JSON file with information about the tables to restore.</summary>
                         <text>
                             <p>This option can be used to filter table files during partial recovery.</p>
                             <p>Example: For an example, see archive-get help.</p>
