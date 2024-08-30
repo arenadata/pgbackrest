@@ -220,7 +220,6 @@ src_pgbackrest = [
 	'common/type/json.c',
 	'common/type/string.c',
 	'common/type/xml.c',
-	'common/io/limitRead.c',
 	'config/config.c',
 	'config/exec.c',
 	'config/load.c',
