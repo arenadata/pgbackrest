@@ -89,9 +89,9 @@ testRun(void)
                              &((RelFileNode){.spcNode = 0, .dbNode = 20002, .relNode = 0}),
                              lstGet(filterList, 6), sizeof(RelFileNode)) == 0, true, "Check the 7th element");
         // This is necessary to cover the comparator
-        RelFileNode* found = lstFind(filterList, &((RelFileNode){.spcNode = 0, .dbNode = 20002, .relNode = 0}));
+        RelFileNode *found = lstFind(filterList, &((RelFileNode){.spcNode = 0, .dbNode = 20002, .relNode = 0}));
         TEST_RESULT_BOOL(memcmp(
-                &((RelFileNode){.spcNode = 0, .dbNode = 20002, .relNode = 0}), found,
-                sizeof(RelFileNode)) == 0, true, "test find");
+                             &((RelFileNode){.spcNode = 0, .dbNode = 20002, .relNode = 0}), found,
+                             sizeof(RelFileNode)) == 0, true, "test find");
     }
 }
