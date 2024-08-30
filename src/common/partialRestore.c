@@ -3,11 +3,8 @@
 #include "postgres/interface/static.vendor.h"
 
 static int
-relFileNodeComparator(const void *item1, const void *item2)
+relFileNodeComparator(const RelFileNode *const a, const RelFileNode *const b)
 {
-    RelFileNode *a = (RelFileNode *) item1;
-    RelFileNode *b = (RelFileNode *) item2;
-
     if (a->dbNode != b->dbNode)
         return a->dbNode > b->dbNode ? 1 : -1;
 
@@ -23,7 +20,7 @@ relFileNodeComparator(const void *item1, const void *item2)
 FN_EXTERN __attribute__((unused)) List *
 buildFilterList(JsonRead *const json)
 {
-    List *result = lstNewP(sizeof(RelFileNode), .comparator = relFileNodeComparator);
+    List *result = lstNewP(sizeof(RelFileNode), .comparator = (ListComparator *) relFileNodeComparator);
 
     jsonReadArrayBegin(json);
 
