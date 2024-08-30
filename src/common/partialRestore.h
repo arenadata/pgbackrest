@@ -4,6 +4,6 @@
 #include "common/type/json.h"
 #include "postgres/interface/static.vendor.h"
 
-FN_EXTERN void buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_len);
+FN_EXTERN List *buildFilterList(JsonRead *json);
 
 #endif // PGBACKREST_PARTIALRESTORE_H

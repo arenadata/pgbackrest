@@ -1,101 +1,73 @@
 #include "build.auto.h"
 #include "partialRestore.h"
 
-static RelFileNode *
-appendRelFileNode(RelFileNode *array, size_t *len, RelFileNode node)
+FN_EXTERN __attribute__((unused)) int
+relFileNodeComparator(const void *item1, const void *item2)
 {
-    if (array)
-    {
-        array = memResize(array, sizeof(RelFileNode) * (++(*len)));
-    }
-    else
-    {
-        (*len)++;
-        array = memNew(sizeof(node));
-    }
+    RelFileNode *a = (RelFileNode *) item1;
+    RelFileNode *b = (RelFileNode *) item2;
 
-    array[*len - 1] = node;
-
-    return array;
+    if (a->dbNode != b->dbNode)
+    {
+        return (int) (a->dbNode - b->dbNode);
+    }
+    if (a->spcNode != b->spcNode)
+    {
+        return (int) (a->spcNode - b->spcNode);
+    }
+    return (int) (a->relNode - b->relNode);
 }
 
-FN_EXTERN __attribute__((unused)) void
-buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_len)
+FN_EXTERN __attribute__((unused)) List *
+buildFilterList(JsonRead *const json)
 {
-    size_t result_len = 0;
-    RelFileNode *filter_list_result = NULL;
+    List *result = lstNewP(sizeof(RelFileNode), .comparator = relFileNodeComparator);
 
     jsonReadArrayBegin(json);
 
-    Oid dbOid = 0;
-    // Read array of databases
     while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
     {
         jsonReadObjectBegin(json);
-
         // Read database info
         while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
         {
-            String *key1 = jsonReadKey(json);
-            if (strEqZ(key1, "dbOid"))
+            jsonReadSkip(jsonReadKeyRequireZ(json, "dbName"));
+            Oid dbOid = jsonReadUInt(jsonReadKeyRequireZ(json, "dbOid"));
+            jsonReadKeyRequireZ(json, "tables");
+            size_t tableCount = 0;
+            jsonReadArrayBegin(json);
+            while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
             {
-                dbOid = jsonReadUInt(json);
+                tableCount++;
+                jsonReadObjectBegin(json);
+                jsonReadSkip(jsonReadKeyRequireZ(json, "tablefqn"));
+                jsonReadSkip(jsonReadKeyRequireZ(json, "tableOid"));
+                Oid tablespace = jsonReadUInt(jsonReadKeyRequireZ(json, "tablespace"));
+                Oid relfilenode = jsonReadUInt(jsonReadKeyRequireZ(json, "relfilenode"));
+
+                RelFileNode node = {
+                    .spcNode = tablespace,
+                    .dbNode = dbOid,
+                    .relNode = relfilenode
+                };
+                lstAdd(result, &node);
+
+                jsonReadObjectEnd(json);
             }
-            else if (strEqZ(key1, "tables"))
+
+            if (tableCount == 0)
             {
-                jsonReadArrayBegin(json);
-
-                size_t table_count = 0;
-                // Read tables
-                while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
-                {
-                    RelFileNode node = {.dbNode = dbOid};
-                    jsonReadObjectBegin(json);
-                    table_count++;
-                    // Read table info
-                    while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
-                    {
-                        String *key2 = jsonReadKey(json);
-                        if (strEqZ(key2, "relfilenode"))
-                        {
-                            node.relNode = jsonReadUInt(json);
-                        }
-                        else if (strEqZ(key2, "tablespace"))
-                        {
-                            node.spcNode = jsonReadUInt(json);
-                        }
-                        else
-                        {
-                            jsonReadSkip(json);
-                        }
-                    }
-                    filter_list_result = appendRelFileNode(filter_list_result, &result_len, node);
-
-                    jsonReadObjectEnd(json);
-                }
-
-                // If the database does not have any tables specified, then add RelFileNode where spcNode and dbNode are 0.
-                if (table_count == 0)
-                {
-                    RelFileNode node = {
-                        .dbNode = dbOid
-                    };
-                    filter_list_result = appendRelFileNode(filter_list_result, &result_len, node);
-                }
-
-                jsonReadArrayEnd(json);
+                RelFileNode node = {.dbNode = dbOid};
+                lstAdd(result, &node);
             }
-            else
-            {
-                jsonReadSkip(json);
-            }
+
+            jsonReadArrayEnd(json);
         }
-
         jsonReadObjectEnd(json);
     }
-
     jsonReadArrayEnd(json);
 
-    *filter_list = filter_list_result;
-    *filter_list_len = result_len;
+    lstSort(result, sortOrderAsc);
+
+    return result;
 }

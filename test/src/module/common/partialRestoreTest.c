@@ -25,6 +25,12 @@ testRun(void)
                                        "        \"tableOid\": 16387,\n"
                                        "        \"tablespace\": 1601,\n"
                                        "        \"relfilenode\": 16385\n"
+                                       "      },\n"
+                                       "      {\n"
+                                       "        \"tablefqn\": \"t3\",\n"
+                                       "        \"tableOid\": 16388,\n"
+                                       "        \"tablespace\": 1600,\n"
+                                       "        \"relfilenode\": 16386\n"
                                        "      }\n"
                                        "    ]\n"
                                        "  },\n"
@@ -47,33 +53,22 @@ testRun(void)
                                        "  }\n"
                                        "]");
         JsonRead *json = jsonReadNew(jsonstr);
-        RelFileNode *filter_list = NULL;
-        size_t filter_list_len = 0;
-        buildFilterList(json, &filter_list, &filter_list_len);
-
-        RelFileNode filter_list_expect[] = {
-            {
-                1600,
-                20000,
-                16384
-            },
-            {
-                1601,
-                20000,
-                16385
-            },
-            {
-                1700,
-                20001,
-                16386
-            },
-            {
-                0,
-                20002,
-                0
-            }
-        };
-        TEST_RESULT_UINT(filter_list_len, 4, "filter array size");
-        TEST_RESULT_BOOL(memcmp(filter_list_expect, filter_list, sizeof(RelFileNode) * 3) == 0, true,  "filter array content");
+        List *filterList = buildFilterList(json);
+        TEST_RESULT_UINT(lstSize(filterList), 5, "tables count");
+        TEST_RESULT_BOOL(memcmp(
+                             &((RelFileNode){.spcNode = 1600, .dbNode = 20000, .relNode = 16384}),
+                             lstGet(filterList, 0), sizeof(RelFileNode)) == 0, true, "");
+        TEST_RESULT_BOOL(memcmp(
+                             &((RelFileNode){.spcNode = 1600, .dbNode = 20000, .relNode = 16386}),
+                             lstGet(filterList, 1), sizeof(RelFileNode)) == 0, true, "");
+        TEST_RESULT_BOOL(memcmp(
+                             &((RelFileNode){.spcNode = 1601, .dbNode = 20000, .relNode = 16385}),
+                             lstGet(filterList, 2), sizeof(RelFileNode)) == 0, true, "");
+        TEST_RESULT_BOOL(memcmp(
+                             &((RelFileNode){.spcNode = 1700, .dbNode = 20001, .relNode = 16386}),
+                             lstGet(filterList, 3), sizeof(RelFileNode)) == 0, true, "");
+        TEST_RESULT_BOOL(memcmp(
+                             &((RelFileNode){.spcNode = 0, .dbNode = 20002, .relNode = 0}),
+                             lstGet(filterList, 4), sizeof(RelFileNode)) == 0, true, "");
     }
 }
