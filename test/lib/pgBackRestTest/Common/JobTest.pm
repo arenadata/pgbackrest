@@ -268,7 +268,7 @@ sub run
                 ($bValgrind ?
                     'valgrind -q --gen-suppressions=all' .
                     ($self->{oStorageTest}->exists($strValgrindSuppress) ? " --suppressions=${strValgrindSuppress}" : '') .
-                    " --exit-on-first-error=yes --leak-check=full --leak-resolution=high --error-exitcode=25" . ' ' : '') .
+                    " --exit-on-first-error=yes --track-origins=yes --leak-check=full --leak-resolution=high --error-exitcode=25" . ' ' : '') .
                     "$self->{strUnitPath}/build/test-unit 2>&1 1>&3 | tee /dev/stderr" .
                 ($strVm ne VM_NONE ? "'" : '');
 

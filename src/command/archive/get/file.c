@@ -99,7 +99,7 @@ archiveGetFile(
                 if (walIsSegment(request) && cfgOptionTest(cfgOptFilter))
                 {
                     ioFilterGroupAdd(ioWriteFilterGroup(storageWriteIo(destination)),
-                                     walFilterNew(pgVersion, cfgOptionStrId(cfgOptFork), filter_list, filter_list_len));
+                                     walFilterNew(pgVersion, cfgOptionStrId(cfgOptFork), actual, filter_list, filter_list_len));
                 }
                 // Copy the file
                 storageCopyP(

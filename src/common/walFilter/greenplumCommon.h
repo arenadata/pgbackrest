@@ -27,7 +27,7 @@ typedef uint32_t BlockNumber;
 #define RM_XLOG_ID                      0
 #define XLOG_SWITCH                     0x40
 #define XLOG_NOOP                       0x20
-
+#define MAXPGPATH       1024
 // macros
 #define MAXALIGN(LEN)           TYPEALIGN(MAXIMUM_ALIGNOF, (LEN))
 #define TYPEALIGN(ALIGNVAL,LEN)  \
@@ -41,6 +41,22 @@ typedef uint32_t BlockNumber;
 #define XLogRecGetData(record)  ((char*) (record) + SizeOfXLogRecord)
 #define XLR_BKP_BLOCK(iblk)     (0x08 >> (iblk))        /* iblk in 0..3 */
 #define Min(x, y)       ((x) < (y) ? (x) : (y))
+
+#define XLOG_SEG_SIZE (64 * 1024 * 1024)
+#define UINT64CONST(x) (x##UL)
+#define XLogSegmentsPerXLogId   (UINT64CONST(0x100000000) / XLOG_SEG_SIZE)
+#define XLogFromFileName(fname, tli, logSegNo)  \
+    do {                                                \
+        uint32 log;                                     \
+        uint32 seg;                                     \
+        sscanf(fname, "%08X%08X%08X", tli, &log, &seg); \
+        *logSegNo = (uint64) log * XLogSegmentsPerXLogId + seg; \
+    } while (0)
+
+#define XLogFilePath(path, tli, logSegNo)   \
+    snprintf(path, MAXPGPATH, "%08X%08X%08X", tli,              \
+             (uint32) ((logSegNo) / XLogSegmentsPerXLogId),             \
+             (uint32) ((logSegNo) % XLogSegmentsPerXLogId))
 
 // structs
 typedef struct XLogPageHeaderData
@@ -68,7 +84,7 @@ typedef struct XLogLongPageHeaderData
     uint64_t xlp_sysid;           /* system identifier from pg_control */
     uint32_t xlp_seg_size;        /* just as a cross-check */
     uint32_t xlp_xlog_blcksz;         /* just as a cross-check */
-} XLogLongPageHeaderData;
+} __attribute__ ((aligned (8))) XLogLongPageHeaderData;
 
 typedef struct XLogRecord
 {

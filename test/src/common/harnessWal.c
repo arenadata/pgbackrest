@@ -43,24 +43,23 @@ void
 hrnGpdbWalInsertXRecord(
     Buffer *const walBuffer,
     XLogRecord *record,
-    InsertRecordFlags flags,
-    uint16_t magic,
-    uint32_t begin_offset)
+    InsertXRecordParam param,
+    InsertRecordFlags flags)
 {
-    if (magic == 0)
+    if (param.magic == 0)
     {
-        magic = 0xD07E;
+        param.magic = 0xD07E;
     }
 
     if (bufUsed(walBuffer) == 0)
     {
         // This is first record
         XLogLongPageHeaderData longHeader = {0};
-        longHeader.std.xlp_magic = magic;
+        longHeader.std.xlp_magic = param.magic;
         longHeader.std.xlp_info = XLP_LONG_HEADER;
         longHeader.std.xlp_tli = 1;
-        longHeader.std.xlp_pageaddr = 0;
-        longHeader.std.xlp_rem_len = begin_offset;
+        longHeader.std.xlp_pageaddr = param.segno * (64 * 1024 * 1024);
+        longHeader.std.xlp_rem_len = param.begin_offset;
         longHeader.xlp_sysid = 10000000000000090400ULL;
         longHeader.xlp_seg_size = 64 * 1024 * 1024;
         longHeader.xlp_xlog_blcksz = XLOG_BLCKSZ;
@@ -69,21 +68,13 @@ hrnGpdbWalInsertXRecord(
         {
             longHeader.std.xlp_info |= XLP_FIRST_IS_OVERWRITE_CONTRECORD;
         }
-        if (begin_offset)
+        if (param.begin_offset)
         {
             longHeader.std.xlp_info |= XLP_FIRST_IS_CONTRECORD;
         }
 
         memcpy(bufRemainsPtr(walBuffer), &longHeader, sizeof(longHeader));
         bufUsedInc(walBuffer, sizeof(longHeader));
-
-        if (begin_offset && !(flags & OVERWRITE))
-        {
-            begin_offset = (uint32_t) MAXALIGN(begin_offset);
-            memset(bufRemainsPtr(walBuffer), 0, begin_offset);
-            bufUsedInc(walBuffer, begin_offset);
-        }
-
         size_t align_size = MAXALIGN(sizeof(longHeader)) - sizeof(longHeader);
         memset(bufRemainsPtr(walBuffer), 0, align_size);
         bufUsedInc(walBuffer, align_size);
@@ -92,7 +83,7 @@ hrnGpdbWalInsertXRecord(
     if (bufUsed(walBuffer) % XLOG_BLCKSZ == 0)
     {
         XLogPageHeaderData header = {0};
-        header.xlp_magic = magic;
+        header.xlp_magic = param.magic;
         header.xlp_tli = 1;
         header.xlp_pageaddr = bufUsed(walBuffer);
         header.xlp_rem_len = 0;
@@ -117,19 +108,37 @@ hrnGpdbWalInsertXRecord(
     }
 
     size_t space_on_page = XLOG_BLCKSZ - bufUsed(walBuffer) % XLOG_BLCKSZ;
-    if (space_on_page < record->xl_tot_len)
+
+    size_t tot_len;
+    unsigned char *record_ptr;
+
+    if (param.begin_offset == 0 || flags & OVERWRITE)
+    {
+        tot_len = record->xl_tot_len;
+        record_ptr = (unsigned char *) record;
+    }
+    else
+    {
+        tot_len = param.begin_offset;
+        record_ptr = ((unsigned char *) record) + (record->xl_tot_len - param.begin_offset);
+    }
+
+    if (space_on_page < tot_len)
     {
         // We need to split record into two or more pages
         size_t wrote = 0;
-        while (wrote != record->xl_tot_len)
+        while (wrote != tot_len)
         {
             space_on_page = XLOG_BLCKSZ - bufUsed(walBuffer) % XLOG_BLCKSZ;
-            size_t to_write = Min(space_on_page, record->xl_tot_len - wrote);
-            memcpy(bufRemainsPtr(walBuffer), ((char *) record) + wrote, to_write);
+            size_t to_write = Min(space_on_page, tot_len - wrote);
+            memcpy(bufRemainsPtr(walBuffer), record_ptr + wrote, to_write);
             wrote += to_write;
 
             bufUsedInc(walBuffer, to_write);
-            if (wrote == record->xl_tot_len || (flags & INCOMPLETE_RECORD))
+            if (flags & INCOMPLETE_RECORD){
+                return;
+            }
+            if (wrote == tot_len)
             {
                 break;
             }
@@ -137,10 +146,10 @@ hrnGpdbWalInsertXRecord(
             ASSERT(bufUsed(walBuffer) % XLOG_BLCKSZ == 0);
             // We should be on the beginning of the page. so write header
             XLogPageHeaderData header = {0};
-            header.xlp_magic = magic;
+            header.xlp_magic = param.magic;
             header.xlp_info = !(flags & NO_COND_FLAG) ? XLP_FIRST_IS_CONTRECORD : 0;
             header.xlp_tli = 1;
-            header.xlp_pageaddr = bufUsed(walBuffer);
+            header.xlp_pageaddr = param.segno * (64 * 1024 * 1024) + bufUsed(walBuffer);
 
             if (flags & ZERO_REM_LEN)
             {
@@ -152,7 +161,7 @@ hrnGpdbWalInsertXRecord(
             }
             else
             {
-                header.xlp_rem_len = (uint32_t) (record->xl_tot_len - wrote);
+                header.xlp_rem_len = (uint32_t) (tot_len - wrote);
             }
 
             *((XLogPageHeaderData *) bufRemainsPtr(walBuffer)) = header;
@@ -167,10 +176,10 @@ hrnGpdbWalInsertXRecord(
     else
     {
         // Record should fit into current page
-        memcpy(bufRemainsPtr(walBuffer), record, record->xl_tot_len);
-        bufUsedInc(walBuffer, record->xl_tot_len);
+        memcpy(bufRemainsPtr(walBuffer), record_ptr, tot_len);
+        bufUsedInc(walBuffer, tot_len);
     }
-    size_t align_size = MAXALIGN(record->xl_tot_len) - record->xl_tot_len;
+    size_t align_size = MAXALIGN(tot_len) - (tot_len);
     memset(bufRemainsPtr(walBuffer), 0, align_size);
     bufUsedInc(walBuffer, align_size);
 }
@@ -178,5 +187,5 @@ hrnGpdbWalInsertXRecord(
 void
 hrnGpdbWalInsertXRecordSimple(Buffer *const walBuffer, XLogRecord *record)
 {
-    hrnGpdbWalInsertXRecord(walBuffer, record, NO_FLAGS, 0, 0);
+    hrnGpdbWalInsertXRecordP(walBuffer, record, NO_FLAGS);
 }
