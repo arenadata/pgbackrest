@@ -77,40 +77,29 @@ testRun(void)
         TEST_ASSIGN(db2, (DataBase *) lstGet(filterList, 1), "find 2nd database");
         TEST_ASSIGN(db3, (DataBase *) lstGet(filterList, 2), "find 3rd database");
 
+        TEST_RESULT_UINT(db1->dbOid, 20000, "dbOid of 1st database");
+        TEST_RESULT_UINT(db2->dbOid, 20001, "dbOid of 1st database");
+        TEST_RESULT_UINT(db3->dbOid, 20002, "dbOid of 1st database");
+
+        TEST_RESULT_UINT(lstSize(db1->tables), 3, "dbOid of 1st database");
+        TEST_RESULT_UINT(lstSize(db2->tables), 3, "dbOid of 1st database");
+        TEST_RESULT_UINT(lstSize(db3->tables), 0, "dbOid of 1st database");
+
         TEST_RESULT_INT(
-            memcmp(
-                &((RelFileNode){.spcNode = 1600, .dbNode = 20000, .relNode = 16384}), lstGet(db1->tables, 0), sizeof(RelFileNode)),
-            0, "Check the 1st element");
+            memcmp(&((Table){.spcNode = 1600, .relNode = 16384}), lstGet(db1->tables, 0), sizeof(Table)), 0, "1st table of 1st DB");
         TEST_RESULT_INT(
-            memcmp(
-                &((RelFileNode){.spcNode = 1600, .dbNode = 20000, .relNode = 16386}), lstGet(db1->tables, 1), sizeof(RelFileNode)),
-            0, "Check the 2nd element");
+            memcmp(&((Table){.spcNode = 1600, .relNode = 16386}), lstGet(db1->tables, 1), sizeof(Table)), 0, "2nd table of 1st DB");
         TEST_RESULT_INT(
-            memcmp(
-                &((RelFileNode){.spcNode = 1601, .dbNode = 20000, .relNode = 16385}), lstGet(db1->tables, 2), sizeof(RelFileNode)),
-            0, "Check the 3rd element");
+            memcmp(&((Table){.spcNode = 1601, .relNode = 16385}), lstGet(db1->tables, 2), sizeof(Table)), 0, "3rd table of 1st DB");
         TEST_RESULT_INT(
-            memcmp(
-                &((RelFileNode){.spcNode = 1700, .dbNode = 20001, .relNode = 11000}), lstGet(db2->tables, 0), sizeof(RelFileNode)),
-            0, "Check the 4th element");
+            memcmp(&((Table){.spcNode = 1700, .relNode = 11000}), lstGet(db2->tables, 0), sizeof(Table)), 0, "1st table of 2nd DB");
         TEST_RESULT_INT(
-            memcmp(
-                &((RelFileNode){.spcNode = 1700, .dbNode = 20001, .relNode = 16386}), lstGet(db2->tables, 1), sizeof(RelFileNode)),
-            0, "Check the 5th element");
+            memcmp(&((Table){.spcNode = 1700, .relNode = 16386}), lstGet(db2->tables, 1), sizeof(Table)), 0, "2nd table of 2nd DB");
         TEST_RESULT_INT(
-            memcmp(
-                &((RelFileNode){.spcNode = 1701, .dbNode = 20001, .relNode = 10000}), lstGet(db2->tables, 2), sizeof(RelFileNode)),
-            0, "Check the 6th element");
+            memcmp(&((Table){.spcNode = 1701, .relNode = 10000}), lstGet(db2->tables, 2), sizeof(Table)), 0, "3th table of 2nd DB");
         TEST_RESULT_BOOL(lstEmpty(db3->tables), true, "no tables in 3rd database");
 
-        // This is necessary to cover the comparator
-        RelFileNode *found = lstFind(db1->tables, &((RelFileNode){.spcNode = 1600, .dbNode = 20000, .relNode = 16384}));
-        TEST_RESULT_INT(
-            memcmp(
-                &((RelFileNode){.spcNode = 1600, .dbNode = 20000, .relNode = 16384}), found, sizeof(RelFileNode)), 0, "test find");
-        found = lstFind(db1->tables, &((RelFileNode){.spcNode = 1600, .dbNode = 0, .relNode = 16384}));
-        TEST_RESULT_PTR(found, NULL, "wrong database");
-        found = lstFind(db1->tables, &((RelFileNode){.spcNode = 1600, .dbNode = 40000, .relNode = 16384}));
-        TEST_RESULT_PTR(found, NULL, "wrong database");
+        Table *found = lstFind(db1->tables, &((Table){.spcNode = 1600, .relNode = 16384}));
+        TEST_RESULT_INT(memcmp(&((Table){.spcNode = 1600, .relNode = 16384}), found, sizeof(Table)), 0, "test find");
     }
 }

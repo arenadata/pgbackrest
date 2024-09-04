@@ -9,7 +9,13 @@ typedef struct DataBase
 {
     Oid dbOid;
     List *tables;
-}DataBase;
+} DataBase;
+
+typedef struct Table
+{
+    Oid spcNode;
+    Oid relNode;
+} Table;
 
 FN_EXTERN List *buildFilterList(JsonRead *json);
 

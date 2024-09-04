@@ -3,11 +3,8 @@
 #include "postgres/interface/static.vendor.h"
 
 static int
-relFileNodeComparator(const RelFileNode *const a, const RelFileNode *const b)
+tableComparator(const Table *const a, const Table *const b)
 {
-    if (a->dbNode != b->dbNode)
-        return a->dbNode > b->dbNode ? 1 : -1;
-
     if (a->spcNode != b->spcNode)
         return a->spcNode > b->spcNode ? 1 : -1;
 
@@ -29,11 +26,9 @@ buildFilterList(JsonRead *const json)
         jsonReadObjectBegin(json);
         // Read database info
         jsonReadSkip(jsonReadKeyRequireZ(json, "dbName"));
-        RelFileNode node = {
-            .dbNode = jsonReadUInt(jsonReadKeyRequireZ(json, "dbOid"))
-        };
+        Oid dbOid = jsonReadUInt(jsonReadKeyRequireZ(json, "dbOid"));
 
-        List *tableList = lstNewP(sizeof(RelFileNode), .comparator = (ListComparator *) relFileNodeComparator);
+        List *tableList = lstNewP(sizeof(Table), .comparator = (ListComparator *) tableComparator);
 
         jsonReadKeyRequireZ(json, "tables");
 
@@ -44,10 +39,12 @@ buildFilterList(JsonRead *const json)
             jsonReadSkip(jsonReadKeyRequireZ(json, "tablefqn"));
             jsonReadSkip(jsonReadKeyRequireZ(json, "tableOid"));
 
-            node.spcNode = jsonReadUInt(jsonReadKeyRequireZ(json, "tablespace"));
-            node.relNode = jsonReadUInt(jsonReadKeyRequireZ(json, "relfilenode"));
+            Table table = {
+                .spcNode = jsonReadUInt(jsonReadKeyRequireZ(json, "tablespace")),
+                .relNode = jsonReadUInt(jsonReadKeyRequireZ(json, "relfilenode"))
+            };
 
-            lstAdd(tableList, &node);
+            lstAdd(tableList, &table);
 
             jsonReadObjectEnd(json);
         }
@@ -55,7 +52,7 @@ buildFilterList(JsonRead *const json)
         lstSort(tableList, sortOrderAsc);
 
         DataBase dataBase = {
-            .dbOid = node.dbNode,
+            .dbOid = dbOid,
             .tables = tableList
         };
 
