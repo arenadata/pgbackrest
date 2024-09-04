@@ -20,11 +20,9 @@ buildFilterList(JsonRead *const json)
     List *result = lstNewP(sizeof(DataBase), .comparator = lstComparatorUInt);
 
     jsonReadArrayBegin(json);
-
     while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
     {
         jsonReadObjectBegin(json);
-        // Read database info
         jsonReadSkip(jsonReadKeyRequireZ(json, "dbName"));
 
         DataBase dataBase = {
