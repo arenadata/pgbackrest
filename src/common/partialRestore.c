@@ -33,7 +33,6 @@ buildFilterList(JsonRead *const json)
         };
 
         jsonReadKeyRequireZ(json, "tables");
-
         jsonReadArrayBegin(json);
         while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
         {
@@ -45,19 +44,15 @@ buildFilterList(JsonRead *const json)
                 .spcNode = jsonReadUInt(jsonReadKeyRequireZ(json, "tablespace")),
                 .relNode = jsonReadUInt(jsonReadKeyRequireZ(json, "relfilenode"))
             };
+            jsonReadObjectEnd(json);
 
             lstAdd(dataBase.tables, &table);
-
-            jsonReadObjectEnd(json);
         }
+        jsonReadArrayEnd(json);
+        jsonReadObjectEnd(json);
 
         lstSort(dataBase.tables, sortOrderAsc);
-
         lstAdd(result, &dataBase);
-
-        jsonReadArrayEnd(json);
-
-        jsonReadObjectEnd(json);
     }
     jsonReadArrayEnd(json);
 

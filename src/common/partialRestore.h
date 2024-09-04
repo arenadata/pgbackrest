@@ -7,6 +7,7 @@
 
 typedef struct DataBase
 {
+    // It must be the first element since it is used for sorting
     Oid dbOid;
     List *tables;
 } DataBase;
