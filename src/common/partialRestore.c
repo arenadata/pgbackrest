@@ -1,6 +1,5 @@
 #include "build.auto.h"
 #include "partialRestore.h"
-#include "postgres/interface/static.vendor.h"
 
 static int
 tableComparator(const Table *const a, const Table *const b)
