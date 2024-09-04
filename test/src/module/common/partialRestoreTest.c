@@ -78,12 +78,12 @@ testRun(void)
         TEST_ASSIGN(db3, (DataBase *) lstGet(filterList, 2), "find 3rd database");
 
         TEST_RESULT_UINT(db1->dbOid, 20000, "dbOid of 1st database");
-        TEST_RESULT_UINT(db2->dbOid, 20001, "dbOid of 1st database");
-        TEST_RESULT_UINT(db3->dbOid, 20002, "dbOid of 1st database");
+        TEST_RESULT_UINT(db2->dbOid, 20001, "dbOid of 2nd database");
+        TEST_RESULT_UINT(db3->dbOid, 20002, "dbOid of 3rd database");
 
         TEST_RESULT_UINT(lstSize(db1->tables), 3, "dbOid of 1st database");
-        TEST_RESULT_UINT(lstSize(db2->tables), 3, "dbOid of 1st database");
-        TEST_RESULT_UINT(lstSize(db3->tables), 0, "dbOid of 1st database");
+        TEST_RESULT_UINT(lstSize(db2->tables), 3, "dbOid of 2nd database");
+        TEST_RESULT_UINT(lstSize(db3->tables), 0, "dbOid of 3rd database");
 
         TEST_RESULT_INT(
             memcmp(&((Table){.spcNode = 1600, .relNode = 16384}), lstGet(db1->tables, 0), sizeof(Table)), 0, "1st table of 1st DB");

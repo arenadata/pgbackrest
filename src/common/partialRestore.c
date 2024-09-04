@@ -26,9 +26,11 @@ buildFilterList(JsonRead *const json)
         jsonReadObjectBegin(json);
         // Read database info
         jsonReadSkip(jsonReadKeyRequireZ(json, "dbName"));
-        Oid dbOid = jsonReadUInt(jsonReadKeyRequireZ(json, "dbOid"));
 
-        List *tableList = lstNewP(sizeof(Table), .comparator = (ListComparator *) tableComparator);
+        DataBase dataBase = {
+            .dbOid = jsonReadUInt(jsonReadKeyRequireZ(json, "dbOid")),
+            .tables = lstNewP(sizeof(Table), .comparator = (ListComparator *) tableComparator)
+        };
 
         jsonReadKeyRequireZ(json, "tables");
 
@@ -44,17 +46,12 @@ buildFilterList(JsonRead *const json)
                 .relNode = jsonReadUInt(jsonReadKeyRequireZ(json, "relfilenode"))
             };
 
-            lstAdd(tableList, &table);
+            lstAdd(dataBase.tables, &table);
 
             jsonReadObjectEnd(json);
         }
 
-        lstSort(tableList, sortOrderAsc);
-
-        DataBase dataBase = {
-            .dbOid = dbOid,
-            .tables = tableList
-        };
+        lstSort(dataBase.tables, sortOrderAsc);
 
         lstAdd(result, &dataBase);
 
