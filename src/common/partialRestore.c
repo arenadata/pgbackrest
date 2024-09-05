@@ -19,34 +19,75 @@ buildFilterList(JsonRead *const json)
     List *result = lstNewP(sizeof(DataBase), .comparator = lstComparatorUInt);
 
     jsonReadArrayBegin(json);
+    // read database array
     while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
     {
         jsonReadObjectBegin(json);
-        jsonReadSkip(jsonReadKeyRequireZ(json, "dbName"));
-
-        DataBase dataBase = {
-            .dbOid = jsonReadUInt(jsonReadKeyRequireZ(json, "dbOid")),
-            .tables = lstNewP(sizeof(Table), .comparator = (ListComparator *) tableComparator)
-        };
-
-        jsonReadKeyRequireZ(json, "tables");
-        jsonReadArrayBegin(json);
-        while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
+        DataBase dataBase = {0};
+        // read database object
+        while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
         {
-            jsonReadObjectBegin(json);
-            jsonReadSkip(jsonReadKeyRequireZ(json, "tablefqn"));
-            jsonReadSkip(jsonReadKeyRequireZ(json, "tableOid"));
+            const String *const dbKey = jsonReadKey(json);
+            if (strEqZ(dbKey, "dbOid"))
+            {
+                dataBase.dbOid = jsonReadUInt(json);
+            }
+            else if (strEqZ(dbKey, "tables"))
+            {
+                jsonReadArrayBegin(json);
+                dataBase.tables = lstNewP(sizeof(Table), .comparator = (ListComparator *) tableComparator);
+                // read table array
+                while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
+                {
+                    jsonReadObjectBegin(json);
+                    Table table = {0};
+                    // read table object
+                    while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
+                    {
+                        const String *const tableKey = jsonReadKey(json);
+                        if (strEqZ(tableKey, "tablespace"))
+                        {
+                            table.spcNode = jsonReadUInt(json);
+                        }
+                        else if (strEqZ(tableKey, "relfilenode"))
+                        {
+                            table.relNode = jsonReadUInt(json);
+                        }
+                        else
+                        {
+                            jsonReadSkip(json);
+                        }
+                    }
+                    jsonReadObjectEnd(json);
 
-            Table table = {
-                .spcNode = jsonReadUInt(jsonReadKeyRequireZ(json, "tablespace")),
-                .relNode = jsonReadUInt(jsonReadKeyRequireZ(json, "relfilenode"))
-            };
-            jsonReadObjectEnd(json);
+                    if (table.spcNode == 0)
+                    {
+                        THROW(FormatError, "tablespace field of table is missing");
+                    }
+                    else if (table.relNode == 0)
+                    {
+                        THROW(FormatError, "relfilenode field of table is missing");
+                    }
 
-            lstAdd(dataBase.tables, &table);
+                    lstAdd(dataBase.tables, &table);
+                }
+                jsonReadArrayEnd(json);
+            }
+            else
+            {
+                jsonReadSkip(json);
+            }
         }
-        jsonReadArrayEnd(json);
         jsonReadObjectEnd(json);
+
+        if (dataBase.dbOid == 0)
+        {
+            THROW(FormatError, "dbOid field of table is missing");
+        }
+        else if (dataBase.tables == NULL)
+        {
+            THROW(FormatError, "tables field of table is missing");
+        }
 
         lstSort(dataBase.tables, sortOrderAsc);
         lstAdd(result, &dataBase);

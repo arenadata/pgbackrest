@@ -7,7 +7,7 @@ Test Run
 static void
 testRun(void)
 {
-    if (testBegin("parse json"))
+    if (testBegin("parse valid json"))
     {
         const String *jsonstr = STRDEF("["
                                        "  {"
@@ -20,44 +20,32 @@ testRun(void)
                                        "    \"dbOid\": 20001,"
                                        "    \"tables\": ["
                                        "      {"
-                                       "        \"tablefqn\": \"public.t3\","
-                                       "        \"tableOid\": 16390,"
                                        "        \"tablespace\": 1700,"
                                        "        \"relfilenode\": 16386"
                                        "      },"
                                        "      {"
                                        "        \"tablefqn\": \"public.t3\","
-                                       "        \"tableOid\": 16390,"
                                        "        \"tablespace\": 1700,"
                                        "        \"relfilenode\": 11000"
                                        "      },"
                                        "      {"
-                                       "        \"tablefqn\": \"public.t4\","
-                                       "        \"tableOid\": 16390,"
                                        "        \"tablespace\": 1701,"
                                        "        \"relfilenode\": 10000"
                                        "      }"
                                        "    ]"
                                        "  },"
                                        "  {"
-                                       "    \"dbName\": \"db1\","
                                        "    \"dbOid\": 20000,"
                                        "    \"tables\": ["
                                        "      {"
-                                       "        \"tablefqn\": \"public.t1\","
-                                       "        \"tableOid\": 16384,"
                                        "        \"tablespace\": 1600,"
                                        "        \"relfilenode\": 16384"
                                        "      },"
                                        "      {"
-                                       "        \"tablefqn\": \"public.t2\","
-                                       "        \"tableOid\": 16387,"
                                        "        \"tablespace\": 1601,"
                                        "        \"relfilenode\": 16385"
                                        "      },"
                                        "      {"
-                                       "        \"tablefqn\": \"public.t3\","
-                                       "        \"tableOid\": 16388,"
                                        "        \"tablespace\": 1600,"
                                        "        \"relfilenode\": 16386"
                                        "      }"
@@ -95,5 +83,24 @@ testRun(void)
 
         Table *found = lstFind(db1->tables, &((Table){.spcNode = 1600, .relNode = 16384}));
         TEST_RESULT_INT(memcmp(&((Table){.spcNode = 1600, .relNode = 16384}), found, sizeof(Table)), 0, "test find");
+    }
+
+    if (testBegin("parse invalid json"))
+    {
+        TEST_TITLE("missing dbOid");
+        JsonRead *json = jsonReadNew(STRDEF("[{}]"));
+        TEST_ERROR(buildFilterList(json), FormatError, "dbOid field of table is missing");
+
+        TEST_TITLE("missing tables");
+        json = jsonReadNew(STRDEF("[{\"dbOid\": 10}]"));
+        TEST_ERROR(buildFilterList(json), FormatError, "tables field of table is missing");
+
+        TEST_TITLE("missing tablespace");
+        json = jsonReadNew(STRDEF("[{\"dbOid\": 10, \"tables\": [{}]}]"));
+        TEST_ERROR(buildFilterList(json), FormatError, "tablespace field of table is missing");
+
+        TEST_TITLE("relfilenode tablespace");
+        json = jsonReadNew(STRDEF("[{\"dbOid\": 10, \"tables\": [{\"tablespace\": 11}]}]"));
+        TEST_ERROR(buildFilterList(json), FormatError, "relfilenode field of table is missing");
     }
 }
