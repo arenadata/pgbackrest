@@ -16,15 +16,15 @@ tableComparator(const Table *const a, const Table *const b)
 FN_EXTERN __attribute__((unused)) List *
 buildFilterList(JsonRead *const json)
 {
-    List *result = lstNewP(sizeof(DataBase), .comparator = lstComparatorUInt);
+    List *const result = lstNewP(sizeof(DataBase), .comparator = lstComparatorUInt);
 
-    jsonReadArrayBegin(json);
     // read database array
+    jsonReadArrayBegin(json);
     while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
     {
-        jsonReadObjectBegin(json);
         DataBase dataBase = {0};
         // read database object
+        jsonReadObjectBegin(json);
         while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
         {
             const String *const dbKey = jsonReadKey(json);
@@ -34,14 +34,14 @@ buildFilterList(JsonRead *const json)
             }
             else if (strEqZ(dbKey, "tables"))
             {
-                jsonReadArrayBegin(json);
                 dataBase.tables = lstNewP(sizeof(Table), .comparator = (ListComparator *) tableComparator);
                 // read table array
+                jsonReadArrayBegin(json);
                 while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
                 {
-                    jsonReadObjectBegin(json);
                     Table table = {0};
                     // read table object
+                    jsonReadObjectBegin(json);
                     while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
                     {
                         const String *const tableKey = jsonReadKey(json);
@@ -64,7 +64,7 @@ buildFilterList(JsonRead *const json)
                     {
                         THROW(FormatError, "tablespace field of table is missing");
                     }
-                    else if (table.relNode == 0)
+                    if (table.relNode == 0)
                     {
                         THROW(FormatError, "relfilenode field of table is missing");
                     }
@@ -72,6 +72,8 @@ buildFilterList(JsonRead *const json)
                     lstAdd(dataBase.tables, &table);
                 }
                 jsonReadArrayEnd(json);
+
+                lstSort(dataBase.tables, sortOrderAsc);
             }
             else
             {
@@ -84,12 +86,11 @@ buildFilterList(JsonRead *const json)
         {
             THROW(FormatError, "dbOid field of table is missing");
         }
-        else if (dataBase.tables == NULL)
+        if (dataBase.tables == NULL)
         {
             THROW(FormatError, "tables field of table is missing");
         }
 
-        lstSort(dataBase.tables, sortOrderAsc);
         lstAdd(result, &dataBase);
     }
     jsonReadArrayEnd(json);
