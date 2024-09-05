@@ -481,6 +481,7 @@ unit:
           - info/info
           - protocol/parallelJob
           - protocol/parallel
+          - common/partialRestore
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: partialRestore

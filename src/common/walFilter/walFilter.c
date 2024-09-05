@@ -6,7 +6,6 @@
 #include "common/log.h"
 #include "common/type/object.h"
 
-#include "command/archive/get/get.h"
 #include "common/compress/helper.h"
 #include "common/crypto/cipherBlock.h"
 #include "config/config.h"
@@ -52,19 +51,16 @@ typedef struct WalFilter
     // Total size of record on current page
     size_t tot_len;
 
-    size_t headers_count;
-    size_t headers_size;
-    XLogLongPageHeaderData *headers;
+    List *headers;
 
     WalInterface *walInterface;
 
     const ArchiveGetFile *archiveInfo;
 
     // Records count for debug
-    int i;
+    uint32_t i;
 
-    size_t filter_list_size;
-    RelFileNode *filter_list;
+    const List *filter_list;
 
     bool done;
     bool same_input;
@@ -79,7 +75,7 @@ walFilterToLog(const WalFilterState *const this, StringStatic *const debugLog)
 {
     strStcFmt(
         debugLog,
-        "{record_num: %d, step: %d is_begin: %s, page_offset: %zu, input_offset: %zu, record_size: %zu, rec_buf_size: %zu,"
+        "{record_num: %u, step: %d is_begin: %s, page_offset: %zu, input_offset: %zu, record_size: %zu, rec_buf_size: %zu,"
         " header_offset: %zu, got_len: %zu, tot_len: %zu}",
         this->i,
         this->current_step,
@@ -101,7 +97,7 @@ walFilterToLog(const WalFilterState *const this, StringStatic *const debugLog)
 
 static inline
 void
-checkOutputSize(Buffer *output, size_t size)
+checkOutputSize(Buffer *const output, const size_t size)
 {
     if (bufRemains(output) <= size)
     {
@@ -113,7 +109,7 @@ checkOutputSize(Buffer *output, size_t size)
 // In this case, we should exit the process function to get a new input buffer.
 static inline
 bool
-readPage(WalFilterState *this, const Buffer *const input, int step)
+readPage(WalFilterState *const this, const Buffer *const input, const int step)
 {
     if (this->input_offset >= bufUsed(input))
     {
@@ -135,28 +131,19 @@ readPage(WalFilterState *this, const Buffer *const input, int step)
         THROW_FMT(FormatError, "wrong page magic");
     }
 
-    if (this->headers_count >= this->headers_size)
-    {
-        this->headers_size++;
-        MEM_CONTEXT_OBJ_BEGIN(this)
-        {
-            this->headers = memResize(this->headers, SizeOfXLogLongPHD * (this->headers_size));
-        }
-        MEM_CONTEXT_OBJ_END();
-    }
-    this->headers[this->headers_count++] = *(XLogLongPageHeaderData *) this->current_header;
+    lstAdd(this->headers, this->current_header);
 
     return false;
 }
 
 static inline uint32_t
-getRecordSize(const unsigned char *buffer)
+getRecordSize(const unsigned char *const buffer)
 {
     return ((XLogRecord *) (buffer))->xl_tot_len;
 }
 
 static bool
-readRecord(WalFilterState *this, const Buffer *const input)
+readRecord(WalFilterState *const this, const Buffer *const input)
 {
     // Go back to the place where the reading was interrupted due to the exhaustion of the input buffer.
     switch (this->current_step)
@@ -301,8 +288,9 @@ step3:
 }
 
 static void
-filterRecord(WalFilterState *this)
+filterRecord(WalFilterState *const this)
 {
+    ASSERT(this->filter_list != NULL);
     // In the case of overwrite contrecord, we do not need to try to filter it, since the record may not have a body at all.
     if (this->got_len != this->record->xl_tot_len)
     {
@@ -311,49 +299,48 @@ filterRecord(WalFilterState *this)
 
     RelFileNode *node;
     // Pass through the records that are related to the system catalog or system databases (template1, template0 and postgres)
-    if (getRelFileNodeGPDB6(this->record, &node) && node->relNode >= 16384 && node->dbNode >= 16384)
+    if (getRelFileNodeGPDB6(this->record, &node))
     {
-        bool is_need_to_filter = true;
-
-        for (size_t i = 0; i < this->filter_list_size; ++i)
+        // TODO
+        if (pgDbIsSystemId(node->dbNode) && pgDbIsSystemId(node->relNode))
         {
-            if (this->filter_list[i].dbNode == node->dbNode &&
-                this->filter_list[i].relNode == 0)
-            {
-                is_need_to_filter = true;
-                break;
-            }
-            if (memcmp(node, &this->filter_list[i], sizeof(RelFileNode)) == 0)
-            {
-                is_need_to_filter = false;
-                break;
-            }
+            return;
         }
 
-        if (is_need_to_filter)
+        // TODO
+        if (lstExists(this->filter_list, node))
         {
-            this->record->xl_rmid = RM_XLOG_ID;
-            this->record->xl_info = XLOG_NOOP;
-            uint32_t crc = crc32cInit();
-            crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(this->record), this->record->xl_len);
-            crc = crc32cComp(crc, (unsigned char *) this->record, offsetof(XLogRecord, xl_crc));
-            crc = crc32cFinish(crc);
-
-            this->record->xl_crc = crc;
+            return;
         }
+
+        // TODO
+        if (pgDbIsSystemId(node->relNode) && lstExists(this->filter_list, &(RelFileNode){.dbNode = node->dbNode}))
+        {
+            return;
+        }
+
+        this->record->xl_rmid = RM_XLOG_ID;
+        this->record->xl_info = XLOG_NOOP;
+        uint32_t crc = crc32cInit();
+        crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(this->record), this->record->xl_len);
+        crc = crc32cComp(crc, (unsigned char *) this->record, offsetof(XLogRecord, xl_crc));
+        crc = crc32cFinish(crc);
+
+        this->record->xl_crc = crc;
     }
 }
 
 static void
-writeRecord(WalFilterState *this, Buffer *output)
+writeRecord(WalFilterState *const this, Buffer *const output)
 {
-    size_t header_i = 0;
+    uint32_t header_i = 0;
     if (bufUsed(output) % XLOG_BLCKSZ == 0)
     {
-        ASSERT(this->headers_count != 0);
-        size_t to_write = XLogPageHeaderSize(&this->headers[header_i].std);
+        ASSERT(!lstEmpty(this->headers));
+        const XLogPageHeaderData *const header = lstGet(this->headers, header_i);
+        size_t to_write = XLogPageHeaderSize(header);
         checkOutputSize(output, to_write);
-        memcpy(bufRemainsPtr(output), &this->headers[header_i], to_write);
+        memcpy(bufRemainsPtr(output), header, to_write);
         bufUsedInc(output, to_write);
         header_i++;
     }
@@ -371,11 +358,11 @@ writeRecord(WalFilterState *this, Buffer *output)
         bufUsedInc(output, to_write);
 
         // write header
-        if (header_i < this->headers_count)
+        if (header_i < lstSize(this->headers))
         {
             to_write = SizeOfXLogShortPHD;
             checkOutputSize(output, to_write);
-            memcpy(bufRemainsPtr(output), &this->headers[header_i], to_write);
+            memcpy(bufRemainsPtr(output), lstGet(this->headers, header_i), to_write);
             bufUsedInc(output, to_write);
 
             header_i++;
@@ -391,17 +378,17 @@ writeRecord(WalFilterState *this, Buffer *output)
 }
 
 static bool
-readBeginOfRecord(WalFilterState *main_state)
+readBeginOfRecord(WalFilterState *const main_state)
 {
     bool result = false;
     MEM_CONTEXT_TEMP_BEGIN();
 
     const String *walSegment = NULL;
-    TimeLineID timeLine = main_state->current_header->xlp_tli;
+    const TimeLineID timeLine = main_state->current_header->xlp_tli;
     uint64_t segno = main_state->current_header->xlp_pageaddr / XLOG_SEG_SIZE;
-    String *path = strNewFmt("%08X%08X", timeLine, (uint32) (segno / XLogSegmentsPerXLogId));
+    const String *const path = strNewFmt("%08X%08X", timeLine, (uint32) (segno / XLogSegmentsPerXLogId));
 
-    StringList *segmentList = storageListP(
+    const StringList *const segmentList = storageListP(
         storageRepoIdx(main_state->archiveInfo->repoIdx),
         strNewFmt(STORAGE_REPO_ARCHIVE "/%s/%s", strZ(main_state->archiveInfo->archiveId), strZ(path)),
         .expression = strNewFmt("^[0-f]{24}-[0-f]{40}" COMPRESS_TYPE_REGEXP "{0,1}$"));
@@ -415,7 +402,7 @@ readBeginOfRecord(WalFilterState *main_state)
     uint64_t segno_diff = UINT64_MAX;
     for (uint32_t i = 0; i < strLstSize(segmentList); i++)
     {
-        const String *file = strSubN(strLstGet(segmentList, i), 0, 24);
+        const String *const file = strSubN(strLstGet(segmentList, i), 0, 24);
         TimeLineID tli;
         uint64_t fileSegNo = 0;
         XLogFromFileName(strZ(file), &tli, &fileSegNo);
@@ -435,7 +422,7 @@ readBeginOfRecord(WalFilterState *main_state)
         return false;
     }
 
-    StorageRead *storageRead = storageNewReadP(
+    const StorageRead *const storageRead = storageNewReadP(
         storageRepoIdx(0),
         strNewFmt(STORAGE_REPO_ARCHIVE "/%s/%s", strZ(main_state->archiveInfo->archiveId), strZ(walSegment)));
 
@@ -448,7 +435,7 @@ readBeginOfRecord(WalFilterState *main_state)
     }
 
     // If file is compressed then add the decompression filter
-    CompressType compressType = compressTypeFromName(walSegment);
+    const CompressType compressType = compressTypeFromName(walSegment);
 
     if (compressType != compressTypeNone)
     {
@@ -461,10 +448,8 @@ readBeginOfRecord(WalFilterState *main_state)
         this->is_begin = true;
         this->record = memNew(BLCKSZ);
         this->rec_buf_size = BLCKSZ;
-        this->headers = memNew(SizeOfXLogLongPHD * XLR_MAX_BKP_BLOCKS);
-        this->headers_size = XLR_MAX_BKP_BLOCKS;
+        this->headers = lstNewP(SizeOfXLogLongPHD);
         this->filter_list = NULL;
-        this->filter_list_size = 0;
 
         this->walInterface = &interfaces[0];
     }
@@ -504,23 +489,23 @@ readBeginOfRecord(WalFilterState *main_state)
                 bufUsedSet(buffer, size);
             }
         }
-        this->headers_count = 0;
+        lstClearFast(this->headers);
     }
     MEM_CONTEXT_TEMP_END();
     return result;
 }
 
 static bool
-getEndOfRecord(WalFilterState *this)
+getEndOfRecord(WalFilterState *const this)
 {
     MEM_CONTEXT_TEMP_BEGIN();
 
     const String *walSegment = NULL;
-    TimeLineID timeLine = this->current_header->xlp_tli;
+    const TimeLineID timeLine = this->current_header->xlp_tli;
     uint64_t segno = this->current_header->xlp_pageaddr / XLOG_SEG_SIZE;
-    String *path = strNewFmt("%08X%08X", timeLine, (uint32) (segno / XLogSegmentsPerXLogId));
+    const String *const path = strNewFmt("%08X%08X", timeLine, (uint32) (segno / XLogSegmentsPerXLogId));
 
-    StringList *segmentList = storageListP(
+    const StringList *const segmentList = storageListP(
         storageRepoIdx(this->archiveInfo->repoIdx),
         strNewFmt(STORAGE_REPO_ARCHIVE "/%s/%s", strZ(this->archiveInfo->archiveId), strZ(path)),
         .expression = strNewFmt("^[0-f]{24}-[0-f]{40}" COMPRESS_TYPE_REGEXP "{0,1}$"));
@@ -554,7 +539,7 @@ getEndOfRecord(WalFilterState *this)
         return false;
     }
 
-    StorageRead *storageRead = storageNewReadP(
+    const StorageRead *const storageRead = storageNewReadP(
         storageRepoIdx(0),
         strNewFmt(STORAGE_REPO_ARCHIVE "/%s/%s", strZ(this->archiveInfo->archiveId), strZ(walSegment)));
 
@@ -566,7 +551,7 @@ getEndOfRecord(WalFilterState *this)
             cipherBlockNewP(cipherModeDecrypt, this->archiveInfo->cipherType, BUFSTR(this->archiveInfo->cipherPassArchive)));
     }
     // If file is compressed then add the decompression filter
-    CompressType compressType = compressTypeFromName(walSegment);
+    const CompressType compressType = compressTypeFromName(walSegment);
 
     if (compressType != compressTypeNone)
     {
@@ -623,7 +608,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                 // Remember how much we read from the prev file in order to skip this size when writing.
                 size_t offset = this->got_len;
                 this->input_offset = 0;
-                this->headers_count = 0;
+                lstClearFast(this->headers);
                 if (!readRecord(this, input))
                 {
                     // Since we are at the very beginning of the file, let's assume that the current input buffer is enough to fully
@@ -638,7 +623,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                 writeRecord(this, output);
                 this->i++;
                 this->same_input = true;
-                this->headers_count = 0;
+                lstClearFast(this->headers);
                 FUNCTION_LOG_RETURN_VOID();
                 return;
             }
@@ -647,7 +632,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                 checkOutputSize(output, SizeOfXLogLongPHD);
                 memcpy(bufRemainsPtr(output), this->current_header, SizeOfXLogLongPHD);
                 bufUsedInc(output, SizeOfXLogLongPHD);
-                this->headers_count = 0;
+                lstClearFast(this->headers);
 
                 // The header that needs to be modified is in another file or not exists. Just copy it as is.
                 checkOutputSize(output, MAXALIGN(this->current_header->xlp_rem_len));
@@ -716,7 +701,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
 
     this->i++;
     this->same_input = true;
-    this->headers_count = 0;
+    lstClearFast(this->headers);
 
     FUNCTION_LOG_RETURN_VOID();
 }
@@ -744,109 +729,9 @@ WalFilterInputSame(const THIS_VOID)
     FUNCTION_TEST_RETURN(BOOL, this->same_input);
 }
 
-static RelFileNode *
-appendRelFileNode(RelFileNode *array, size_t *len, RelFileNode node)
-{
-    if (array)
-    {
-        array = memResize(array, sizeof(RelFileNode) * (++(*len)));
-    }
-    else
-    {
-        (*len)++;
-        array = memNew(sizeof(node));
-    }
-
-    array[*len - 1] = node;
-
-    return array;
-}
-
-FN_EXTERN void
-buildFilterList(JsonRead *json, RelFileNode **filter_list, size_t *filter_list_len)
-{
-    size_t result_len = 0;
-    RelFileNode *filter_list_result = NULL;
-
-    jsonReadArrayBegin(json);
-
-    Oid dbOid = 0;
-    // Read array of databases
-    while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
-    {
-        jsonReadObjectBegin(json);
-
-        // Read database info
-        while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
-        {
-            String *key1 = jsonReadKey(json);
-            if (strEqZ(key1, "dbOid"))
-            {
-                dbOid = jsonReadUInt(json);
-            }
-            else if (strEqZ(key1, "tables"))
-            {
-                jsonReadArrayBegin(json);
-
-                size_t table_count = 0;
-                // Read tables
-                while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
-                {
-                    RelFileNode node = {.dbNode = dbOid};
-                    jsonReadObjectBegin(json);
-                    table_count++;
-                    // Read table info
-                    while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
-                    {
-                        String *key2 = jsonReadKey(json);
-                        if (strEqZ(key2, "relfilenode"))
-                        {
-                            node.relNode = jsonReadUInt(json);
-                        }
-                        else if (strEqZ(key2, "tablespace"))
-                        {
-                            node.spcNode = jsonReadUInt(json);
-                        }
-                        else
-                        {
-                            jsonReadSkip(json);
-                        }
-                    }
-                    filter_list_result = appendRelFileNode(filter_list_result, &result_len, node);
-
-                    jsonReadObjectEnd(json);
-                }
-
-                // If the database does not have any tables specified, then add RelFileNode where spcNode and dbNode are 0.
-                if (table_count == 0)
-                {
-                    RelFileNode node = {
-                        .dbNode = dbOid
-                    };
-                    filter_list_result = appendRelFileNode(filter_list_result, &result_len, node);
-                }
-
-                jsonReadArrayEnd(json);
-            }
-            else
-            {
-                jsonReadSkip(json);
-            }
-        }
-
-        jsonReadObjectEnd(json);
-    }
-
-    jsonReadArrayEnd(json);
-
-    *filter_list = filter_list_result;
-    *filter_list_len = result_len;
-}
-
 FN_EXTERN IoFilter *
 walFilterNew(
-    unsigned int pgVersion, StringId fork, const ArchiveGetFile *archiveInfo, RelFileNode *filter_list,
-    size_t filter_list_len)
+        const unsigned int pgVersion, const StringId fork, const ArchiveGetFile *const archiveInfo, const List *const filterList)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
     FUNCTION_LOG_END();
@@ -857,10 +742,8 @@ walFilterNew(
         this->is_begin = true;
         this->record = memNew(BLCKSZ);
         this->rec_buf_size = BLCKSZ;
-        this->headers = memNew(SizeOfXLogLongPHD * XLR_MAX_BKP_BLOCKS);
-        this->headers_size = XLR_MAX_BKP_BLOCKS;
-        this->filter_list = filter_list;
-        this->filter_list_size = filter_list_len;
+        this->headers = lstNewP(SizeOfXLogLongPHD);
+        this->filter_list = filterList;
         this->archiveInfo = archiveInfo;
 
         for (unsigned int i = 0; i < LENGTH_OF(interfaces); ++i)

@@ -11,6 +11,7 @@ Archive Get File
 #include "common/debug.h"
 #include "common/io/filter/group.h"
 #include "common/log.h"
+#include "common/partialRestore.h"
 #include "common/walFilter/walFilter.h"
 #include "config/config.h"
 #include "info/infoArchive.h"
@@ -40,13 +41,12 @@ archiveGetFile(
     // Check all files in the actual list and return as soon as one is copied
     bool copied = false;
 
-    RelFileNode *filter_list = NULL;
-    size_t filter_list_len = 0;
     unsigned int pgVersion = 0;
+    List *filterList = NULL;
     if (cfgOptionTest(cfgOptFilter))
     {
-        const String *filter_path = cfgOptionStrNull(cfgOptFilter);
-        if (strZ(filter_path)[0] != '/')
+        const String *filterPath = cfgOptionStrNull(cfgOptFilter);
+        if (!strBeginsWith(filterPath, FSLASH_STR))
         {
             THROW(AssertError, "The path to the filter info file is not absolute");
         }
@@ -54,11 +54,11 @@ archiveGetFile(
         const PgControl pgControl = pgControlFromFile(storagePg(), cfgOptionStrNull(cfgOptPgVersionForce));
         pgVersion = pgControl.version;
         const Storage *local_storage = storageLocal();
-        StorageRead *storageRead = storageNewReadP(local_storage, filter_path);
+        StorageRead *storageRead = storageNewReadP(local_storage, filterPath);
         Buffer *jsonFile = storageGetP(storageRead);
         JsonRead *jsonRead = jsonReadNew(strNewBuf(jsonFile));
 
-        buildFilterList(jsonRead, &filter_list, &filter_list_len);
+        filterList = buildFilterList(jsonRead);
 
         jsonReadFree(jsonRead);
         bufFree(jsonFile);
@@ -99,7 +99,7 @@ archiveGetFile(
                 if (walIsSegment(request) && cfgOptionTest(cfgOptFilter))
                 {
                     ioFilterGroupAdd(ioWriteFilterGroup(storageWriteIo(destination)),
-                                     walFilterNew(pgVersion, cfgOptionStrId(cfgOptFork), actual, filter_list, filter_list_len));
+                                     walFilterNew(pgVersion, cfgOptionStrId(cfgOptFork), actual, filterList));
                 }
                 // Copy the file
                 storageCopyP(
