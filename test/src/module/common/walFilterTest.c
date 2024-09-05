@@ -1768,37 +1768,28 @@ testRun(void)
         TEST_TITLE("Filter");
         const String *jsonstr = STRDEF("[\n"
                                        "  {\n"
-                                       "    \"dbName\": \"db1\",\n"
                                        "    \"dbOid\": 20000,\n"
                                        "    \"tables\": [\n"
                                        "      {\n"
-                                       "        \"tablefqn\": \"t1\",\n"
-                                       "        \"tableOid\": 16384,\n"
                                        "        \"tablespace\": 1600,\n"
                                        "        \"relfilenode\": 16384\n"
                                        "      },\n"
                                        "      {\n"
-                                       "        \"tablefqn\": \"t2\",\n"
-                                       "        \"tableOid\": 16387,\n"
                                        "        \"tablespace\": 1601,\n"
                                        "        \"relfilenode\": 16385\n"
                                        "      }\n"
                                        "    ]\n"
                                        "  },\n"
                                        "  {\n"
-                                       "    \"dbName\": \"db2\",\n"
                                        "    \"dbOid\": 20001,\n"
                                        "    \"tables\": [\n"
                                        "      {\n"
-                                       "        \"tablefqn\": \"t3\",\n"
-                                       "        \"tableOid\": 16390,\n"
                                        "        \"tablespace\": 1700,\n"
                                        "        \"relfilenode\": 16386\n"
                                        "      }\n"
                                        "    ]\n"
                                        "  },\n"
                                        "  {\n"
-                                       "    \"dbName\": \"db3\",\n"
                                        "    \"dbOid\": 20002,\n"
                                        "    \"tables\": []\n"
                                        "  }\n"
@@ -1807,7 +1798,7 @@ testRun(void)
         JsonRead *json = jsonReadNew(jsonstr);
         List *filterList = buildFilterList(json);
         TEST_RESULT_PTR_NE(filterList, NULL, "filter list is empty");
-        TEST_RESULT_UINT(lstSize(filterList), 6, "wrong filter list length");
+        TEST_RESULT_UINT(lstSize(filterList), 3, "wrong filter list length");
 
         filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, NULL, filterList);
         wal = bufNew(1024 * 1024);
