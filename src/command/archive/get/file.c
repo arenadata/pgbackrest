@@ -42,28 +42,12 @@ archiveGetFile(
     bool copied = false;
 
     unsigned int pgVersion = 0;
-    List *filterList = NULL;
     if (cfgOptionTest(cfgOptFilter))
     {
-        const String *filterPath = cfgOptionStrNull(cfgOptFilter);
-        if (!strBeginsWith(filterPath, FSLASH_STR))
-        {
-            THROW(AssertError, "The path to the filter info file is not absolute");
-        }
-
         const PgControl pgControl = pgControlFromFile(storagePg(), cfgOptionStrNull(cfgOptPgVersionForce));
         pgVersion = pgControl.version;
-        const Storage *local_storage = storageLocal();
-        StorageRead *storageRead = storageNewReadP(local_storage, filterPath);
-        Buffer *jsonFile = storageGetP(storageRead);
-        JsonRead *jsonRead = jsonReadNew(strNewBuf(jsonFile));
-
-        filterList = buildFilterList(jsonRead);
-
-        jsonReadFree(jsonRead);
-        bufFree(jsonFile);
-        storageReadFree(storageRead);
     }
+
     for (unsigned int actualIdx = 0; actualIdx < lstSize(actualList); actualIdx++)
     {
         const ArchiveGetFile *const actual = lstGet(actualList, actualIdx);
@@ -99,7 +83,7 @@ archiveGetFile(
                 if (walIsSegment(request) && cfgOptionTest(cfgOptFilter))
                 {
                     ioFilterGroupAdd(ioWriteFilterGroup(storageWriteIo(destination)),
-                                     walFilterNew(pgVersion, cfgOptionStrId(cfgOptFork), actual, filterList));
+                                     walFilterNew(pgVersion, cfgOptionStrId(cfgOptFork), actual));
                 }
                 // Copy the file
                 storageCopyP(

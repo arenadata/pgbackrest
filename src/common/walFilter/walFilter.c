@@ -61,8 +61,6 @@ typedef struct WalFilter
     // Records count for debug
     uint32_t i;
 
-    const List *filterList;
-
     bool done;
     bool same_input;
     bool is_switch_wal;
@@ -291,7 +289,6 @@ step3:
 static void
 filterRecord(WalFilterState *const this)
 {
-    ASSERT(this->filterList != NULL);
     // In the case of overwrite contrecord, we do not need to try to filter it, since the record may not have a body at all.
     if (this->got_len != this->record->xl_tot_len)
     {
@@ -302,27 +299,15 @@ filterRecord(WalFilterState *const this)
     // Pass through the records that are related to the system catalog or system databases (template1, template0 and postgres)
     if (getRelFileNodeGPDB6(this->record, &node))
     {
-        // Record is related to system catalog of system database
-        if (pgDbIsSystemId(node->dbNode) && pgDbIsSystemId(node->relNode))
+        bool isPassTheFilter = false;
+
+        MEM_CONTEXT_OBJ_BEGIN(this)
+        isPassTheFilter = isRelationNeeded(node->dbNode, node->spcNode, node->relNode);
+        MEM_CONTEXT_OBJ_END();
+
+        if (isPassTheFilter)
         {
             return;
-        }
-
-        DataBase *dataBase = lstFind(this->filterList, &node->dbNode);
-
-        if (dataBase)
-        {
-            // Record is related to the system catalog of the database that should be restored
-            if (pgDbIsSystemId(node->relNode))
-            {
-                return;
-            }
-
-            // Record is related to the table that should be restored
-            if (lstExists(dataBase->tables, &(Table){.relNode = node->relNode, .spcNode = node->spcNode}))
-            {
-                return;
-            }
         }
 
         this->record->xl_rmid = RM_XLOG_ID;
@@ -455,7 +440,6 @@ readBeginOfRecord(WalFilterState *const main_state)
         this->record = memNew(BLCKSZ);
         this->rec_buf_size = BLCKSZ;
         this->headers = lstNewP(SizeOfXLogLongPHD);
-        this->filterList = NULL;
 
         this->walInterface = &interfaces[0];
     }
@@ -736,8 +720,7 @@ WalFilterInputSame(const THIS_VOID)
 }
 
 FN_EXTERN IoFilter *
-walFilterNew(
-    const unsigned int pgVersion, const StringId fork, const ArchiveGetFile *const archiveInfo, const List *const filterList)
+walFilterNew(const unsigned int pgVersion, const StringId fork, const ArchiveGetFile *const archiveInfo)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
     FUNCTION_LOG_END();
@@ -749,7 +732,6 @@ walFilterNew(
         this->record = memNew(BLCKSZ);
         this->rec_buf_size = BLCKSZ;
         this->headers = lstNewP(SizeOfXLogLongPHD);
-        this->filterList = filterList;
         this->archiveInfo = archiveInfo;
 
         for (unsigned int i = 0; i < LENGTH_OF(interfaces); ++i)
