@@ -14,6 +14,7 @@ Restore Command
 #include "common/crypto/cipherBlock.h"
 #include "common/debug.h"
 #include "common/log.h"
+#include "common/partialRestore.h"
 #include "common/regExp.h"
 #include "common/user.h"
 #include "config/config.h"
@@ -2072,6 +2073,32 @@ restoreProcessQueue(const Manifest *const manifest, List **const queueList)
         {
             const ManifestFilePack *const filePack = manifestFilePackGet(manifest, fileIdx);
             const ManifestFile file = manifestFileUnpack(manifest, filePack);
+
+            Oid dbNode, relNode;
+            if (sscanf(strZ(file.name), "pg_data/base/%u/%u", &dbNode, &relNode) == 2)
+            {
+                if (!isRelationNeeded(dbNode, DEFAULTTABLESPACE_OID, relNode))
+                    continue;
+            }
+            else if (strBeginsWithZ(file.name, "pg_tblspc/"))
+            {
+                StringList *lst = strLstNewSplitZ(file.name, "/");
+                if (strLstSize(lst) == 5)
+                {
+                    Oid spcNode;
+                    if (
+                        // Check all sscanf-s at once to simplify the tests
+                        sscanf(strZ(strLstGet(lst, 1)), "%u", &spcNode) +
+                        sscanf(strZ(strLstGet(lst, 3)), "%u", &dbNode) +
+                        sscanf(strZ(strLstGet(lst, 4)), "%u", &relNode) == 3 &&
+                        !isRelationNeeded(dbNode, spcNode, relNode))
+                    {
+                        strLstFree(lst);
+                        continue;
+                    }
+                }
+                strLstFree(lst);
+            }
 
             // Find the target that contains this file
             unsigned int targetIdx = 0;
