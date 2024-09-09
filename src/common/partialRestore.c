@@ -149,6 +149,7 @@ isRelationNeeded(const Oid dbNode, const Oid spcNode, const Oid relNode)
     if (db == NULL)
         return false;
 
-    return pgDbIsSystemId(relNode) ||
+    return
+        pgDbIsSystemId(relNode) ||
         lstExists(db->tables, &(Table){.spcNode = spcNode, .relNode = relNode});
 }
