@@ -125,7 +125,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdRestore, argListInv);
         TEST_ERROR(isRelationNeeded(16384, 1663, 16390), AssertError, "The path to the filter info file is not absolute");
 
-        TEST_TITLE("The --filter option is corrent");
+        TEST_TITLE("The --filter option is correct");
         const Storage *const storageTest = storagePosixNewP(TEST_PATH_STR, .write = true);
         HRN_STORAGE_PUT_Z(storageTest, "recovery_filter.json", strZ(jsonstr));
 

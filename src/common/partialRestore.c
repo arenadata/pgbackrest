@@ -18,8 +18,6 @@ typedef struct Table
     Oid relNode;
 } Table;
 
-static List *filterList = NULL;
-
 static int
 tableComparator(const Table *const a, const Table *const b)
 {
@@ -126,6 +124,7 @@ isRelationNeeded(const Oid dbNode, const Oid spcNode, const Oid relNode)
     if (pgDbIsSystemId(dbNode) && pgDbIsSystemId(relNode))
         return true;
 
+    static List *filterList = NULL;
     if (filterList == NULL)
     {
         const String *const filter_path = cfgOptionStrNull(cfgOptFilter);
@@ -150,5 +149,6 @@ isRelationNeeded(const Oid dbNode, const Oid spcNode, const Oid relNode)
     if (db == NULL)
         return false;
 
-    return pgDbIsSystemId(relNode) || lstExists(db->tables, &(Table){.spcNode = spcNode, .relNode = relNode});
+    return pgDbIsSystemId(relNode) ||
+        lstExists(db->tables, &(Table){.spcNode = spcNode, .relNode = relNode});
 }
