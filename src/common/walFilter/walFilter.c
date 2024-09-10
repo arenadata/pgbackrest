@@ -301,6 +301,7 @@ filterRecord(WalFilterState *const this)
     {
         bool isPassTheFilter = false;
 
+        // isRelationNeeded can allocate memory on the first call. Therefore, we switch the context.
         MEM_CONTEXT_OBJ_BEGIN(this)
         isPassTheFilter = isRelationNeeded(node->dbNode, node->spcNode, node->relNode);
         MEM_CONTEXT_OBJ_END();
@@ -329,7 +330,7 @@ writeRecord(WalFilterState *const this, Buffer *const output)
     {
         ASSERT(!lstEmpty(this->headers));
         const XLogPageHeaderData *const header = lstGet(this->headers, header_i);
-        size_t to_write = XLogPageHeaderSize(header);
+        const size_t to_write = XLogPageHeaderSize(header);
         checkOutputSize(output, to_write);
         memcpy(bufRemainsPtr(output), header, to_write);
         bufUsedInc(output, to_write);
@@ -339,7 +340,7 @@ writeRecord(WalFilterState *const this, Buffer *const output)
     size_t wrote = 0;
     while (this->got_len != wrote)
     {
-        size_t space_on_page = XLOG_BLCKSZ - bufUsed(output) % XLOG_BLCKSZ;
+        const size_t space_on_page = XLOG_BLCKSZ - bufUsed(output) % XLOG_BLCKSZ;
         size_t to_write = Min(space_on_page, this->got_len - wrote);
         checkOutputSize(output, to_write);
 
@@ -360,7 +361,7 @@ writeRecord(WalFilterState *const this, Buffer *const output)
         }
     }
 
-    size_t align_size = MAXALIGN(this->got_len) - this->got_len;
+    const size_t align_size = MAXALIGN(this->got_len) - this->got_len;
     checkOutputSize(output, align_size);
     memset(bufRemainsPtr(output), 0, align_size);
     bufUsedInc(output, align_size);
@@ -447,7 +448,7 @@ readBeginOfRecord(WalFilterState *const main_state)
 
     ioReadOpen(storageReadIo(storageRead));
 
-    Buffer *buffer = bufNew(XLOG_BLCKSZ);
+    Buffer *const buffer = bufNew(XLOG_BLCKSZ);
     size_t size = ioRead(storageReadIo(storageRead), buffer);
     bufUsedSet(buffer, size);
 
@@ -474,7 +475,7 @@ readBeginOfRecord(WalFilterState *const main_state)
             }
             else
             {
-                bufUsedSet(buffer, 0);
+                bufUsedZero(buffer);
                 size = ioRead(storageReadIo(storageRead), buffer);
                 bufUsedSet(buffer, size);
             }
@@ -550,7 +551,7 @@ getEndOfRecord(WalFilterState *const this)
 
     ioReadOpen(storageReadIo(storageRead));
 
-    Buffer *buffer = bufNew(XLOG_BLCKSZ);
+    Buffer *const buffer = bufNew(XLOG_BLCKSZ);
     size_t size = ioRead(storageReadIo(storageRead), buffer);
     bufUsedSet(buffer, size);
     while (this->got_len != this->record->xl_tot_len)
@@ -562,7 +563,7 @@ getEndOfRecord(WalFilterState *const this)
                 THROW(FormatError, "Unexpected WAL end");
             }
 
-            bufUsedSet(buffer, 0);
+            bufUsedZero(buffer);
             size = ioRead(storageReadIo(storageRead), buffer);
             bufUsedSet(buffer, size);
         }
@@ -586,6 +587,28 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     // Avoid creating local variables before the record is fully read.
     // Since if the input buffer is exhausted, we can exit the function.
 
+    if (input == NULL)
+    {
+        // We have an incomplete record at the end
+        if (this->current_step != 0)
+        {
+            const size_t size_on_page = this->got_len;
+
+            // if xl_info and xl_rmid of the header is in current file then read end of record from next file if it exits
+            if (this->got_len >= offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid) && getEndOfRecord(this))
+            {
+                filterRecord(this);
+            }
+
+            checkOutputSize(output, size_on_page);
+            memcpy(bufRemainsPtr(output), this->record, size_on_page);
+            bufUsedInc(output, size_on_page);
+        }
+        this->done = true;
+        FUNCTION_LOG_RETURN_VOID();
+        return;
+    }
+
     if (this->is_begin)
     {
         this->is_begin = false;
@@ -596,7 +619,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             if (readBeginOfRecord(this))
             {
                 // Remember how much we read from the prev file in order to skip this size when writing.
-                size_t offset = this->got_len;
+                const size_t offset = this->got_len;
                 this->input_offset = 0;
                 lstClearFast(this->headers);
                 if (!readRecord(this, input))
@@ -632,28 +655,6 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                 this->page_offset += MAXALIGN(this->current_header->xlp_rem_len);
             }
         }
-    }
-
-    if (input == NULL)
-    {
-        // We have an incomplete record at the end
-        if (this->current_step != 0)
-        {
-            size_t size_on_page = this->got_len;
-
-            // if xl_info and xl_rmid of the header is in current file then read end of record from next file if it exits
-            if (this->got_len >= offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid) && getEndOfRecord(this))
-            {
-                filterRecord(this);
-            }
-
-            checkOutputSize(output, size_on_page);
-            memcpy(bufRemainsPtr(output), this->record, size_on_page);
-            bufUsedInc(output, size_on_page);
-        }
-        this->done = true;
-        FUNCTION_LOG_RETURN_VOID();
-        return;
     }
 
     // When meeting wal switch record, we write the rest of the file as is.

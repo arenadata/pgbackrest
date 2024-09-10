@@ -210,9 +210,9 @@ typedef struct xl_heap_new_cid
 
 static
 bool
-getXlog(XLogRecord *record, RelFileNode **node)
+getXlog(const XLogRecord *record, RelFileNode **node)
 {
-    uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_CHECKPOINT_SHUTDOWN:
@@ -244,9 +244,9 @@ getXlog(XLogRecord *record, RelFileNode **node)
 
 static
 bool
-getStorage(XLogRecord *record, RelFileNode **node)
+getStorage(const XLogRecord *record, RelFileNode **node)
 {
-    uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_SMGR_CREATE:
@@ -270,7 +270,7 @@ getStorage(XLogRecord *record, RelFileNode **node)
 
 static
 bool
-getHeap2(XLogRecord *record, RelFileNode **node)
+getHeap2(const XLogRecord *record, RelFileNode **node)
 {
     uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
     info &= XLOG_HEAP_OPMASK;
@@ -299,7 +299,7 @@ getHeap2(XLogRecord *record, RelFileNode **node)
 
 static
 bool
-getHeap(XLogRecord *record, RelFileNode **node)
+getHeap(const XLogRecord *record, RelFileNode **node)
 {
     // XLOG_HEAP_INSERT
     // XLOG_HEAP_DELETE
@@ -314,9 +314,9 @@ getHeap(XLogRecord *record, RelFileNode **node)
 
 static
 bool
-getBtree(XLogRecord *record, RelFileNode **node)
+getBtree(const XLogRecord *record, RelFileNode **node)
 {
-    uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_BTREE_INSERT_LEAF:
@@ -345,9 +345,9 @@ getBtree(XLogRecord *record, RelFileNode **node)
 
 static
 bool
-getGin(XLogRecord *record, RelFileNode **node)
+getGin(const XLogRecord *record, RelFileNode **node)
 {
-    uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_GIN_CREATE_INDEX:
@@ -372,9 +372,9 @@ getGin(XLogRecord *record, RelFileNode **node)
 
 static
 bool
-getGist(XLogRecord *record, RelFileNode **node)
+getGist(const XLogRecord *record, RelFileNode **node)
 {
-    uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_GIST_PAGE_UPDATE:
@@ -392,9 +392,9 @@ getGist(XLogRecord *record, RelFileNode **node)
 
 static
 bool
-getSeq(XLogRecord *record, RelFileNode **node)
+getSeq(const XLogRecord *record, RelFileNode **node)
 {
-    uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
     if (info == XLOG_SEQ_LOG)
     {
         *node = (RelFileNode *) XLogRecGetData(record);
@@ -405,9 +405,9 @@ getSeq(XLogRecord *record, RelFileNode **node)
 
 static
 bool
-getSpgist(XLogRecord *record, RelFileNode **node)
+getSpgist(const XLogRecord *record, RelFileNode **node)
 {
-    uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+   const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
 
     switch (info)
     {
@@ -432,9 +432,9 @@ getSpgist(XLogRecord *record, RelFileNode **node)
 
 static
 bool
-getBitmap(XLogRecord *record, RelFileNode **node)
+getBitmap(const XLogRecord *record, RelFileNode **node)
 {
-    uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_BITMAP_INSERT_LOVITEM:
@@ -455,9 +455,9 @@ getBitmap(XLogRecord *record, RelFileNode **node)
 
 static
 bool
-getAppendonly(XLogRecord *record, RelFileNode **node)
+getAppendonly(const XLogRecord *record, RelFileNode **node)
 {
-    uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_APPENDONLY_INSERT:
@@ -473,7 +473,7 @@ getAppendonly(XLogRecord *record, RelFileNode **node)
 }
 
 FN_EXTERN bool
-getRelFileNodeGPDB6(XLogRecord *record, RelFileNode **node)
+getRelFileNodeGPDB6(const XLogRecord *record, RelFileNode **node)
 {
     switch (record->xl_rmid)
     {

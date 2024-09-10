@@ -1186,5 +1186,43 @@ testRun(void)
         TEST_STORAGE_LIST_EMPTY(storageSpool(), STORAGE_SPOOL_ARCHIVE_IN);
     }
 
+    if (testBegin("wal Filter"))
+    {
+        StringList *const argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
+        hrnCfgArgRawZ(argList, cfgOptPgPath, TEST_PATH "/pg");
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptFilter, "recovery_filter.json");
+        hrnCfgArgRawZ(argList, cfgOptFork, CFGOPTVAL_FORK_GPDB_Z);
+        strLstAddZ(argList, "000000010000000100000001");
+        strLstAddZ(argList, TEST_PATH "/pg/pg_wal/RECOVERYXLOG");
+        HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
+
+        HRN_STORAGE_PATH_CREATE(storagePgWrite(), "pg_wal");
+
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE,
+            "[db]\n"
+            "db-id=1\n"
+            "db-system-id=7374327172765320188\n"
+            "db-version=\"9.4\"\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-id\":" HRN_PG_SYSTEMID_94_Z ",\"db-version\":\"9.4\"}");
+
+        HRN_PG_CONTROL_OVERRIDE_VERSION_PUT(
+            storagePgWrite(), PG_VERSION_94, 9420600, .systemId = HRN_PG_SYSTEMID_94, .catalogVersion = 301908232,
+            .pageSize = 32768, .walSegmentSize = 64 * 1024 * 1024);
+
+        HRN_STORAGE_PUT_EMPTY(
+            storageRepoWrite(), STORAGE_REPO_ARCHIVE "/9.4-1/000000010000000100000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+
+        TEST_TITLE("pass filter option");
+
+        TEST_RESULT_VOID(cmdArchiveGet(), "archive-get");
+
+        TEST_RESULT_LOG("P00   INFO: found 000000010000000100000001 in the repo1: 9.4-1 archive");
+    }
+
     FUNCTION_HARNESS_RETURN_VOID();
 }
