@@ -407,7 +407,7 @@ static
 bool
 getSpgist(const XLogRecord *record, RelFileNode **node)
 {
-   const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
 
     switch (info)
     {
