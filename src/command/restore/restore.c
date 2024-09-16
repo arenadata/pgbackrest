@@ -2075,12 +2075,12 @@ restoreProcessQueue(const Manifest *const manifest, List **const queueList)
             const ManifestFile file = manifestFileUnpack(manifest, filePack);
 
             Oid dbNode, relNode;
-            if (sscanf(strZ(file.name), "pg_data/base/%u/%u", &dbNode, &relNode) == 2)
+            if (sscanf(strZ(file.name), MANIFEST_TARGET_PGDATA "/" PG_PATH_BASE "/%u/%u", &dbNode, &relNode) == 2)
             {
                 if (!isRelationNeeded(dbNode, DEFAULTTABLESPACE_OID, relNode))
                     continue;
             }
-            else if (strBeginsWithZ(file.name, "pg_tblspc/"))
+            else if (strBeginsWithZ(file.name, MANIFEST_TARGET_PGTBLSPC "/"))
             {
                 StringList *lst = strLstNewSplitZ(file.name, "/");
                 if (strLstSize(lst) == 5)
