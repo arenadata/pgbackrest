@@ -48,6 +48,9 @@ testRun(void)
         "        \"relfilenode\": 16385"
         "      },"
         "      {"
+        "        \"relfilenode\": 16388"
+        "      },"
+        "      {"
         "        \"tablespace\": 1600,"
         "        \"relfilenode\": 16386"
         "      }"
@@ -69,7 +72,7 @@ testRun(void)
         TEST_RESULT_UINT(db2->dbOid, 20001, "dbOid of 2nd database");
         TEST_RESULT_UINT(db3->dbOid, 20002, "dbOid of 3rd database");
 
-        TEST_RESULT_UINT(lstSize(db1->tables), 3, "dbOid of 1st database");
+        TEST_RESULT_UINT(lstSize(db1->tables), 4, "dbOid of 1st database");
         TEST_RESULT_UINT(lstSize(db2->tables), 3, "dbOid of 2nd database");
         TEST_RESULT_UINT(lstSize(db3->tables), 0, "dbOid of 3rd database");
 
@@ -79,6 +82,8 @@ testRun(void)
             memcmp(&((Table){.spcNode = 1600, .relNode = 16386}), lstGet(db1->tables, 1), sizeof(Table)), 0, "2nd table of 1st DB");
         TEST_RESULT_INT(
             memcmp(&((Table){.spcNode = 1601, .relNode = 16385}), lstGet(db1->tables, 2), sizeof(Table)), 0, "3rd table of 1st DB");
+        TEST_RESULT_INT(
+            memcmp(&((Table){.spcNode = 1663, .relNode = 16388}), lstGet(db1->tables, 3), sizeof(Table)), 0, "4rd table of 1st DB");
         TEST_RESULT_INT(
             memcmp(&((Table){.spcNode = 1700, .relNode = 11000}), lstGet(db2->tables, 0), sizeof(Table)), 0, "1st table of 2nd DB");
         TEST_RESULT_INT(
@@ -100,12 +105,8 @@ testRun(void)
         json = jsonReadNew(STRDEF("[{\"dbOid\": 10}]"));
         TEST_ERROR(buildFilterList(json), FormatError, "tables field of table is missing");
 
-        TEST_TITLE("missing tablespace");
+        TEST_TITLE("missing relfilenode");
         json = jsonReadNew(STRDEF("[{\"dbOid\": 10, \"tables\": [{}]}]"));
-        TEST_ERROR(buildFilterList(json), FormatError, "tablespace field of table is missing");
-
-        TEST_TITLE("relfilenode tablespace");
-        json = jsonReadNew(STRDEF("[{\"dbOid\": 10, \"tables\": [{\"tablespace\": 11}]}]"));
         TEST_ERROR(buildFilterList(json), FormatError, "relfilenode field of table is missing");
     }
 

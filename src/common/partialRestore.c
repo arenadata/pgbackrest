@@ -56,7 +56,7 @@ buildFilterList(JsonRead *const json)
                 jsonReadArrayBegin(json);
                 while (jsonReadTypeNextIgnoreComma(json) != jsonTypeArrayEnd)
                 {
-                    Table table = {0};
+                    Table table = {.spcNode = DEFAULTTABLESPACE_OID};
                     // read table object
                     jsonReadObjectBegin(json);
                     while (jsonReadTypeNextIgnoreComma(json) != jsonTypeObjectEnd)
@@ -77,10 +77,6 @@ buildFilterList(JsonRead *const json)
                     }
                     jsonReadObjectEnd(json);
 
-                    if (table.spcNode == 0)
-                    {
-                        THROW(FormatError, "tablespace field of table is missing");
-                    }
                     if (table.relNode == 0)
                     {
                         THROW(FormatError, "relfilenode field of table is missing");
