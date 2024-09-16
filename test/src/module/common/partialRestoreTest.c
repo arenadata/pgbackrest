@@ -83,13 +83,13 @@ testRun(void)
         TEST_RESULT_INT(
             memcmp(&((Table){.spcNode = 1601, .relNode = 16385}), lstGet(db1->tables, 2), sizeof(Table)), 0, "3rd table of 1st DB");
         TEST_RESULT_INT(
-            memcmp(&((Table){.spcNode = 1663, .relNode = 16388}), lstGet(db1->tables, 3), sizeof(Table)), 0, "4rd table of 1st DB");
+            memcmp(&((Table){.spcNode = 1663, .relNode = 16388}), lstGet(db1->tables, 3), sizeof(Table)), 0, "4th table of 1st DB");
         TEST_RESULT_INT(
             memcmp(&((Table){.spcNode = 1700, .relNode = 11000}), lstGet(db2->tables, 0), sizeof(Table)), 0, "1st table of 2nd DB");
         TEST_RESULT_INT(
             memcmp(&((Table){.spcNode = 1700, .relNode = 16386}), lstGet(db2->tables, 1), sizeof(Table)), 0, "2nd table of 2nd DB");
         TEST_RESULT_INT(
-            memcmp(&((Table){.spcNode = 1701, .relNode = 10000}), lstGet(db2->tables, 2), sizeof(Table)), 0, "3th table of 2nd DB");
+            memcmp(&((Table){.spcNode = 1701, .relNode = 10000}), lstGet(db2->tables, 2), sizeof(Table)), 0, "3rd table of 2nd DB");
 
         Table *found = lstFind(db1->tables, &((Table){.spcNode = 1600, .relNode = 16384}));
         TEST_RESULT_INT(memcmp(&((Table){.spcNode = 1600, .relNode = 16384}), found, sizeof(Table)), 0, "test find");
