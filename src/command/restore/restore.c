@@ -2075,11 +2075,13 @@ restoreProcessQueue(const Manifest *const manifest, List **const queueList)
             const ManifestFile file = manifestFileUnpack(manifest, filePack);
 
             Oid dbNode, relNode;
+            // If this file is located in the default tablespace
             if (sscanf(strZ(file.name), MANIFEST_TARGET_PGDATA "/" PG_PATH_BASE "/%u/%u", &dbNode, &relNode) == 2)
             {
                 if (!isRelationNeeded(dbNode, DEFAULTTABLESPACE_OID, relNode))
                     continue;
             }
+            // If this file is located in a non-built-in tablespace
             else if (strBeginsWithZ(file.name, MANIFEST_TARGET_PGTBLSPC "/"))
             {
                 StringList *lst = strLstNewSplitZ(file.name, "/");
