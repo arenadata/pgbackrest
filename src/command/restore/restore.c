@@ -2083,7 +2083,7 @@ restoreProcessQueue(const Manifest *const manifest, List **const queueList)
                 if (
                     // If this file is located in the default tablespace
                     sscanf(strZ(file.name), MANIFEST_TARGET_PGDATA "/" PG_PATH_BASE "/%u/%u", &dbNode, &relNode) == 2 ||
-	                // If this file is located in a non-built-in tablespace
+                    // If this file is located in a non-built-in tablespace
                     sscanf(strZ(file.name), MANIFEST_TARGET_PGTBLSPC "/%u/%31[^/]/%u/%u", &spcNode, tsId, &dbNode, &relNode) == 4)
                 {
                     if (!isRelationNeeded(dbNode, spcNode, relNode))
