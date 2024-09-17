@@ -2079,12 +2079,11 @@ restoreProcessQueue(const Manifest *const manifest, List **const queueList)
             {
                 Oid dbNode, relNode;
                 Oid spcNode = DEFAULTTABLESPACE_OID;
-                char tsId[32];
                 if (
                     // If this file is located in the default tablespace
                     sscanf(strZ(file.name), MANIFEST_TARGET_PGDATA "/" PG_PATH_BASE "/%u/%u", &dbNode, &relNode) == 2 ||
                     // If this file is located in a non-built-in tablespace
-                    sscanf(strZ(file.name), MANIFEST_TARGET_PGTBLSPC "/%u/%31[^/]/%u/%u", &spcNode, tsId, &dbNode, &relNode) == 4)
+                    sscanf(strZ(file.name), MANIFEST_TARGET_PGTBLSPC "/%u/%*[^/]/%u/%u", &spcNode, &dbNode, &relNode) == 3)
                 {
                     if (!isRelationNeeded(dbNode, spcNode, relNode))
                         continue;
