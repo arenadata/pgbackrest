@@ -2502,6 +2502,12 @@ cmdRestore(void)
             strNewFmt(STORAGE_REPO_BACKUP "/%s/" BACKUP_MANIFEST_FILE, strZ(backupData.backupSet)), backupData.repoCipherType,
             backupData.backupCipherPass);
 
+        if (cfgOptionTest(cfgOptFilter) &&
+            (cfgOptionStrId(cfgOptFork) != CFGOPTVAL_FORK_GPDB || manifestData(jobData.manifest)->pgVersion != PG_VERSION_94))
+        {
+            THROW(OptionInvalidError, "option '" CFGOPT_FILTER "' is supported on GPDB 6 only");
+        }
+
         // Remotes (if any) are no longer needed since the rest of the repository reads will be done by the local processes
         protocolFree();
 
