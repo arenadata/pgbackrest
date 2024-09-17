@@ -3411,6 +3411,7 @@ testRun(void)
         HRN_STORAGE_PUT_EMPTY(storageTest, "ts/GPDB_6_301908232/16416/20001_fsm");
         HRN_STORAGE_PUT_EMPTY(storageTest, "ts/GPDB_6_301908232/16416/20001_vm");
         HRN_STORAGE_PUT_EMPTY(storageTest, "ts/GPDB_6_301908232/16416/" PG_FILE_PGVERSION);
+        HRN_STORAGE_PUT_EMPTY(storageTest, "ts/GPDB_6_301908232/16416/pg_filenode.map");
         HRN_STORAGE_PUT_EMPTY(storageTest, "ts/GPDB_6_301908232/invalidDir/20003");
         HRN_STORAGE_PUT_EMPTY(storageTest, "ts/GPDB_6_301908232/invalidFile");
         HRN_STORAGE_PATH_CREATE(storagePgWrite(), PG_PATH_PGTBLSPC);
@@ -3505,6 +3506,7 @@ testRun(void)
             "16416/20000_fsm\n"
             "16416/20000_vm\n"
             "16416/" PG_FILE_PGVERSION "\n"
+            "16416/pg_filenode.map\n"
             "invalidDir/\n"
             "invalidDir/20003\n"
             "invalidFile\n",
