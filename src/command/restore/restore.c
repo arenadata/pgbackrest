@@ -2077,29 +2077,17 @@ restoreProcessQueue(const Manifest *const manifest, List **const queueList)
 
             if (isFilterSet)
             {
-                Oid dbNode, spcNode, relNode;
-                // If this file is located in the default tablespace
-                if (sscanf(strZ(file.name), MANIFEST_TARGET_PGDATA "/" PG_PATH_BASE "/%u/%u", &dbNode, &relNode) == 2)
+                Oid dbNode, relNode;
+                Oid spcNode = DEFAULTTABLESPACE_OID;
+                char tsId[32];
+                if (
+                    // If this file is located in the default tablespace
+                    sscanf(strZ(file.name), MANIFEST_TARGET_PGDATA "/" PG_PATH_BASE "/%u/%u", &dbNode, &relNode) == 2 ||
+	                // If this file is located in a non-built-in tablespace
+                    sscanf(strZ(file.name), MANIFEST_TARGET_PGTBLSPC "/%u/%31[^/]/%u/%u", &spcNode, tsId, &dbNode, &relNode) == 4)
                 {
-                    if (!isRelationNeeded(dbNode, DEFAULTTABLESPACE_OID, relNode))
+                    if (!isRelationNeeded(dbNode, spcNode, relNode))
                         continue;
-                }
-                // If this file is located in a non-built-in tablespace
-                else if (sscanf(strZ(file.name), MANIFEST_TARGET_PGTBLSPC "/%u", &spcNode) == 1)
-                {
-                    StringList *lst = strLstNewSplitZ(file.name, "/");
-                    if (strLstSize(lst) == 5)
-                    {
-                        if (
-                            sscanf(strZ(strLstGet(lst, 3)), "%u", &dbNode) == 1 &&
-                            sscanf(strZ(strLstGet(lst, 4)), "%u", &relNode) == 1 &&
-                            !isRelationNeeded(dbNode, spcNode, relNode))
-                        {
-                            strLstFree(lst);
-                            continue;
-                        }
-                    }
-                    strLstFree(lst);
                 }
             }
 
