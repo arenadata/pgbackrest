@@ -3404,6 +3404,8 @@ testRun(void)
         HRN_STORAGE_PUT_EMPTY(storagePgWrite(), PG_PATH_BASE "/1/40045");
         HRN_STORAGE_PUT_EMPTY(storagePgWrite(), PG_PATH_BASE "/1/40045_fsm");
         HRN_STORAGE_PUT_EMPTY(storagePgWrite(), PG_PATH_BASE "/1/40045_vm");
+        HRN_STORAGE_PUT_EMPTY(storagePgWrite(), PG_PATH_BASE "/1/" PG_FILE_PGVERSION);
+        HRN_STORAGE_PUT_EMPTY(storagePgWrite(), PG_PATH_BASE "/1/pg_filenode.map");
         HRN_STORAGE_PUT_EMPTY(storageTest, "ts/GPDB_6_301908232/16416/20000");
         HRN_STORAGE_PUT_EMPTY(storageTest, "ts/GPDB_6_301908232/16416/20000_fsm");
         HRN_STORAGE_PUT_EMPTY(storageTest, "ts/GPDB_6_301908232/16416/20000_vm");
@@ -3492,6 +3494,8 @@ testRun(void)
             "base/1/40045\n"
             "base/1/40045_fsm\n"
             "base/1/40045_vm\n"
+            "base/1/" PG_FILE_PGVERSION "\n"
+            "base/1/pg_filenode.map\n"
             "global/\n"
             "global/pg_control\n"
             PG_PATH_PGTBLSPC "/\n"
