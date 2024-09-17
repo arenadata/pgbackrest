@@ -2069,37 +2069,38 @@ restoreProcessQueue(const Manifest *const manifest, List **const queueList)
         MEM_CONTEXT_END();
 
         // Now put all files into the processing queues
+        const bool isFilterSet = cfgOptionTest(cfgOptFilter);
         for (unsigned int fileIdx = 0; fileIdx < manifestFileTotal(manifest); fileIdx++)
         {
             const ManifestFilePack *const filePack = manifestFilePackGet(manifest, fileIdx);
             const ManifestFile file = manifestFileUnpack(manifest, filePack);
 
-            Oid dbNode, relNode;
-            // If this file is located in the default tablespace
-            if (sscanf(strZ(file.name), MANIFEST_TARGET_PGDATA "/" PG_PATH_BASE "/%u/%u", &dbNode, &relNode) == 2)
+            if (isFilterSet)
             {
-                if (!isRelationNeeded(dbNode, DEFAULTTABLESPACE_OID, relNode))
-                    continue;
-            }
-            // If this file is located in a non-built-in tablespace
-            else if (strBeginsWithZ(file.name, MANIFEST_TARGET_PGTBLSPC "/"))
-            {
-                StringList *lst = strLstNewSplitZ(file.name, "/");
-                if (strLstSize(lst) == 5)
+                Oid dbNode, spcNode, relNode;
+                // If this file is located in the default tablespace
+                if (sscanf(strZ(file.name), MANIFEST_TARGET_PGDATA "/" PG_PATH_BASE "/%u/%u", &dbNode, &relNode) == 2)
                 {
-                    Oid spcNode;
-                    if (
-                        // Check all sscanf-s at once to simplify the tests
-                        sscanf(strZ(strLstGet(lst, 1)), "%u", &spcNode) +
-                        sscanf(strZ(strLstGet(lst, 3)), "%u", &dbNode) +
-                        sscanf(strZ(strLstGet(lst, 4)), "%u", &relNode) == 3 &&
-                        !isRelationNeeded(dbNode, spcNode, relNode))
-                    {
-                        strLstFree(lst);
+                    if (!isRelationNeeded(dbNode, DEFAULTTABLESPACE_OID, relNode))
                         continue;
-                    }
                 }
-                strLstFree(lst);
+                // If this file is located in a non-built-in tablespace
+                else if (sscanf(strZ(file.name), MANIFEST_TARGET_PGTBLSPC "/%u", &spcNode) == 1)
+                {
+                    StringList *lst = strLstNewSplitZ(file.name, "/");
+                    if (strLstSize(lst) == 5)
+                    {
+                        if (
+                            sscanf(strZ(strLstGet(lst, 3)), "%u", &dbNode) == 1 &&
+                            sscanf(strZ(strLstGet(lst, 4)), "%u", &relNode) == 1 &&
+                            !isRelationNeeded(dbNode, spcNode, relNode))
+                        {
+                            strLstFree(lst);
+                            continue;
+                        }
+                    }
+                    strLstFree(lst);
+                }
             }
 
             // Find the target that contains this file
