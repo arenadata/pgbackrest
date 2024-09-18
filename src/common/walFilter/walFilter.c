@@ -57,7 +57,6 @@ typedef struct WalFilter
 
     XLogPageHeaderData *current_header;
 
-    size_t record_size;
     XLogRecord *record;
     size_t rec_buf_size;
     // Offset to the body of the record on the current page
@@ -89,14 +88,13 @@ walFilterToLog(const WalFilterState *const this, StringStatic *const debugLog)
 {
     strStcFmt(
         debugLog,
-        "{record_num: %u, step: %u is_begin: %s, page_offset: %zu, input_offset: %zu, record_size: %zu, rec_buf_size: %zu,"
+        "{record_num: %u, step: %u is_begin: %s, page_offset: %zu, input_offset: %zu, rec_buf_size: %zu,"
         " header_offset: %zu, got_len: %zu, tot_len: %zu}",
         this->i,
         this->currentStep,
         this->is_begin ? "true" : "false",
         this->page_offset,
         this->input_offset,
-        this->record_size,
         this->rec_buf_size,
         this->header_offset,
         this->got_len,
@@ -211,16 +209,16 @@ stepBeginOfRecord:
     }
 
     // Record header can be split between pages but first field xl_tot_len is always on single page
-    this->record_size = getRecordSize(this->page + this->page_offset);
+    uint32_t record_size = getRecordSize(this->page + this->page_offset);
 
-    if (this->rec_buf_size < this->record_size)
+    if (this->rec_buf_size < record_size)
     {
         MEM_CONTEXT_OBJ_BEGIN(this)
         {
-            this->record = memResize(this->record, this->record_size);
+            this->record = memResize(this->record, record_size);
         }
         MEM_CONTEXT_OBJ_END();
-        this->rec_buf_size = this->record_size;
+        this->rec_buf_size = record_size;
     }
 
     memcpy(this->record, this->page + this->page_offset, Min(SizeOfXLogRecord, this->walPageSize - this->page_offset));
