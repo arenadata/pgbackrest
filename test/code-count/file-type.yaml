@@ -1975,6 +1975,10 @@ src/common/walFilter/versions/recordProcessGPDB6.h:
   class: core
   type: c/h
 
+src/common/walFilter/versions/xlogInfoGPDB6.h:
+  class: core
+  type: c/h
+
 src/config/common.c:
   class: core
   type: c

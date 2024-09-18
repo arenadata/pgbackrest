@@ -7,7 +7,6 @@
 #include "common/type/object.h"
 
 #include "common/compress/helper.h"
-#include "common/crypto/cipherBlock.h"
 #include "common/partialRestore.h"
 #include "config/config.h"
 #include "greenplumCommon.h"

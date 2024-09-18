@@ -38,7 +38,7 @@ typedef struct buildWalParam
 {
     VAR_PARAM_HEADER;
     PgPageSize pageSize;
-}buildWalParam;
+} buildWalParam;
 
 static Buffer *
 testFilter(IoFilter *filter, Buffer *wal, size_t inputSize, size_t outputSize)
@@ -116,9 +116,7 @@ test_get_relfilenode(uint8_t rmid, uint8_t info, bool expect_not_skip)
     if (expect_not_skip)
         TEST_RESULT_BOOL(memcmp(&node_expect, node_result, sizeof(RelFileNode)), 0, "RelFileNode is different from expected");
     else
-    {
         TEST_RESULT_PTR(node_result, NULL, "node_result is not empty");
-    }
     memFree(record);
 }
 
@@ -169,7 +167,7 @@ testRun(void)
         };
 
         TEST_TITLE("simple read begin from prev file");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(32768);
 
@@ -233,7 +231,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("override record in the beginning of prev file");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(32768);
             record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 32688, NULL);
@@ -263,7 +261,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("no prev file");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *zeros = bufNew(32768);
             memset(bufPtr(zeros), 0, bufUsed(zeros));
@@ -287,7 +285,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000033-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("no WAL files in repository");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
 
         wal2 = bufNew(1024 * 1024);
         record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 100, NULL);
@@ -296,17 +294,14 @@ testRun(void)
         hrnGpdbWalInsertXRecordSimple(wal2, record);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
-        TEST_ERROR(testFilter(
-                       filter,
-                       wal2,
-                       bufSize(wal2),
-                       bufSize(wal2)),
-                   FormatError,
-                   "no WAL files were found in the repository");
+        TEST_ERROR(
+            testFilter(filter, wal2, bufSize(wal2), bufSize(wal2)),
+            FormatError,
+            "no WAL files were found in the repository");
         bufFree(wal2);
 
         TEST_TITLE("usefully part of the record in prev file");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(32768);
 
@@ -338,7 +333,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("record is too big");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(32768);
 
@@ -357,7 +352,7 @@ testRun(void)
 
         wal2 = bufNew(1024 * 1024);
         record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 65536, NULL);
-        hrnGpdbWalInsertXRecordP(wal2, record, 0, .segno = 2, .begin_offset = 65568  - 8);
+        hrnGpdbWalInsertXRecordP(wal2, record, 0, .segno = 2, .begin_offset = 65568 - 8);
         record = hrnGpdbCreateXRecord(0, XLOG_SWITCH, 0, NULL);
         hrnGpdbWalInsertXRecordSimple(wal2, record);
 
@@ -369,7 +364,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("multiply WAL files");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(32768);
 
@@ -432,16 +427,16 @@ testRun(void)
             "1={\"db-id\":" HRN_PG_SYSTEMID_94_Z ",\"db-version\":\"9.4\"}",
             .cipherType = cipherTypeAes256Cbc);
 
-        hrnCfgArgRawStrId(argBaseList, cfgOptRepoCipherType,  cipherTypeAes256Cbc);
+        hrnCfgArgRawStrId(argBaseList, cfgOptRepoCipherType, cipherTypeAes256Cbc);
         hrnCfgEnvRawZ(cfgOptRepoCipherPass, TEST_CIPHER_PASS);
         HRN_CFG_LOAD(cfgCmdArchiveGet, argBaseList);
 
         archiveInfo.cipherType = cipherTypeAes256Cbc;
         archiveInfo.cipherPassArchive = STRDEF(TEST_CIPHER_PASS_ARCHIVE);
-        archiveInfo.file =
-            STRDEF(STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd.gz");
+        archiveInfo.file = STRDEF(
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd.gz");
 
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(32768);
 
@@ -510,7 +505,7 @@ testRun(void)
         };
 
         TEST_TITLE("simple read end from next file");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(32768);
 
@@ -539,7 +534,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("no files in repository");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
 
         wal2 = bufNew(32768);
         record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 32680, NULL);
@@ -553,7 +548,7 @@ testRun(void)
         bufFree(wal2);
 
         TEST_TITLE("multiply WAL files");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(32768);
 
@@ -599,7 +594,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000040-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("simple read end from next file");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *zeros = bufNew(32768);
             memset(bufPtr(zeros), 0, bufUsed(zeros));
@@ -625,7 +620,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("read more then one page from next file");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(98304);
 
@@ -654,7 +649,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("Unexpected WAL end");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(98304);
 
@@ -683,7 +678,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("usefully part of header in the next file");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(32768);
 
@@ -727,7 +722,7 @@ testRun(void)
             "1={\"db-id\":" HRN_PG_SYSTEMID_94_Z ",\"db-version\":\"9.4\"}",
             .cipherType = cipherTypeAes256Cbc);
 
-        hrnCfgArgRawStrId(argBaseList, cfgOptRepoCipherType,  cipherTypeAes256Cbc);
+        hrnCfgArgRawStrId(argBaseList, cfgOptRepoCipherType, cipherTypeAes256Cbc);
         hrnCfgEnvRawZ(cfgOptRepoCipherPass, TEST_CIPHER_PASS);
         HRN_CFG_LOAD(cfgCmdArchiveGet, argBaseList);
 
@@ -736,7 +731,7 @@ testRun(void)
         archiveInfo.file = STRDEF(
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd.gz");
 
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         {
             Buffer *wal1 = bufNew(32768);
 
@@ -770,13 +765,13 @@ testRun(void)
     if (testBegin("read valid wal"))
     {
         TEST_TITLE("one simple record");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 100}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
         }
         result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
@@ -784,7 +779,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("split header");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -792,7 +787,7 @@ testRun(void)
                 {RM_XLOG_ID, XLOG_NOOP, 2720},
                 {RM_XLOG_ID, XLOG_NOOP, 100}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
         }
         result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
@@ -800,7 +795,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("split body");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -812,7 +807,7 @@ testRun(void)
                 {RM_XLOG_ID, XLOG_NOOP, 2000},
                 {RM_XLOG_ID, XLOG_NOOP, 1000}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
         }
         result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
@@ -820,7 +815,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("not enough input buffer - begin of record");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -830,7 +825,7 @@ testRun(void)
                 {RM_XLOG_ID, XLOG_NOOP, 2696},
                 {RM_XLOG_ID, XLOG_NOOP, 100},
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
         }
         result = testFilter(filter, wal, DEFAULT_GDPB_XLOG_PAGE_SIZE, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         TEST_RESULT_BOOL(bufEq(wal, result), true, "not enough input buffer - begin of record");
@@ -838,7 +833,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("not enough input buffer - header");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -848,7 +843,7 @@ testRun(void)
                 {RM_XLOG_ID, XLOG_NOOP, 2688},
                 {RM_XLOG_ID, XLOG_NOOP, 100},
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
         }
         result = testFilter(filter, wal, DEFAULT_GDPB_XLOG_PAGE_SIZE, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
@@ -856,7 +851,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("not enough input buffer - body");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -866,7 +861,7 @@ testRun(void)
                 {RM_XLOG_ID, XLOG_NOOP, 2500},
                 {RM_XLOG_ID, XLOG_NOOP, 1000},
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
         }
         result = testFilter(filter, wal, DEFAULT_GDPB_XLOG_PAGE_SIZE, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
@@ -874,13 +869,13 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("copy data after wal switch");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 100}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
 
             size_t to_write = DEFAULT_GDPB_XLOG_PAGE_SIZE * 3 - bufUsed(wal);
             memset(bufRemainsPtr(wal), 0, to_write);
@@ -892,7 +887,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("copy data after wal switch from beginning of page");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
             XRecordInfo walRecords[] = {
@@ -901,7 +896,7 @@ testRun(void)
                 {RM_XLOG_ID, XLOG_NOOP, 9968},
                 {RM_XLOG_ID, XLOG_NOOP, 2664}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
 
             size_t to_write = DEFAULT_GDPB_XLOG_PAGE_SIZE * 3 - bufUsed(wal);
             memset(bufRemainsPtr(wal), 0, to_write);
@@ -913,7 +908,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("override record in header");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
 
@@ -936,7 +931,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("override record in header");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
 
@@ -959,7 +954,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("override record at the beginning");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XLogRecord *record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 100, NULL);
@@ -967,7 +962,7 @@ testRun(void)
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 100}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
         }
         result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
@@ -975,7 +970,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("valid full page image with max size");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
@@ -984,8 +979,8 @@ testRun(void)
             info |= XLR_BKP_BLOCK(2);
             info |= XLR_BKP_BLOCK(3);
 
-            XLogRecord *record = hrnGpdbCreateXRecord(0, info,
-                                                      1 + XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + DEFAULT_GDPB_PAGE_SIZE), NULL);
+            XLogRecord *record = hrnGpdbCreateXRecord(
+                0, info, 1 + XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + DEFAULT_GDPB_PAGE_SIZE), NULL);
             record->xl_len = 1;
             memset(XLogRecGetData(record), 0, 1);
             memset(XLogRecGetData(record) + 1, 0, XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + DEFAULT_GDPB_PAGE_SIZE));
@@ -1002,13 +997,13 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("long record");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 196608}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
         }
         result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
@@ -1019,7 +1014,7 @@ testRun(void)
     if (testBegin("read invalid wal"))
     {
         TEST_TITLE("wrong header magic");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XLogRecord *record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 100, NULL);
@@ -1030,82 +1025,79 @@ testRun(void)
         bufFree(wal);
 
         TEST_TITLE("XLP_FIRST_IS_CONTRECORD in the beginning of the record");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 29968},
                 {RM_XLOG_ID, XLOG_NOOP, 2696},
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), NO_SWITCH_WAL);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), NO_SWITCH_WAL);
             XLogRecord *record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 100, NULL);
             hrnGpdbWalInsertXRecordP(wal, record, COND_FLAG);
             fillLastPage(wal, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         }
-        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError,
-                   "should not be XLP_FIRST_IS_CONTRECORD");
+        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "should not be XLP_FIRST_IS_CONTRECORD");
         bufFree(wal);
 
         TEST_TITLE("no XLP_FIRST_IS_CONTRECORD in split header");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 29968},
                 {RM_XLOG_ID, XLOG_NOOP, 2688},
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), NO_SWITCH_WAL);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), NO_SWITCH_WAL);
             XLogRecord *record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 100, NULL);
             hrnGpdbWalInsertXRecordP(wal, record, NO_COND_FLAG);
             fillLastPage(wal, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         }
-        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError,
-                   "should be XLP_FIRST_IS_CONTRECORD");
+        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "should be XLP_FIRST_IS_CONTRECORD");
         bufFree(wal);
 
         TEST_TITLE("no XLP_FIRST_IS_CONTRECORD in split body");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 29968},
                 {RM_XLOG_ID, XLOG_NOOP, 2588},
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), NO_SWITCH_WAL);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), NO_SWITCH_WAL);
             XLogRecord *record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 500, NULL);
             hrnGpdbWalInsertXRecordP(wal, record, NO_COND_FLAG);
             fillLastPage(wal, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         }
-        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError,
-                   "should be XLP_FIRST_IS_CONTRECORD");
+        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "should be XLP_FIRST_IS_CONTRECORD");
         bufFree(wal);
 
         TEST_TITLE("zero rem_len");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 29968},
                 {RM_XLOG_ID, XLOG_NOOP, 2588},
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), NO_SWITCH_WAL);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), NO_SWITCH_WAL);
             XLogRecord *record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 500, NULL);
             hrnGpdbWalInsertXRecordP(wal, record, ZERO_REM_LEN);
             fillLastPage(wal, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         }
-        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError,
-                   "invalid contrecord length: expect: 428, get 0");
+        TEST_ERROR(
+            testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "invalid contrecord length: expect: 428, get 0");
         bufFree(wal);
 
         TEST_TITLE("zero rem_len");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 29968},
                 {RM_XLOG_ID, XLOG_NOOP, 2588},
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), NO_SWITCH_WAL);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), NO_SWITCH_WAL);
             XLogRecord *record = hrnGpdbCreateXRecord(RM_XLOG_ID, XLOG_NOOP, 500, NULL);
             hrnGpdbWalInsertXRecordP(wal, record, WRONG_REM_LEN);
             fillLastPage(wal, DEFAULT_GDPB_XLOG_PAGE_SIZE);
@@ -1115,13 +1107,13 @@ testRun(void)
         bufFree(wal);
 
         TEST_TITLE("non zero length of xlog switch record body");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 100}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), NO_SWITCH_WAL);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), NO_SWITCH_WAL);
             XLogRecord *record = hrnGpdbCreateXRecord(0, XLOG_SWITCH, 100, NULL);
             hrnGpdbWalInsertXRecordSimple(wal, record);
             fillLastPage(wal, DEFAULT_GDPB_XLOG_PAGE_SIZE);
@@ -1130,19 +1122,19 @@ testRun(void)
         bufFree(wal);
 
         TEST_TITLE("record with zero length");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {0, XLOG_NOOP, 0}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
         }
         TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "record with zero length");
         bufFree(wal);
 
         TEST_TITLE("invalid record length");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XLogRecord *record = hrnGpdbCreateXRecord(0, XLOG_NOOP, 100, NULL);
@@ -1153,7 +1145,7 @@ testRun(void)
         bufFree(wal);
 
         TEST_TITLE("invalid record length 2");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XLogRecord *record = hrnGpdbCreateXRecord(0, XLOG_NOOP, 100, NULL);
@@ -1167,7 +1159,7 @@ testRun(void)
         bufFree(wal);
 
         TEST_TITLE("invalid resource manager ID");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XLogRecord *record = hrnGpdbCreateXRecord(UINT8_MAX, XLOG_NOOP, 100, NULL);
@@ -1177,7 +1169,7 @@ testRun(void)
         bufFree(wal);
 
         TEST_TITLE("invalid backup block size in record");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
@@ -1185,12 +1177,11 @@ testRun(void)
             XLogRecord *record = hrnGpdbCreateXRecord(0, info, 100, NULL);
             hrnGpdbWalInsertXRecordSimple(wal, record);
         }
-        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError,
-                   "invalid backup block size in record");
+        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "invalid backup block size in record");
         bufFree(wal);
 
         TEST_TITLE("incorrect hole size in record");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
@@ -1208,8 +1199,8 @@ testRun(void)
         bufFree(wal);
 
         TEST_TITLE("invalid backup block size in record");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
@@ -1223,19 +1214,17 @@ testRun(void)
 
             hrnGpdbWalInsertXRecordSimple(wal, record);
         }
-        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError,
-                   "invalid backup block size in record");
+        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "invalid backup block size in record");
         bufFree(wal);
 
         TEST_TITLE("incorrect total length in record");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
             info |= XLR_BKP_BLOCK(0);
-            XLogRecord *record = hrnGpdbCreateXRecord(0, info, sizeof(BkpBlock) + DEFAULT_GDPB_PAGE_SIZE + 100 + 200,
-                                                      NULL);
+            XLogRecord *record = hrnGpdbCreateXRecord(0, info, sizeof(BkpBlock) + DEFAULT_GDPB_PAGE_SIZE + 100 + 200, NULL);
             record->xl_len = 100;
 
             BkpBlock *blkp = (BkpBlock *) (XLogRecGetData(record) + 100);
@@ -1244,12 +1233,11 @@ testRun(void)
 
             hrnGpdbWalInsertXRecordSimple(wal, record);
         }
-        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError,
-                   "incorrect total length in record");
+        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "incorrect total length in record");
         bufFree(wal);
 
         TEST_TITLE("incorrect resource manager data checksum in record");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, NULL);
         {
             wal = bufNew(1024 * 1024);
             XLogRecord *record = hrnGpdbCreateXRecord(0, XLOG_NOOP, 100, NULL);
@@ -1283,8 +1271,7 @@ testRun(void)
         test_get_relfilenode(RM_XLOG_ID, XLOG_FPI, true);
 
         record = hrnGpdbCreateXRecord(RM_XLOG_ID, 0xD0, 100, NULL);
-        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError,
-                   "XLOG UNKNOWN: 208");
+        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError, "XLOG UNKNOWN: 208");
         memFree(record);
 
         TEST_TITLE("Storage");
@@ -1306,8 +1293,7 @@ testRun(void)
         memFree(record);
 
         record = hrnGpdbCreateXRecord(RM_SMGR_ID, 0x30, 100, NULL);
-        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError,
-                   "Storage UNKNOWN: 48");
+        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError, "Storage UNKNOWN: 48");
         memFree(record);
 
         TEST_TITLE("Heap2");
@@ -1365,8 +1351,7 @@ testRun(void)
         test_get_relfilenode(RM_BTREE_ID, XLOG_BTREE_REUSE_PAGE, true);
 
         record = hrnGpdbCreateXRecord(RM_BTREE_ID, 0xF0, 100, NULL);
-        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError,
-                   "Btree UNKNOWN: 240");
+        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError, "Btree UNKNOWN: 240");
         memFree(record);
 
         TEST_TITLE("GIN");
@@ -1382,8 +1367,7 @@ testRun(void)
         test_get_relfilenode(RM_GIN_ID, XLOG_GIN_DELETE_LISTPAGE, true);
 
         record = hrnGpdbCreateXRecord(RM_GIN_ID, 0xA0, 100, NULL);
-        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError,
-                   "GIN UNKNOWN: 160");
+        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError, "GIN UNKNOWN: 160");
         memFree(record);
 
         TEST_TITLE("GIST");
@@ -1392,16 +1376,14 @@ testRun(void)
         test_get_relfilenode(RM_GIST_ID, XLOG_GIST_CREATE_INDEX, true);
 
         record = hrnGpdbCreateXRecord(RM_GIST_ID, 0x60, 100, NULL);
-        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError,
-                   "GIST UNKNOWN: 96");
+        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError, "GIST UNKNOWN: 96");
         memFree(record);
 
         TEST_TITLE("Sequence");
         test_get_relfilenode(RM_SEQ_ID, XLOG_SEQ_LOG, true);
 
         record = hrnGpdbCreateXRecord(RM_SEQ_ID, 0x10, 100, NULL);
-        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError,
-                   "Sequence UNKNOWN: 16");
+        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError, "Sequence UNKNOWN: 16");
         memFree(record);
 
         TEST_TITLE("SPGIST");
@@ -1416,8 +1398,7 @@ testRun(void)
         test_get_relfilenode(RM_SPGIST_ID, XLOG_SPGIST_VACUUM_REDIRECT, true);
 
         record = hrnGpdbCreateXRecord(RM_SPGIST_ID, 0x90, 100, NULL);
-        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError,
-                   "SPGIST UNKNOWN: 144");
+        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError, "SPGIST UNKNOWN: 144");
         memFree(record);
 
         TEST_TITLE("Bitmap");
@@ -1429,8 +1410,7 @@ testRun(void)
         test_get_relfilenode(RM_BITMAP_ID, XLOG_BITMAP_UPDATEWORDS, true);
 
         record = hrnGpdbCreateXRecord(RM_BITMAP_ID, 0x90, 100, NULL);
-        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError,
-                   "Bitmap UNKNOWN: 144");
+        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError, "Bitmap UNKNOWN: 144");
         memFree(record);
 
         TEST_TITLE("Appendonly");
@@ -1438,8 +1418,7 @@ testRun(void)
         test_get_relfilenode(RM_APPEND_ONLY_ID, XLOG_APPENDONLY_TRUNCATE, true);
 
         record = hrnGpdbCreateXRecord(RM_APPEND_ONLY_ID, 0x30, 100, NULL);
-        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError,
-                   "Appendonly UNKNOWN: 48");
+        TEST_ERROR(getRelFileNodeGPDB6(record, NULL), FormatError, "Appendonly UNKNOWN: 48");
         memFree(record);
 
         TEST_TITLE("Resource managers without Relfilenode");
@@ -1486,7 +1465,7 @@ testRun(void)
         const Storage *storageTest = storagePosixNewP(TEST_PATH_STR, .write = true);
         HRN_STORAGE_PUT_Z(storageTest, "recovery_filter.json", "[]");
 
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, DEFAULT_GDPB_XLOG_PAGE_SIZE, &archiveInfo);
         RelFileNode node1 = {
             .dbNode = 30000,
             .spcNode = 1000,
@@ -1556,8 +1535,9 @@ testRun(void)
         }
         HRN_FORK_END();
         bufFree(wal2);
-        HRN_STORAGE_REMOVE(storageRepoWrite(),
-                           STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+        HRN_STORAGE_REMOVE(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("Filter");
         const String *jsonstr = STRDEF("[\n"
@@ -1677,11 +1657,11 @@ testRun(void)
 
         {
             RelFileNode nodes[] = {
-                {1600, 1, 1000},         // template1
-                {1600, 12809, 1000},         // template0
-                {1700, 12812, 1000},         // postgres system catalog
-                {1700, 12812, 17000},         // postgres
-                {1700, 16399, 17000},         // user database
+                {1600, 1, 1000},      // template1
+                {1600, 12809, 1000},  // template0
+                {1700, 12812, 1000},  // postgres system catalog
+                {1700, 12812, 17000}, // postgres
+                {1700, 16399, 17000}, // user database
             };
 
             XRecordInfo records[] = {
@@ -1732,13 +1712,13 @@ testRun(void)
         // Some basic tests of non-standard (for gpdb) xlog page sizes.
 
         TEST_TITLE("one simple record");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, 8192, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, 8192, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 100}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0, .pageSize = 8192);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0, .pageSize = 8192);
         }
         result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
@@ -1746,14 +1726,14 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("split header");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, 8192, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, 8192, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 8112},
                 {RM_XLOG_ID, XLOG_NOOP, 100}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0, .pageSize = 8192);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0, .pageSize = 8192);
         }
         result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
@@ -1761,14 +1741,14 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("split body");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, 8192, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, 8192, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 8080},
                 {RM_XLOG_ID, XLOG_NOOP, 100}
             };
-            buildWalP(wal, walRecords, sizeof(walRecords) / sizeof(walRecords[0]), 0, .pageSize = 8192);
+            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0, .pageSize = 8192);
         }
         result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
@@ -1776,7 +1756,7 @@ testRun(void)
         bufFree(result);
 
         TEST_TITLE("valid full page image with max size");
-        filter = walFilterNew(PG_VERSION_94,  CFGOPTVAL_FORK_GPDB, 8192, NULL);
+        filter = walFilterNew(PG_VERSION_94, CFGOPTVAL_FORK_GPDB, 8192, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;

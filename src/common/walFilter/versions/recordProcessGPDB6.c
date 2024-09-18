@@ -78,8 +78,7 @@ typedef struct xl_heap_new_cid
 
 // Get RelFileNode from XLOG record.
 // Only XLOG_FPI contains RelFileNode, so the other record types are ignored.
-static
-bool
+static bool
 getXlog(const XLogRecord *record, RelFileNode **node)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -114,8 +113,7 @@ getXlog(const XLogRecord *record, RelFileNode **node)
 
 // Get RelFileNode from Storage record.
 // in XLOG_SMGR_TRUNCATE, the RelFileNode is not at the beginning of the structure.
-static
-bool
+static bool
 getStorage(const XLogRecord *record, RelFileNode **node)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -145,8 +143,7 @@ getStorage(const XLogRecord *record, RelFileNode **node)
 // in XLOG_HEAP2_NEW_CID, the RelFileNode is not at the beginning of the structure.
 // this function does not throw errors because XLOG_HEAP_OPMASK contains only 3 non-zero bits, which gives 8 possible values, all of
 // which are used.
-static
-bool
+static bool
 getHeap2(const XLogRecord *record, RelFileNode **node)
 {
     uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -177,8 +174,7 @@ getHeap2(const XLogRecord *record, RelFileNode **node)
 // Get RelFileNode from Heap record.
 // this function does not throw errors because XLOG_HEAP_OPMASK contains only 3 non-zero bits, which gives 8 possible values, all of
 // which are used.
-static
-bool
+static bool
 getHeap(const XLogRecord *record, RelFileNode **node)
 {
     uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -202,8 +198,7 @@ getHeap(const XLogRecord *record, RelFileNode **node)
 }
 
 // Get RelFileNode from Btree record.
-static
-bool
+static bool
 getBtree(const XLogRecord *record, RelFileNode **node)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -234,8 +229,7 @@ getBtree(const XLogRecord *record, RelFileNode **node)
 }
 
 // Get RelFileNode from Gin record.
-static
-bool
+static bool
 getGin(const XLogRecord *record, RelFileNode **node)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -262,8 +256,7 @@ getGin(const XLogRecord *record, RelFileNode **node)
 }
 
 // Get RelFileNode from Gist record.
-static
-bool
+static bool
 getGist(const XLogRecord *record, RelFileNode **node)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -283,8 +276,7 @@ getGist(const XLogRecord *record, RelFileNode **node)
 }
 
 // Get RelFileNode from Seq record.
-static
-bool
+static bool
 getSeq(const XLogRecord *record, RelFileNode **node)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -297,8 +289,7 @@ getSeq(const XLogRecord *record, RelFileNode **node)
 }
 
 // Get RelFileNode from Spgist record.
-static
-bool
+static bool
 getSpgist(const XLogRecord *record, RelFileNode **node)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -325,8 +316,7 @@ getSpgist(const XLogRecord *record, RelFileNode **node)
 }
 
 // Get RelFileNode from Bitmap record.
-static
-bool
+static bool
 getBitmap(const XLogRecord *record, RelFileNode **node)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -349,8 +339,7 @@ getBitmap(const XLogRecord *record, RelFileNode **node)
 }
 
 // Get RelFileNode from Appendonly record.
-static
-bool
+static bool
 getAppendonly(const XLogRecord *record, RelFileNode **node)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
