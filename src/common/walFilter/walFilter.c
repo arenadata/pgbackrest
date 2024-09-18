@@ -31,7 +31,7 @@ typedef struct WalInterface
     StringId fork;
 
     uint16_t header_magic;
-    void (*validXLogRecordHeader)(const XLogRecord *, PgPageSize heapPageSize);
+    void (*validXLogRecordHeader)(const XLogRecord *record, PgPageSize heapPageSize);
     void (*validXLogRecord)(const XLogRecord *record, PgPageSize heapPageSize);
 } WalInterface;
 
