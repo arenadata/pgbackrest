@@ -7,6 +7,6 @@
 
 FN_EXTERN bool getRelFileNodeGPDB6(const XLogRecord *record, RelFileNode **node);
 
-FN_EXTERN void validXLogRecordHeaderGPDB6(const XLogRecord *record);
-FN_EXTERN void validXLogRecordGPDB6(const XLogRecord *record);
+FN_EXTERN void validXLogRecordHeaderGPDB6(const XLogRecord *record, PgPageSize heapPageSize);
+FN_EXTERN void validXLogRecordGPDB6(const XLogRecord *record, PgPageSize heapPageSize);
 #endif // PGBACKREST_TEST_RECORD_PROCESS_H

@@ -51,6 +51,11 @@ hrnGpdbWalInsertXRecord(
         param.magic = 0xD07E;
     }
 
+    if (param.walPageSize == 0)
+    {
+        param.walPageSize = 32768;
+    }
+
     if (bufUsed(walBuffer) == 0)
     {
         // This is first record
@@ -62,7 +67,7 @@ hrnGpdbWalInsertXRecord(
         longHeader.std.xlp_rem_len = param.begin_offset;
         longHeader.xlp_sysid = 10000000000000090400ULL;
         longHeader.xlp_seg_size = 64 * 1024 * 1024;
-        longHeader.xlp_xlog_blcksz = XLOG_BLCKSZ;
+        longHeader.xlp_xlog_blcksz = param.walPageSize;
 
         if (flags & OVERWRITE)
         {
@@ -80,7 +85,7 @@ hrnGpdbWalInsertXRecord(
         bufUsedInc(walBuffer, align_size);
     }
 
-    if (bufUsed(walBuffer) % XLOG_BLCKSZ == 0)
+    if (bufUsed(walBuffer) % param.walPageSize == 0)
     {
         XLogPageHeaderData header = {0};
         header.xlp_magic = param.magic;
@@ -107,7 +112,7 @@ hrnGpdbWalInsertXRecord(
         bufUsedInc(walBuffer, XLogPageHeaderSize(&header) - sizeof(header));
     }
 
-    size_t space_on_page = XLOG_BLCKSZ - bufUsed(walBuffer) % XLOG_BLCKSZ;
+    size_t space_on_page = param.walPageSize - bufUsed(walBuffer) % param.walPageSize;
 
     size_t tot_len;
     unsigned char *record_ptr;
@@ -129,7 +134,7 @@ hrnGpdbWalInsertXRecord(
         size_t wrote = 0;
         while (wrote != tot_len)
         {
-            space_on_page = XLOG_BLCKSZ - bufUsed(walBuffer) % XLOG_BLCKSZ;
+            space_on_page = param.walPageSize - bufUsed(walBuffer) % param.walPageSize;
             size_t to_write = Min(space_on_page, tot_len - wrote);
             memcpy(bufRemainsPtr(walBuffer), record_ptr + wrote, to_write);
             wrote += to_write;
@@ -143,7 +148,7 @@ hrnGpdbWalInsertXRecord(
                 break;
             }
 
-            ASSERT(bufUsed(walBuffer) % XLOG_BLCKSZ == 0);
+            ASSERT(bufUsed(walBuffer) % param.walPageSize == 0);
             // We should be on the beginning of the page. so write header
             XLogPageHeaderData header = {0};
             header.xlp_magic = param.magic;

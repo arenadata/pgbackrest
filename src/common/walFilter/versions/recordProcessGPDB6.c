@@ -4,154 +4,22 @@
 #include "common/log.h"
 #include "postgres/interface/crc32.h"
 #include "recordProcessGPDB6.h"
-
-enum ResourceManager
-{
-    ResourceManager_XLOG,
-    ResourceManager_Transaction,
-    ResourceManager_Storage,
-    ResourceManager_CLOG,
-    ResourceManager_Database,
-    ResourceManager_Tablespace,
-    ResourceManager_MultiXact,
-    ResourceManager_RelMap,
-    ResourceManager_Standby,
-    ResourceManager_Heap2,
-    ResourceManager_Heap,
-    ResourceManager_Btree,
-    ResourceManager_Hash,
-    ResourceManager_Gin,
-    ResourceManager_Gist,
-    ResourceManager_Sequence,
-    ResourceManager_SPGist,
-    ResourceManager_Bitmap,
-    ResourceManager_DistributedLog,
-    ResourceManager_Appendonly
-};
+#include "xlogInfoGPDB6.h"
 
 #define XLR_INFO_MASK           0x0F
 #define XLOG_HEAP_OPMASK        0x70
 
-// record types
-// xlog
-#define XLOG_CHECKPOINT_SHUTDOWN        0x00
-#define XLOG_CHECKPOINT_ONLINE          0x10
-#define XLOG_NOOP                       0x20
-#define XLOG_NEXTOID                    0x30
-#define XLOG_SWITCH                     0x40
-#define XLOG_BACKUP_END                 0x50
-#define XLOG_PARAMETER_CHANGE           0x60
-#define XLOG_RESTORE_POINT              0x70
-#define XLOG_FPW_CHANGE                 0x80
-#define XLOG_END_OF_RECOVERY            0x90
-#define XLOG_FPI                        0xA0
-#define XLOG_NEXTRELFILENODE            0xB0
-#define XLOG_OVERWRITE_CONTRECORD       0xC0
-
-// storage
-#define XLOG_SMGR_CREATE    0x10
-#define XLOG_SMGR_TRUNCATE  0x20
-
-// heap
-#define XLOG_HEAP2_REWRITE      0x00
-#define XLOG_HEAP2_NEW_CID      0x70
-
-// btree
-#define XLOG_BTREE_INSERT_LEAF  0x00    /* add index tuple without split */
-#define XLOG_BTREE_INSERT_UPPER 0x10    /* same, on a non-leaf page */
-#define XLOG_BTREE_INSERT_META  0x20    /* same, plus update metapage */
-#define XLOG_BTREE_SPLIT_L      0x30    /* add index tuple with split */
-#define XLOG_BTREE_SPLIT_R      0x40    /* as above, new item on right */
-#define XLOG_BTREE_SPLIT_L_ROOT 0x50    /* add tuple with split of root */
-#define XLOG_BTREE_SPLIT_R_ROOT 0x60    /* as above, new item on right */
-#define XLOG_BTREE_DELETE       0x70    /* delete leaf index tuples for a page */
-#define XLOG_BTREE_UNLINK_PAGE  0x80    /* delete a half-dead page */
-#define XLOG_BTREE_UNLINK_PAGE_META 0x90        /* same, and update metapage */
-#define XLOG_BTREE_NEWROOT      0xA0    /* new root page */
-#define XLOG_BTREE_MARK_PAGE_HALFDEAD 0xB0      /* mark a leaf as half-dead */
-#define XLOG_BTREE_VACUUM       0xC0    /* delete entries on a page during
-                                         * vacuum */
-#define XLOG_BTREE_REUSE_PAGE   0xD0    /* old page is about to be reused from
-                                         * FSM */
-
-// gin
-#define XLOG_GIN_CREATE_INDEX  0x00
-#define XLOG_GIN_CREATE_PTREE  0x10
-#define XLOG_GIN_INSERT  0x20
-#define XLOG_GIN_SPLIT  0x30
-#define XLOG_GIN_VACUUM_PAGE    0x40
-#define XLOG_GIN_VACUUM_DATA_LEAF_PAGE  0x90
-#define XLOG_GIN_DELETE_PAGE    0x50
-#define XLOG_GIN_UPDATE_META_PAGE 0x60
-#define XLOG_GIN_INSERT_LISTPAGE  0x70
-#define XLOG_GIN_DELETE_LISTPAGE  0x80
-
-// gist
-#define XLOG_GIST_PAGE_UPDATE       0x00
-#define XLOG_GIST_PAGE_SPLIT        0x30
-#define XLOG_GIST_CREATE_INDEX      0x50
-
-// sequence
-#define XLOG_SEQ_LOG            0x00
-
-// spgist
-#define XLOG_SPGIST_CREATE_INDEX    0x00
-#define XLOG_SPGIST_ADD_LEAF        0x10
-#define XLOG_SPGIST_MOVE_LEAFS      0x20
-#define XLOG_SPGIST_ADD_NODE        0x30
-#define XLOG_SPGIST_SPLIT_TUPLE     0x40
-#define XLOG_SPGIST_PICKSPLIT       0x50
-#define XLOG_SPGIST_VACUUM_LEAF     0x60
-#define XLOG_SPGIST_VACUUM_ROOT     0x70
-#define XLOG_SPGIST_VACUUM_REDIRECT 0x80
-
-// bitmap
-#define XLOG_BITMAP_INSERT_LOVITEM  0x20 /* add a new entry into a LOV page */
-#define XLOG_BITMAP_INSERT_META     0x30 /* update the metapage */
-#define XLOG_BITMAP_INSERT_BITMAP_LASTWORDS 0x40 /* update the last 2 words
-                                                    in a bitmap */
-/* insert bitmap words into a bitmap page which is not the last one. */
-#define XLOG_BITMAP_INSERT_WORDS        0x50
-/* 0x60 is unused */
-#define XLOG_BITMAP_UPDATEWORD          0x70
-#define XLOG_BITMAP_UPDATEWORDS         0x80
-
-// appendonly
-#define XLOG_APPENDONLY_INSERT          0x00
-#define XLOG_APPENDONLY_TRUNCATE        0x10
-
-typedef uint32_t CommandId;
-typedef uint16_t OffsetNumber;
-
-typedef enum ForkNumber
-{
-    InvalidForkNumber = -1,
-    MAIN_FORKNUM = 0,
-    FSM_FORKNUM,
-    VISIBILITYMAP_FORKNUM,
-
-    /*
-     * Init forks are used to create an initial state that can be used to
-     * quickly revert an object back to its empty state. This is useful for
-     * reverting unlogged tables and indexes back to their initial state during
-     * recovery.
-     */
-    INIT_FORKNUM
-
-    /*
-     * NOTE: if you add a new fork, change MAX_FORKNUM and possibly
-     * FORKNAMECHARS below, and update the forkNames array in
-     * src/common/relpath.c
-     */
-} ForkNumber;
+typedef uint32 CommandId;
+typedef uint16 OffsetNumber;
+typedef uint32 ForkNumber;
 
 typedef struct BkpBlock
 {
     RelFileNode node;           /* relation containing block */
     ForkNumber fork;            /* fork within the relation */
     BlockNumber block;          /* block number */
-    uint16_t hole_offset;         /* number of bytes before "hole" */
-    uint16_t hole_length;         /* number of bytes in "hole" */
+    uint16 hole_offset;         /* number of bytes before "hole" */
+    uint16 hole_length;         /* number of bytes in "hole" */
 
     /* ACTUAL BLOCK DATA FOLLOWS AT END OF STRUCT */
 } BkpBlock;
@@ -164,8 +32,8 @@ typedef struct xl_smgr_truncate
 
 typedef struct BlockIdData
 {
-    uint16_t bi_hi;
-    uint16_t bi_lo;
+    uint16 bi_hi;
+    uint16 bi_lo;
 } BlockIdData;
 
 typedef struct ItemPointerData
@@ -208,11 +76,13 @@ typedef struct xl_heap_new_cid
     xl_heaptid target;
 } xl_heap_new_cid;
 
+// Get RelFileNode from XLOG record.
+// Only XLOG_FPI contains RelFileNode, so the other record types are ignored.
 static
 bool
 getXlog(const XLogRecord *record, RelFileNode **node)
 {
-    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_CHECKPOINT_SHUTDOWN:
@@ -242,11 +112,13 @@ getXlog(const XLogRecord *record, RelFileNode **node)
     return false;
 }
 
+// Get RelFileNode from Storage record.
+// in XLOG_SMGR_TRUNCATE, the RelFileNode is not at the beginning of the structure.
 static
 bool
 getStorage(const XLogRecord *record, RelFileNode **node)
 {
-    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_SMGR_CREATE:
@@ -268,11 +140,16 @@ getStorage(const XLogRecord *record, RelFileNode **node)
     }
 }
 
+// Get RelFileNode from Heap2 record.
+// Only XLOG_HEAP2_REWRITE not contains RelFileNode, so it are ignored.
+// in XLOG_HEAP2_NEW_CID, the RelFileNode is not at the beginning of the structure.
+// this function does not throw errors because XLOG_HEAP_OPMASK contains only 3 non-zero bits, which gives 8 possible values, all of
+// which are used.
 static
 bool
 getHeap2(const XLogRecord *record, RelFileNode **node)
 {
-    uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     info &= XLOG_HEAP_OPMASK;
 
     if (info == XLOG_HEAP2_NEW_CID)
@@ -297,10 +174,22 @@ getHeap2(const XLogRecord *record, RelFileNode **node)
     return true;
 }
 
+// Get RelFileNode from Heap record.
+// this function does not throw errors because XLOG_HEAP_OPMASK contains only 3 non-zero bits, which gives 8 possible values, all of
+// which are used.
 static
 bool
 getHeap(const XLogRecord *record, RelFileNode **node)
 {
+    uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
+    info &= XLOG_HEAP_OPMASK;
+
+    if (info == XLOG_HEAP_MOVE)
+    {
+        // XLOG_HEAP_MOVE is no longer used.
+        THROW(FormatError, "There should be no XLOG_HEAP_MOVE entry for this version of Postgres.");
+    }
+
     // XLOG_HEAP_INSERT
     // XLOG_HEAP_DELETE
     // XLOG_HEAP_UPDATE
@@ -312,11 +201,12 @@ getHeap(const XLogRecord *record, RelFileNode **node)
     return true;
 }
 
+// Get RelFileNode from Btree record.
 static
 bool
 getBtree(const XLogRecord *record, RelFileNode **node)
 {
-    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_BTREE_INSERT_LEAF:
@@ -343,11 +233,12 @@ getBtree(const XLogRecord *record, RelFileNode **node)
     }
 }
 
+// Get RelFileNode from Gin record.
 static
 bool
 getGin(const XLogRecord *record, RelFileNode **node)
 {
-    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_GIN_CREATE_INDEX:
@@ -370,11 +261,12 @@ getGin(const XLogRecord *record, RelFileNode **node)
     }
 }
 
+// Get RelFileNode from Gist record.
 static
 bool
 getGist(const XLogRecord *record, RelFileNode **node)
 {
-    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_GIST_PAGE_UPDATE:
@@ -390,11 +282,12 @@ getGist(const XLogRecord *record, RelFileNode **node)
     }
 }
 
+// Get RelFileNode from Seq record.
 static
 bool
 getSeq(const XLogRecord *record, RelFileNode **node)
 {
-    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     if (info == XLOG_SEQ_LOG)
     {
         *node = (RelFileNode *) XLogRecGetData(record);
@@ -403,11 +296,12 @@ getSeq(const XLogRecord *record, RelFileNode **node)
     THROW_FMT(FormatError, "Sequence UNKNOWN: %d", info);
 }
 
+// Get RelFileNode from Spgist record.
 static
 bool
 getSpgist(const XLogRecord *record, RelFileNode **node)
 {
-    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
 
     switch (info)
     {
@@ -430,11 +324,12 @@ getSpgist(const XLogRecord *record, RelFileNode **node)
     }
 }
 
+// Get RelFileNode from Bitmap record.
 static
 bool
 getBitmap(const XLogRecord *record, RelFileNode **node)
 {
-    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_BITMAP_INSERT_LOVITEM:
@@ -453,11 +348,12 @@ getBitmap(const XLogRecord *record, RelFileNode **node)
     }
 }
 
+// Get RelFileNode from Appendonly record.
 static
 bool
 getAppendonly(const XLogRecord *record, RelFileNode **node)
 {
-    const uint8_t info = (uint8_t) (record->xl_info & ~XLR_INFO_MASK);
+    const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_APPENDONLY_INSERT:
@@ -477,51 +373,52 @@ getRelFileNodeGPDB6(const XLogRecord *record, RelFileNode **node)
 {
     switch (record->xl_rmid)
     {
-        case ResourceManager_XLOG:
+        case RM_XLOG_ID:
             return getXlog(record, node);
 
-        case ResourceManager_Storage:
+        case RM_SMGR_ID:
             return getStorage(record, node);
 
-        case ResourceManager_Heap2:
+        case RM_HEAP2_ID:
             return getHeap2(record, node);
 
-        case ResourceManager_Heap:
+        case RM_HEAP_ID:
             return getHeap(record, node);
 
-        case ResourceManager_Btree:
+        case RM_BTREE_ID:
             return getBtree(record, node);
 
-        case ResourceManager_Gin:
+        case RM_GIN_ID:
             return getGin(record, node);
 
-        case ResourceManager_Gist:
+        case RM_GIST_ID:
             return getGist(record, node);
 
-        case ResourceManager_Sequence:
+        case RM_SEQ_ID:
             return getSeq(record, node);
 
-        case ResourceManager_SPGist:
+        case RM_SPGIST_ID:
             return getSpgist(record, node);
 
-        case ResourceManager_Bitmap:
+        case RM_BITMAP_ID:
             return getBitmap(record, node);
 
-        case ResourceManager_Appendonly:
+        case RM_APPEND_ONLY_ID:
             return getAppendonly(record, node);
 
-        case ResourceManager_Transaction:
-        case ResourceManager_CLOG:
-        case ResourceManager_Database:
-        case ResourceManager_Tablespace:
-        case ResourceManager_MultiXact:
-        case ResourceManager_RelMap:
-        case ResourceManager_Standby:
-        case ResourceManager_DistributedLog:
+        // Records of these types do not contain a RelFileNode.
+        case RM_XACT_ID:
+        case RM_CLOG_ID:
+        case RM_DBASE_ID:
+        case RM_TBLSPC_ID:
+        case RM_MULTIXACT_ID:
+        case RM_RELMAP_ID:
+        case RM_STANDBY_ID:
+        case RM_DISTRIBUTEDLOG_ID:
             // skip
             return false;
 
-        case ResourceManager_Hash:
+        case RM_HASH_ID:
             THROW(FormatError, "Not supported in greenplum. shouldn't be here");
 
         default:
@@ -530,13 +427,13 @@ getRelFileNodeGPDB6(const XLogRecord *record, RelFileNode **node)
 }
 
 FN_EXTERN void
-validXLogRecordHeaderGPDB6(const XLogRecord *const record)
+validXLogRecordHeaderGPDB6(const XLogRecord *const record, const PgPageSize heapPageSize)
 {
     /*
      * xl_len == 0 is bad data for everything except XLOG SWITCH, where it is
      * required.
      */
-    if (record->xl_rmid == ResourceManager_XLOG && record->xl_info == XLOG_SWITCH)
+    if (record->xl_rmid == RM_XLOG_ID && record->xl_info == XLOG_SWITCH)
     {
         if (record->xl_len != 0)
         {
@@ -549,35 +446,32 @@ validXLogRecordHeaderGPDB6(const XLogRecord *const record)
     }
     if (record->xl_tot_len < SizeOfXLogRecord + record->xl_len ||
         record->xl_tot_len > SizeOfXLogRecord + record->xl_len +
-        XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + BLCKSZ))
+        XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + heapPageSize))
     {
         THROW_FMT(FormatError, "invalid record length");
     }
-    if (record->xl_rmid > ResourceManager_Appendonly)
+    if (record->xl_rmid > RM_APPEND_ONLY_ID)
     {
         THROW_FMT(FormatError, "invalid resource manager ID %u", record->xl_rmid);
     }
 }
 
 FN_EXTERN void
-validXLogRecordGPDB6(const XLogRecord *const record)
+validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSize)
 {
-    pg_crc32 crc;
-    int i;
-    uint32_t len = record->xl_len;
-    BkpBlock bkpb;
-    char *blk;
-    size_t remaining = record->xl_tot_len;
+    const uint32 len = record->xl_len;
+    uint32 remaining = record->xl_tot_len;
 
-    remaining -= SizeOfXLogRecord + len;
-    crc = crc32cInit();
+    remaining -= (uint32) (SizeOfXLogRecord + len);
+    pg_crc32 crc = crc32cInit();
     crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
 
+    BkpBlock bkpb;
     /* Add in the backup blocks, if any */
-    blk = (char *) XLogRecGetData(record) + len;
-    for (i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
+    const char *blk = (char *) XLogRecGetData(record) + len;
+    for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
     {
-        size_t blen;
+        uint32 blen;
 
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
             continue;
@@ -588,11 +482,11 @@ validXLogRecordGPDB6(const XLogRecord *const record)
         }
         memcpy(&bkpb, blk, sizeof(BkpBlock));
 
-        if (bkpb.hole_offset + bkpb.hole_length > BLCKSZ)
+        if (bkpb.hole_offset + bkpb.hole_length > heapPageSize)
         {
             THROW_FMT(FormatError, "incorrect hole size in record");
         }
-        blen = sizeof(BkpBlock) + BLCKSZ - bkpb.hole_length;
+        blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb.hole_length;
 
         if (remaining < blen)
         {

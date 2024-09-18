@@ -21,6 +21,7 @@ typedef struct InsertXRecordParam
     uint16_t magic;
     uint32_t begin_offset;
     uint64_t segno;
+    PgPageSize walPageSize;
 }InsertXRecordParam;
 
 XLogRecord *hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t body_size, void *body);

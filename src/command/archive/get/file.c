@@ -19,6 +19,31 @@ Archive Get File
 #include "storage/helper.h"
 
 /**********************************************************************************************************************************/
+FN_EXTERN bool
+buildArchiveGetPipeLine(IoFilterGroup *const group, const ArchiveGetFile *const file)
+{
+    bool compressible = true;
+
+    // If there is a cipher then add the decrypt filter
+    if (file->cipherType != cipherTypeNone)
+    {
+        ioFilterGroupAdd(group, cipherBlockNewP(cipherModeDecrypt, file->cipherType, BUFSTR(file->cipherPassArchive)));
+        compressible = false;
+    }
+
+    // If file is compressed then add the decompression filter
+    CompressType compressType = compressTypeFromName(file->file);
+
+    if (compressType != compressTypeNone)
+    {
+        ioFilterGroupAdd(group, decompressFilterP(compressType));
+        compressible = false;
+    }
+
+    return compressible;
+}
+
+/**********************************************************************************************************************************/
 FN_EXTERN ArchiveGetFileResult
 archiveGetFile(
     const Storage *const storage, const String *const request, const List *const actualList, const String *const walDestination)
@@ -42,10 +67,12 @@ archiveGetFile(
     bool copied = false;
 
     unsigned int pgVersion = 0;
+    PgPageSize pageSize = 0;
     if (cfgOptionTest(cfgOptFilter))
     {
         const PgControl pgControl = pgControlFromFile(storagePg(), cfgOptionStrNull(cfgOptPgVersionForce));
         pgVersion = pgControl.version;
+        pageSize = pgControl.pageSize;
     }
 
     for (unsigned int actualIdx = 0; actualIdx < lstSize(actualList); actualIdx++)
@@ -62,28 +89,12 @@ archiveGetFile(
                 StorageWrite *const destination = storageNewWriteP(
                     storage, walDestination, .noCreatePath = true, .noSyncFile = true, .noSyncPath = true, .noAtomic = true);
 
-                // If there is a cipher then add the decrypt filter
-                if (actual->cipherType != cipherTypeNone)
-                {
-                    ioFilterGroupAdd(
-                        ioWriteFilterGroup(storageWriteIo(destination)),
-                        cipherBlockNewP(cipherModeDecrypt, actual->cipherType, BUFSTR(actual->cipherPassArchive)));
-                    compressible = false;
-                }
-
-                // If file is compressed then add the decompression filter
-                CompressType compressType = compressTypeFromName(actual->file);
-
-                if (compressType != compressTypeNone)
-                {
-                    ioFilterGroupAdd(ioWriteFilterGroup(storageWriteIo(destination)), decompressFilterP(compressType));
-                    compressible = false;
-                }
+                compressible = buildArchiveGetPipeLine(ioWriteFilterGroup(storageWriteIo(destination)), actual);
 
                 if (walIsSegment(request) && cfgOptionTest(cfgOptFilter))
                 {
                     ioFilterGroupAdd(ioWriteFilterGroup(storageWriteIo(destination)),
-                                     walFilterNew(pgVersion, cfgOptionStrId(cfgOptFork), actual));
+                                     walFilterNew(pgVersion, cfgOptionStrId(cfgOptFork), pageSize, actual));
                 }
                 // Copy the file
                 storageCopyP(
