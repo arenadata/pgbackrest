@@ -1963,7 +1963,7 @@ src/common/walFilter/walFilter.h:
   class: core
   type: c/h
 
-src/common/walFilter/postgres_common.h:
+src/common/walFilter/postgresCommon.h:
   class: core
   type: c/h
 
