@@ -122,7 +122,7 @@ readPage(WalFilterState *const this, const Buffer *const input, const ReadStep s
 {
     if (this->input_offset >= bufUsed(input))
     {
-        ASSERT(step != 0);
+        ASSERT(step != noStep);
         this->currentStep = step;
         this->input_offset = 0;
         this->same_input = false;
