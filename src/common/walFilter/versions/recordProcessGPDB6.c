@@ -380,10 +380,8 @@ getRelFileNodeGPDB6(const XLogRecord *record)
 
         case RM_HASH_ID:
             THROW(FormatError, "Not supported in GPDB6. Shouldn't be here");
-
-        default:
-            THROW(FormatError, "Unknown resource manager");
     }
+    THROW(FormatError, "Unknown resource manager");
 }
 
 FN_EXTERN void

@@ -1188,14 +1188,18 @@ testRun(void)
 
     if (testBegin("wal Filter"))
     {
-        StringList *const argList = strLstNew();
-        hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
-        hrnCfgArgRawZ(argList, cfgOptPgPath, TEST_PATH "/pg");
-        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
-        hrnCfgArgRawZ(argList, cfgOptFilter, "recovery_filter.json");
-        hrnCfgArgRawZ(argList, cfgOptFork, CFGOPTVAL_FORK_GPDB_Z);
+        StringList *const baseArgList = strLstNew();
+        hrnCfgArgRawZ(baseArgList, cfgOptStanza, "test1");
+        hrnCfgArgRawZ(baseArgList, cfgOptPgPath, TEST_PATH "/pg");
+        hrnCfgArgRawZ(baseArgList, cfgOptRepoPath, TEST_PATH "/repo");
+        hrnCfgArgRawZ(baseArgList, cfgOptFilter, "recovery_filter.json");
+        hrnCfgArgRawZ(baseArgList, cfgOptFork, CFGOPTVAL_FORK_GPDB_Z);
+
+        StringList *argList = strLstDup(baseArgList);
+
         strLstAddZ(argList, "000000010000000100000001");
         strLstAddZ(argList, TEST_PATH "/pg/pg_wal/RECOVERYXLOG");
+
         HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
 
         HRN_STORAGE_PATH_CREATE(storagePgWrite(), "pg_wal");
@@ -1222,6 +1226,19 @@ testRun(void)
         TEST_RESULT_VOID(cmdArchiveGet(), "archive-get");
 
         TEST_RESULT_LOG("P00   INFO: found 000000010000000100000001 in the repo1: 9.4-1 archive");
+
+        TEST_TITLE("pass filter option");
+
+        argList = strLstDup(baseArgList);
+        strLstAddZ(argList, "00000001.history");
+        strLstAddZ(argList, TEST_PATH "/pg/pg_wal/RECOVERYXLOG");
+
+        HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
+
+        HRN_STORAGE_PUT_EMPTY(storageRepoWrite(), STORAGE_REPO_ARCHIVE "/9.4-1/00000001.history");
+        TEST_RESULT_VOID(cmdArchiveGet(), "archive-get");
+
+        TEST_RESULT_LOG("P00   INFO: found 00000001.history in the repo1: 9.4-1 archive");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();
