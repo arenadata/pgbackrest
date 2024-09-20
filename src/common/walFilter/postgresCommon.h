@@ -1,10 +1,10 @@
-#ifndef PGBACKREST_GREENPLUMCOMMON_H
-#define PGBACKREST_GREENPLUMCOMMON_H
+#ifndef COMMON_WALFILTER_POSTGRESCOMMON_H
+#define COMMON_WALFILTER_POSTGRESCOMMON_H
 
 #include <stdint.h>
 #include "postgres/interface/static.vendor.h"
 
-// Common macros and constants for different versions of Greenplum
+// Common macros and constants for different versions of Postgres
 
 // types
 typedef uint32 TimeLineID;
@@ -16,14 +16,32 @@ typedef uint32 BlockNumber;
 // constants
 /* This flag indicates a "long" page header */
 #define XLP_LONG_HEADER             0x0002
+/* Define as the maximum alignment requirement of any C data type. */
 #define MAXIMUM_ALIGNOF 8
-#define XLR_MAX_BKP_BLOCKS      4
+/* When record crosses page boundary, set this flag in new page's header */
 #define XLP_FIRST_IS_CONTRECORD     0x0001
+/* Replaces a missing contrecord; see CreateOverwriteContrecordRecord */
 #define XLP_FIRST_IS_OVERWRITE_CONTRECORD 0x0008
 
-#define RESOURCE_MANAGER_XLOG_ID 0
+#define RM_XLOG_ID 0
+#define XLOG_SWITCH 0x40
+#define XLOG_NOOP   0x20
 
 // macros
+
+/* ----------------
+ * Alignment macros: align a length or address appropriately for a given type.
+ * The fooALIGN() macros round up to a multiple of the required alignment,
+ * while the fooALIGN_DOWN() macros round down.  The latter are more useful
+ * for problems like "how many X-sized structures will fit in a page?".
+ *
+ * NOTE: TYPEALIGN[_DOWN] will not work if ALIGNVAL is not a power of 2.
+ * That case seems extremely unlikely to be needed in practice, however.
+ *
+ * NOTE: MAXIMUM_ALIGNOF, and hence MAXALIGN(), intentionally exclude any
+ * larger-than-8-byte types the compiler might have.
+ * ----------------
+ */
 #define TYPEALIGN(ALIGNVAL,LEN)  \
     (((uintptr_t) (LEN) + ((ALIGNVAL) - 1)) & ~((uintptr_t) ((ALIGNVAL) - 1)))
 #define MAXALIGN(LEN)           TYPEALIGN(MAXIMUM_ALIGNOF, (LEN))
@@ -34,9 +52,12 @@ typedef uint32 BlockNumber;
     (((hdr)->xlp_info & XLP_LONG_HEADER) ? SizeOfXLogLongPHD : SizeOfXLogShortPHD)
 #define SizeOfXLogRecord    MAXALIGN(sizeof(XLogRecord))
 #define XLogRecGetData(record)  ((char*) (record) + SizeOfXLogRecord)
-#define XLR_BKP_BLOCK(iblk)     (0x08 >> (iblk))        /* iblk in 0..3 */
 #define Min(x, y)       ((x) < (y) ? (x) : (y))
 
+/*
+ * The XLOG is split into WAL segments (physical files) of the size indicated
+ * by XLOG_SEG_SIZE.
+ */
 #define XLogSegmentsPerXLogId(segSize)   (0x100000000ULL / segSize)
 #define XLogFromFileName(fname, tli, logSegNo, segSize)  \
     do {                                                \
@@ -72,7 +93,7 @@ typedef struct XLogLongPageHeaderData
     uint64 xlp_sysid;           /* system identifier from pg_control */
     uint32 xlp_seg_size;        /* just as a cross-check */
     uint32 xlp_xlog_blcksz;         /* just as a cross-check */
-} __attribute__ ((aligned (MAXIMUM_ALIGNOF))) XLogLongPageHeaderData;
+} XLogLongPageHeaderData;
 
 typedef struct XLogRecord
 {
@@ -90,4 +111,4 @@ typedef struct XLogRecord
     /* ACTUAL LOG DATA FOLLOWS AT END OF STRUCT */
 } XLogRecord;
 
-#endif // PGBACKREST_GREENPLUMCOMMON_H
+#endif // COMMON_WALFILTER_POSTGRESCOMMON_H

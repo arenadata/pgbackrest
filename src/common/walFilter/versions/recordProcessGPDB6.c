@@ -6,12 +6,31 @@
 #include "recordProcessGPDB6.h"
 #include "xlogInfoGPDB6.h"
 
+/*
+ * XLOG uses only low 4 bits of xl_info.  High 4 bits may be used by rmgr.
+ */
 #define XLR_INFO_MASK           0x0F
 #define XLOG_HEAP_OPMASK        0x70
 
+/*
+ * If we backed up any disk blocks with the XLOG record, we use flag bits in
+ * xl_info to signal it.  We support backup of up to 4 disk blocks per XLOG
+ * record.
+ */
+#define XLR_MAX_BKP_BLOCKS      4
+#define XLR_BKP_BLOCK(iblk)     (0x08 >> (iblk)) /* iblk in 0..3 */
+
 typedef uint32 CommandId;
 typedef uint16 OffsetNumber;
-typedef uint32 ForkNumber;
+
+typedef enum ForkNumber
+{
+    InvalidForkNumber = -1,
+    MAIN_FORKNUM = 0,
+    FSM_FORKNUM,
+    VISIBILITYMAP_FORKNUM,
+    INIT_FORKNUM
+} ForkNumber;
 
 typedef struct BkpBlock
 {
@@ -78,8 +97,8 @@ typedef struct xl_heap_new_cid
 
 // Get RelFileNode from XLOG record.
 // Only XLOG_FPI contains RelFileNode, so the other record types are ignored.
-static bool
-getXlog(const XLogRecord *record, RelFileNode **node)
+static const RelFileNode *
+getXlog(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
@@ -97,45 +116,32 @@ getXlog(const XLogRecord *record, RelFileNode **node)
         case XLOG_OVERWRITE_CONTRECORD:
         case XLOG_SWITCH:
 //          ignore
-            break;
+            return NULL;
 
         case XLOG_FPI:
-        {
-            *node = (RelFileNode *) XLogRecGetData(record);
-            return true;
-        }
-
-        default:
-            THROW_FMT(FormatError, "XLOG UNKNOWN: %d", info);
+            return (RelFileNode *) XLogRecGetData(record);
     }
-    return false;
+    THROW_FMT(FormatError, "XLOG UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Storage record.
 // in XLOG_SMGR_TRUNCATE, the RelFileNode is not at the beginning of the structure.
-static bool
-getStorage(const XLogRecord *record, RelFileNode **node)
+static const RelFileNode *
+getStorage(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_SMGR_CREATE:
-        {
-            *node = (RelFileNode *) XLogRecGetData(record);
-            return true;
-        }
+            return (RelFileNode *) XLogRecGetData(record);
 
         case XLOG_SMGR_TRUNCATE:
         {
             xl_smgr_truncate *xlrec = (xl_smgr_truncate *) XLogRecGetData(record);
-
-            *node = &xlrec->rnode;
-            return true;
+            return &xlrec->rnode;
         }
-
-        default:
-            THROW_FMT(FormatError, "Storage UNKNOWN: %d", info);
     }
+    THROW_FMT(FormatError, "Storage UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Heap2 record.
@@ -143,8 +149,8 @@ getStorage(const XLogRecord *record, RelFileNode **node)
 // in XLOG_HEAP2_NEW_CID, the RelFileNode is not at the beginning of the structure.
 // this function does not throw errors because XLOG_HEAP_OPMASK contains only 3 non-zero bits, which gives 8 possible values, all of
 // which are used.
-static bool
-getHeap2(const XLogRecord *record, RelFileNode **node)
+static const RelFileNode *
+getHeap2(const XLogRecord *record)
 {
     uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     info &= XLOG_HEAP_OPMASK;
@@ -152,14 +158,11 @@ getHeap2(const XLogRecord *record, RelFileNode **node)
     if (info == XLOG_HEAP2_NEW_CID)
     {
         xl_heap_new_cid *xlrec = (xl_heap_new_cid *) XLogRecGetData(record);
-        *node = &xlrec->target.node;
-        return true;
+        return &xlrec->target.node;
     }
 
     if (info == XLOG_HEAP2_REWRITE)
-    {
-        return false;
-    }
+        return NULL;
 
     // XLOG_HEAP2_CLEAN
     // XLOG_HEAP2_FREEZE_PAGE
@@ -167,15 +170,13 @@ getHeap2(const XLogRecord *record, RelFileNode **node)
     // XLOG_HEAP2_VISIBLE
     // XLOG_HEAP2_MULTI_INSERT
     // XLOG_HEAP2_LOCK_UPDATED
-    *node = (RelFileNode *) XLogRecGetData(record);
-    return true;
+    return (RelFileNode *) XLogRecGetData(record);
 }
 
 // Get RelFileNode from Heap record.
-// this function does not throw errors because XLOG_HEAP_OPMASK contains only 3 non-zero bits, which gives 8 possible values, all of
-// which are used.
-static bool
-getHeap(const XLogRecord *record, RelFileNode **node)
+// This function throws an exception only for XLOG_HEAP_MOVE since this type is no longer used.
+static RelFileNode *
+getHeap(const XLogRecord *record)
 {
     uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     info &= XLOG_HEAP_OPMASK;
@@ -193,13 +194,12 @@ getHeap(const XLogRecord *record, RelFileNode **node)
     // XLOG_HEAP_NEWPAGE
     // XLOG_HEAP_LOCK
     // XLOG_HEAP_INPLACE
-    *node = (RelFileNode *) XLogRecGetData(record);
-    return true;
+    return (RelFileNode *) XLogRecGetData(record);
 }
 
 // Get RelFileNode from Btree record.
-static bool
-getBtree(const XLogRecord *record, RelFileNode **node)
+static RelFileNode *
+getBtree(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
@@ -218,19 +218,15 @@ getBtree(const XLogRecord *record, RelFileNode **node)
         case XLOG_BTREE_UNLINK_PAGE:
         case XLOG_BTREE_NEWROOT:
         case XLOG_BTREE_REUSE_PAGE:
-        {
-            *node = (RelFileNode *) XLogRecGetData(record);
-            return true;
-        }
-
-        default:
-            THROW_FMT(FormatError, "Btree UNKNOWN: %d", info);
+            return (RelFileNode *) XLogRecGetData(record);
     }
+
+    THROW_FMT(FormatError, "Btree UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Gin record.
-static bool
-getGin(const XLogRecord *record, RelFileNode **node)
+static RelFileNode *
+getGin(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
@@ -245,19 +241,15 @@ getGin(const XLogRecord *record, RelFileNode **node)
         case XLOG_GIN_UPDATE_META_PAGE:
         case XLOG_GIN_INSERT_LISTPAGE:
         case XLOG_GIN_DELETE_LISTPAGE:
-        {
-            *node = (RelFileNode *) XLogRecGetData(record);
-            return true;
-        }
-
-        default:
-            THROW_FMT(FormatError, "GIN UNKNOWN: %d", info);
+            return (RelFileNode *) XLogRecGetData(record);
     }
+
+    THROW_FMT(FormatError, "GIN UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Gist record.
-static bool
-getGist(const XLogRecord *record, RelFileNode **node)
+static RelFileNode *
+getGist(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
@@ -265,32 +257,26 @@ getGist(const XLogRecord *record, RelFileNode **node)
         case XLOG_GIST_PAGE_UPDATE:
         case XLOG_GIST_PAGE_SPLIT:
         case XLOG_GIST_CREATE_INDEX:
-        {
-            *node = (RelFileNode *) XLogRecGetData(record);
-            return true;
-        }
-
-        default:
-            THROW_FMT(FormatError, "GIST UNKNOWN: %d", info);
+            return (RelFileNode *) XLogRecGetData(record);
     }
+    THROW_FMT(FormatError, "GIST UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Seq record.
-static bool
-getSeq(const XLogRecord *record, RelFileNode **node)
+static RelFileNode *
+getSeq(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     if (info == XLOG_SEQ_LOG)
     {
-        *node = (RelFileNode *) XLogRecGetData(record);
-        return true;
+        return (RelFileNode *) XLogRecGetData(record);
     }
     THROW_FMT(FormatError, "Sequence UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Spgist record.
-static bool
-getSpgist(const XLogRecord *record, RelFileNode **node)
+static RelFileNode *
+getSpgist(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
 
@@ -305,19 +291,14 @@ getSpgist(const XLogRecord *record, RelFileNode **node)
         case XLOG_SPGIST_VACUUM_LEAF:
         case XLOG_SPGIST_VACUUM_ROOT:
         case XLOG_SPGIST_VACUUM_REDIRECT:
-        {
-            *node = (RelFileNode *) XLogRecGetData(record);
-            return true;
-        }
-
-        default:
-            THROW_FMT(FormatError, "SPGIST UNKNOWN: %d", info);
+            return (RelFileNode *) XLogRecGetData(record);
     }
+    THROW_FMT(FormatError, "SPGIST UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Bitmap record.
-static bool
-getBitmap(const XLogRecord *record, RelFileNode **node)
+static RelFileNode *
+getBitmap(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
@@ -328,72 +309,62 @@ getBitmap(const XLogRecord *record, RelFileNode **node)
         case XLOG_BITMAP_INSERT_WORDS:
         case XLOG_BITMAP_UPDATEWORD:
         case XLOG_BITMAP_UPDATEWORDS:
-        {
-            *node = (RelFileNode *) XLogRecGetData(record);
-            return true;
-        }
-
-        default:
-            THROW_FMT(FormatError, "Bitmap UNKNOWN: %d", info);
+            return (RelFileNode *) XLogRecGetData(record);
     }
+    THROW_FMT(FormatError, "Bitmap UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Appendonly record.
-static bool
-getAppendonly(const XLogRecord *record, RelFileNode **node)
+static RelFileNode *
+getAppendonly(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     switch (info)
     {
         case XLOG_APPENDONLY_INSERT:
         case XLOG_APPENDONLY_TRUNCATE:
-        {
-            *node = (RelFileNode *) XLogRecGetData(record);
-            return true;
-        }
-
-        default:
-            THROW_FMT(FormatError, "Appendonly UNKNOWN: %d", info);
+            return (RelFileNode *) XLogRecGetData(record);
     }
+    THROW_FMT(FormatError, "Appendonly UNKNOWN: %d", info);
 }
 
-FN_EXTERN bool
-getRelFileNodeGPDB6(const XLogRecord *record, RelFileNode **node)
+FN_EXTERN const RelFileNode *
+getRelFileNodeGPDB6(const XLogRecord *record)
 {
     switch (record->xl_rmid)
     {
         case RM_XLOG_ID:
-            return getXlog(record, node);
+            return getXlog(record);
 
         case RM_SMGR_ID:
-            return getStorage(record, node);
+            return getStorage(record);
 
         case RM_HEAP2_ID:
-            return getHeap2(record, node);
+            return getHeap2(record);
 
         case RM_HEAP_ID:
-            return getHeap(record, node);
+            return getHeap(record);
 
         case RM_BTREE_ID:
-            return getBtree(record, node);
+            return getBtree(record);
 
         case RM_GIN_ID:
-            return getGin(record, node);
+            return getGin(record);
 
         case RM_GIST_ID:
-            return getGist(record, node);
+            return getGist(record);
 
         case RM_SEQ_ID:
-            return getSeq(record, node);
+            return getSeq(record);
 
         case RM_SPGIST_ID:
-            return getSpgist(record, node);
+            return getSpgist(record);
 
         case RM_BITMAP_ID:
-            return getBitmap(record, node);
+            return getBitmap(record);
 
         case RM_APPEND_ONLY_ID:
-            return getAppendonly(record, node);
+            return getAppendonly(record);
 
         // Records of these types do not contain a RelFileNode.
         case RM_XACT_ID:
@@ -405,10 +376,10 @@ getRelFileNodeGPDB6(const XLogRecord *record, RelFileNode **node)
         case RM_STANDBY_ID:
         case RM_DISTRIBUTEDLOG_ID:
             // skip
-            return false;
+            return NULL;
 
         case RM_HASH_ID:
-            THROW(FormatError, "Not supported in greenplum. shouldn't be here");
+            THROW(FormatError, "Not supported in GPDB6. Shouldn't be here");
 
         default:
             THROW(FormatError, "Unknown resource manager");

@@ -66,13 +66,12 @@ archiveGetFile(
     // Check all files in the actual list and return as soon as one is copied
     bool copied = false;
 
-    unsigned int pgVersion = 0;
-    PgPageSize pageSize = 0;
-    if (cfgOptionTest(cfgOptFilter))
+    PgControl pgControl;
+    bool isFilterRequired = false;
+    if (cfgOptionTest(cfgOptFilter) && walIsSegment(request))
     {
-        const PgControl pgControl = pgControlFromFile(storagePg(), cfgOptionStrNull(cfgOptPgVersionForce));
-        pgVersion = pgControl.version;
-        pageSize = pgControl.pageSize;
+        pgControl = pgControlFromFile(storagePg(), cfgOptionStrNull(cfgOptPgVersionForce));
+        isFilterRequired = true;
     }
 
     for (unsigned int actualIdx = 0; actualIdx < lstSize(actualList); actualIdx++)
@@ -91,10 +90,10 @@ archiveGetFile(
 
                 compressible = buildArchiveGetPipeLine(ioWriteFilterGroup(storageWriteIo(destination)), actual);
 
-                if (walIsSegment(request) && cfgOptionTest(cfgOptFilter))
+                if (isFilterRequired)
                 {
                     ioFilterGroupAdd(ioWriteFilterGroup(storageWriteIo(destination)),
-                                     walFilterNew(pgVersion, cfgOptionStrId(cfgOptFork), pageSize, actual));
+                                     walFilterNew(cfgOptionStrId(cfgOptFork), pgControl, actual));
                 }
                 // Copy the file
                 storageCopyP(

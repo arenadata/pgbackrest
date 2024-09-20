@@ -1,8 +1,8 @@
-#ifndef PGBACKREST_HARNESSWAL_H
-#define PGBACKREST_HARNESSWAL_H
+#ifndef TEST_COMMON_HARNESS_WAL_H
+#define TEST_COMMON_HARNESS_WAL_H
 #include "common/type/buffer.h"
 #include "common/type/param.h"
-#include "common/walFilter/greenplumCommon.h"
+#include "common/walFilter/postgresCommon.h"
 
 typedef enum InsertRecordFlags
 {
@@ -35,4 +35,4 @@ void hrnGpdbWalInsertXRecord(
     InsertXRecordParam param,
     InsertRecordFlags flags);
 void hrnGpdbWalInsertXRecordSimple(Buffer *const walBuffer, XLogRecord *record);
-#endif // PGBACKREST_HARNESSWAL_H
+#endif // TEST_COMMON_HARNESS_WAL_H

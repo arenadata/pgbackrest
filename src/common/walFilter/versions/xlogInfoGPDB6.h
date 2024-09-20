@@ -1,25 +1,25 @@
 enum
 {
-    RM_XLOG_ID,
-    RM_XACT_ID,
-    RM_SMGR_ID,
-    RM_CLOG_ID,
-    RM_DBASE_ID,
-    RM_TBLSPC_ID,
-    RM_MULTIXACT_ID,
-    RM_RELMAP_ID,
-    RM_STANDBY_ID,
-    RM_HEAP2_ID,
-    RM_HEAP_ID,
-    RM_BTREE_ID,
-    RM_HASH_ID,
-    RM_GIN_ID,
-    RM_GIST_ID,
-    RM_SEQ_ID,
-    RM_SPGIST_ID,
-    RM_BITMAP_ID,
-    RM_DISTRIBUTEDLOG_ID,
-    RM_APPEND_ONLY_ID
+//    RM_XLOG_ID, defined in header with common definitions
+    RM_XACT_ID =            1,
+    RM_SMGR_ID =            2,
+    RM_CLOG_ID =            3,
+    RM_DBASE_ID =           4,
+    RM_TBLSPC_ID =          5,
+    RM_MULTIXACT_ID =       6,
+    RM_RELMAP_ID =          7,
+    RM_STANDBY_ID =         8,
+    RM_HEAP2_ID =           9,
+    RM_HEAP_ID =           10,
+    RM_BTREE_ID =          11,
+    RM_HASH_ID =           12,
+    RM_GIN_ID =            13,
+    RM_GIST_ID =           14,
+    RM_SEQ_ID =            15,
+    RM_SPGIST_ID =         16,
+    RM_BITMAP_ID =         17,
+    RM_DISTRIBUTEDLOG_ID = 18,
+    RM_APPEND_ONLY_ID =    19,
 };
 
 enum
@@ -27,9 +27,9 @@ enum
     // xlog
     XLOG_CHECKPOINT_SHUTDOWN =  0x00,
     XLOG_CHECKPOINT_ONLINE =    0x10,
-    XLOG_NOOP =                 0x20,
+//    XLOG_NOOP =                 0x20, defined in header with common definitions
     XLOG_NEXTOID =              0x30,
-    XLOG_SWITCH =               0x40,
+//    XLOG_SWITCH =               0x40, defined in header with common definitions
     XLOG_BACKUP_END =           0x50,
     XLOG_PARAMETER_CHANGE =     0x60,
     XLOG_RESTORE_POINT =        0x70,

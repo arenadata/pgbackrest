@@ -9,18 +9,16 @@
 #include "common/compress/helper.h"
 #include "common/partialRestore.h"
 #include "config/config.h"
-#include "greenplumCommon.h"
 #include "postgres/interface/crc32.h"
 #include "postgres/version.h"
+#include "postgresCommon.h"
 #include "storage/helper.h"
 #include "versions/recordProcessGPDB6.h"
 
-#define SWITCH_XLOG 0x40
-#define NOOP_XLOG   0x20
-
 typedef enum
 {
-    stepBeginOfRecord = 1,
+    noStep, // This means that the process of reading the record is in an uninterrupted state.
+    stepBeginOfRecord,
     stepReadHeader,
     stepReadBody,
 } ReadStep;
@@ -52,7 +50,7 @@ typedef struct WalFilter
 
     size_t page_offset;
     size_t input_offset;
-    size_t total_offset;
+    XLogRecPtr recPtr;
 
     XLogPageHeaderData *current_header;
 
@@ -128,24 +126,24 @@ readPage(WalFilterState *const this, const Buffer *const input, const ReadStep s
         this->currentStep = step;
         this->input_offset = 0;
         this->same_input = false;
-        return true;
+        return false;
     }
     this->page = bufPtrConst(input) + this->input_offset;
     this->input_offset += this->walPageSize;
     this->page_offset = 0;
-    this->currentStep = 0;
+    this->currentStep = noStep;
     this->current_header = (XLogPageHeaderData *) this->page;
-    this->page_offset += MAXALIGN(XLogPageHeaderSize(this->current_header));
+    this->page_offset += XLogPageHeaderSize(this->current_header);
 
-    // Make sure that WAL belongs to supported Greenplum version, since magic value is different in different versions.
+    // Make sure that WAL belongs to supported Postgres version, since magic value is different in different versions.
     if (this->current_header->xlp_magic != this->walInterface->header_magic)
     {
-        THROW_FMT(FormatError, "wrong page magic");
+        THROW_FMT(FormatError, "%s - wrong page magic", strZ(pgLsnToStr(this->recPtr)));
     }
 
     lstAdd(this->headers, this->current_header);
 
-    return false;
+    return true;
 }
 
 static inline uint32_t
@@ -154,24 +152,16 @@ getRecordSize(const unsigned char *const buffer)
     return ((XLogRecord *) (buffer))->xl_tot_len;
 }
 
-static inline void
-getWalInfo(const unsigned char *const buffer, PgPageSize *const walPageSize, uint32_t *const segSize)
-{
-    ASSERT(buffer != NULL);
-    ASSERT(walPageSize != NULL);
-    ASSERT(segSize != NULL);
-
-    XLogLongPageHeaderData *header = (XLogLongPageHeaderData *) buffer;
-    *walPageSize = header->xlp_xlog_blcksz;
-    *segSize = header->xlp_seg_size;
-}
-
 static bool
 readRecord(WalFilterState *const this, const Buffer *const input)
 {
     // Go back to the place where the reading was interrupted due to the exhaustion of the input buffer.
     switch (this->currentStep)
     {
+        case noStep:
+            // noting to do
+            break;
+
         case stepBeginOfRecord:
             goto stepBeginOfRecord;
 
@@ -185,7 +175,7 @@ readRecord(WalFilterState *const this, const Buffer *const input)
     if (this->page_offset == 0 || this->page_offset >= this->walPageSize)
     {
 stepBeginOfRecord:
-        if (readPage(this, input, stepBeginOfRecord))
+        if (!readPage(this, input, stepBeginOfRecord))
         {
             return false;
         }
@@ -203,7 +193,7 @@ stepBeginOfRecord:
         }
         else if (this->current_header->xlp_info & XLP_FIRST_IS_CONTRECORD)
         {
-            THROW_FMT(FormatError, "should not be XLP_FIRST_IS_CONTRECORD");
+            THROW_FMT(FormatError, "%s - should not be XLP_FIRST_IS_CONTRECORD", strZ(pgLsnToStr(this->recPtr)));
         }
     }
 
@@ -229,7 +219,7 @@ stepBeginOfRecord:
     {
         this->got_len = this->walPageSize - this->page_offset;
 stepReadHeader:
-        if (readPage(this, input, stepReadHeader))
+        if (!readPage(this, input, stepReadHeader))
         {
             return false;
         }
@@ -243,11 +233,10 @@ stepReadHeader:
 
         if (!(this->current_header->xlp_info & XLP_FIRST_IS_CONTRECORD))
         {
-            THROW_FMT(FormatError, "should be XLP_FIRST_IS_CONTRECORD");
+            THROW_FMT(FormatError, "%s - should be XLP_FIRST_IS_CONTRECORD", strZ(pgLsnToStr(this->recPtr)));
         }
 
-        memcpy(((char *) this->record) + this->got_len, this->page + this->page_offset,
-               SizeOfXLogRecord - this->got_len);
+        memcpy(((char *) this->record) + this->got_len, this->page + this->page_offset, SizeOfXLogRecord - this->got_len);
         this->tot_len -= this->got_len;
         this->header_offset = SizeOfXLogRecord - this->got_len;
     }
@@ -270,7 +259,7 @@ stepReadHeader:
     while (this->got_len != this->record->xl_tot_len)
     {
 stepReadBody:
-        if (readPage(this, input, stepReadBody))
+        if (!readPage(this, input, stepReadBody))
         {
             return false;
         }
@@ -284,13 +273,13 @@ stepReadBody:
 
         if (!(this->current_header->xlp_info & XLP_FIRST_IS_CONTRECORD))
         {
-            THROW_FMT(FormatError, "should be XLP_FIRST_IS_CONTRECORD");
+            THROW_FMT(FormatError, "%s - should be XLP_FIRST_IS_CONTRECORD", strZ(pgLsnToStr(this->recPtr)));
         }
 
         if (this->current_header->xlp_rem_len == 0 ||
             this->tot_len != (this->current_header->xlp_rem_len + this->got_len))
         {
-            THROW_FMT(FormatError, "invalid contrecord length: expect: %zu, get %u",
+            THROW_FMT(FormatError, "%s - invalid contrecord length: expect: %zu, get %u", strZ(pgLsnToStr(this->recPtr)),
                       this->record->xl_tot_len - this->got_len, this->current_header->xlp_rem_len);
         }
 
@@ -301,9 +290,7 @@ stepReadBody:
     }
     this->walInterface->validXLogRecord(this->record, this->heapPageSize);
 
-    this->currentStep = 0;
-
-    if (this->record->xl_rmid == RESOURCE_MANAGER_XLOG_ID && this->record->xl_info == SWITCH_XLOG)
+    if (this->record->xl_rmid == RM_XLOG_ID && this->record->xl_info == XLOG_SWITCH)
     {
         this->is_switch_wal = true;
     }
@@ -320,46 +307,47 @@ filterRecord(WalFilterState *const this)
         return;
     }
 
-    RelFileNode *node;
-    // Pass through the records that are related to the system catalog or system databases (template1, template0 and postgres)
-    if (getRelFileNodeGPDB6(this->record, &node))
+    const RelFileNode *node = getRelFileNodeGPDB6(this->record);
+    if (!node)
     {
-        bool isPassTheFilter = false;
-
-        // isRelationNeeded can allocate memory on the first call. Therefore, we switch the context.
-        MEM_CONTEXT_OBJ_BEGIN(this)
-        isPassTheFilter = isRelationNeeded(node->dbNode, node->spcNode, node->relNode);
-        MEM_CONTEXT_OBJ_END();
-
-        if (isPassTheFilter)
-        {
-            return;
-        }
-
-        this->record->xl_rmid = RESOURCE_MANAGER_XLOG_ID;
-        this->record->xl_info = NOOP_XLOG;
-        uint32_t crc = crc32cInit();
-        crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(this->record), this->record->xl_len);
-        crc = crc32cComp(crc, (unsigned char *) this->record, offsetof(XLogRecord, xl_crc));
-        crc = crc32cFinish(crc);
-
-        this->record->xl_crc = crc;
+        return;
     }
+
+    bool isPassTheFilter = false;
+
+    // isRelationNeeded can allocate memory on the first call. Therefore, we switch the context.
+    MEM_CONTEXT_OBJ_BEGIN(this)
+    isPassTheFilter = isRelationNeeded(node->dbNode, node->spcNode, node->relNode);
+    MEM_CONTEXT_OBJ_END();
+
+    if (isPassTheFilter)
+    {
+        return;
+    }
+
+    this->record->xl_rmid = RM_XLOG_ID;
+    this->record->xl_info = XLOG_NOOP;
+    uint32_t crc = crc32cInit();
+    crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(this->record), this->record->xl_len);
+    crc = crc32cComp(crc, (unsigned char *) this->record, offsetof(XLogRecord, xl_crc));
+    crc = crc32cFinish(crc);
+
+    this->record->xl_crc = crc;
 }
 
 static void
 writeRecord(WalFilterState *const this, Buffer *const output)
 {
     uint32_t header_i = 0;
-    if (this->total_offset % this->walPageSize == 0)
+    if (this->recPtr % this->walPageSize == 0)
     {
         ASSERT(!lstEmpty(this->headers));
         const XLogPageHeaderData *const header = lstGet(this->headers, header_i);
         const size_t to_write = XLogPageHeaderSize(header);
-        checkOutputSize(output, to_write);
-        memcpy(bufRemainsPtr(output), header, to_write);
-        bufUsedInc(output, to_write);
-        this->total_offset += to_write;
+
+        bufCatC(output, (const unsigned char *) header, 0, to_write);
+
+        this->recPtr += to_write;
         header_i++;
     }
 
@@ -367,22 +355,18 @@ writeRecord(WalFilterState *const this, Buffer *const output)
     while (this->got_len != wrote)
     {
         const size_t space_on_page = this->walPageSize - bufUsed(output) % this->walPageSize;
-        size_t to_write = Min(space_on_page, this->got_len - wrote);
-        checkOutputSize(output, to_write);
+        const size_t to_write = Min(space_on_page, this->got_len - wrote);
 
-        memcpy(bufRemainsPtr(output), ((char *) this->record) + wrote, to_write);
+        bufCatC(output, (const unsigned char *) this->record, wrote, to_write);
+
         wrote += to_write;
-
-        bufUsedInc(output, to_write);
 
         // write header
         if (header_i < lstSize(this->headers))
         {
-            to_write = SizeOfXLogShortPHD;
-            checkOutputSize(output, to_write);
-            memcpy(bufRemainsPtr(output), lstGet(this->headers, header_i), to_write);
-            bufUsedInc(output, to_write);
-            this->total_offset += to_write;
+            bufCatC(output, lstGet(this->headers, header_i), 0, SizeOfXLogShortPHD);
+
+            this->recPtr += SizeOfXLogShortPHD;
             header_i++;
         }
     }
@@ -392,121 +376,13 @@ writeRecord(WalFilterState *const this, Buffer *const output)
     memset(bufRemainsPtr(output), 0, align_size);
     bufUsedInc(output, align_size);
 
-    this->total_offset += this->tot_len;
+    this->recPtr += this->tot_len;
     this->got_len = 0;
 }
 
-static bool
-readBeginOfRecord(WalFilterState *const main_state)
+static const StorageRead *
+getNearWal (WalFilterState *const this, bool isNext)
 {
-    bool result = false;
-    MEM_CONTEXT_TEMP_BEGIN();
-
-    const String *walSegment = NULL;
-    const TimeLineID timeLine = main_state->current_header->xlp_tli;
-    uint64_t segno = main_state->current_header->xlp_pageaddr / main_state->segSize;
-    const String *const path = strNewFmt("%08X%08X", timeLine, (uint32) (segno / XLogSegmentsPerXLogId(main_state->segSize)));
-
-    const StringList *const segmentList = storageListP(
-        storageRepoIdx(main_state->archiveInfo->repoIdx),
-        strNewFmt(STORAGE_REPO_ARCHIVE "/%s/%s", strZ(main_state->archiveInfo->archiveId), strZ(path)),
-        .expression = strNewFmt("^[0-f]{24}-[0-f]{40}" COMPRESS_TYPE_REGEXP "{0,1}$"));
-
-    if (strLstEmpty(segmentList))
-    {
-        // an exotic case where we couldn't even find the current file.
-        THROW(FormatError, "no WAL files were found in the repository");
-    }
-
-    uint64_t segno_diff = UINT64_MAX;
-    for (uint32_t i = 0; i < strLstSize(segmentList); i++)
-    {
-        const String *const file = strSubN(strLstGet(segmentList, i), 0, 24);
-        TimeLineID tli;
-        uint64_t fileSegNo = 0;
-        XLogFromFileName(strZ(file), &tli, &fileSegNo, main_state->segSize);
-
-        if (segno - fileSegNo < segno_diff && fileSegNo < segno)
-        {
-            segno_diff = segno - fileSegNo;
-            walSegment = strLstGet(segmentList, i);
-        }
-    }
-
-    // current file is oldest
-    if (segno_diff == UINT64_MAX)
-    {
-        memContextSwitchBack();
-        memContextDiscard();
-        return false;
-    }
-
-    const StorageRead *const storageRead = storageNewReadP(
-        storageRepoIdx(0),
-        strNewFmt(STORAGE_REPO_ARCHIVE "/%s/%s", strZ(main_state->archiveInfo->archiveId), strZ(walSegment)));
-
-    buildArchiveGetPipeLine(ioReadFilterGroup(storageReadIo(storageRead)), main_state->archiveInfo);
-
-    OBJ_NEW_BEGIN(WalFilterState, .childQty = MEM_CONTEXT_QTY_MAX, .allocQty = MEM_CONTEXT_QTY_MAX)
-    {
-        memset(this, 0, sizeof(WalFilterState));
-        this->is_begin = true;
-        this->record = memNew(this->heapPageSize);
-        this->rec_buf_size = this->heapPageSize;
-        this->headers = lstNewP(SizeOfXLogLongPHD);
-        this->walPageSize = main_state->walPageSize;
-        this->heapPageSize = main_state->heapPageSize;
-        this->segSize = main_state->segSize;
-
-        this->walInterface = &interfaces[0];
-    }
-    OBJ_NEW_END();
-
-    ioReadOpen(storageReadIo(storageRead));
-
-    Buffer *const buffer = bufNew(this->walPageSize);
-    size_t size = ioRead(storageReadIo(storageRead), buffer);
-    bufUsedSet(buffer, size);
-
-    while (true)
-    {
-        if (!readRecord(this, buffer))
-        {
-            if (ioReadEof(storageReadIo(storageRead)))
-            {
-                if (this->got_len >= offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid))
-                {
-                    // xl_info and xl_rmid is in prev file. Nothing to do
-                    result = false;
-                    break;
-                }
-
-                memcpy(main_state->record, this->record, this->got_len);
-                main_state->got_len = this->got_len;
-                main_state->currentStep = this->currentStep;
-                main_state->tot_len = this->record->xl_tot_len;
-
-                result = true;
-                break;
-            }
-            else
-            {
-                bufUsedZero(buffer);
-                size = ioRead(storageReadIo(storageRead), buffer);
-                bufUsedSet(buffer, size);
-            }
-        }
-        lstClearFast(this->headers);
-    }
-    MEM_CONTEXT_TEMP_END();
-    return result;
-}
-
-static bool
-getEndOfRecord(WalFilterState *const this)
-{
-    MEM_CONTEXT_TEMP_BEGIN();
-
     const String *walSegment = NULL;
     const TimeLineID timeLine = this->current_header->xlp_tli;
     uint64_t segno = this->current_header->xlp_pageaddr / this->segSize;
@@ -526,31 +402,112 @@ getEndOfRecord(WalFilterState *const this)
     uint64_t segnoDiff = UINT64_MAX;
     for (uint32_t i = 0; i < strLstSize(segmentList); i++)
     {
-        const String *file = strSubN(strLstGet(segmentList, i), 0, 24);
+        const String *const file = strSubN(strLstGet(segmentList, i), 0, 24);
         TimeLineID tli;
         uint64_t fileSegNo = 0;
         XLogFromFileName(strZ(file), &tli, &fileSegNo, this->segSize);
 
-        if (fileSegNo - segno < segnoDiff && fileSegNo > segno)
+        if (isNext)
         {
-            segnoDiff = fileSegNo - segno;
-            walSegment = strLstGet(segmentList, i);
+            if (fileSegNo - segno < segnoDiff && fileSegNo > segno)
+            {
+                segnoDiff = fileSegNo - segno;
+                walSegment = strLstGet(segmentList, i);
+            }
+        }
+        else
+        {
+            if (segno - fileSegNo < segnoDiff && fileSegNo < segno)
+            {
+                segnoDiff = segno - fileSegNo;
+                walSegment = strLstGet(segmentList, i);
+            }
         }
     }
 
-    // current file is newest
+    // current file is oldest/newest
     if (segnoDiff == UINT64_MAX)
     {
-        memContextSwitchBack();
-        memContextDiscard();
-        return false;
+        return NULL;
     }
+
+    const bool compressible =
+        this->archiveInfo->cipherType == cipherTypeNone && compressTypeFromName(this->archiveInfo->file) == compressTypeNone;
 
     const StorageRead *const storageRead = storageNewReadP(
         storageRepoIdx(0),
-        strNewFmt(STORAGE_REPO_ARCHIVE "/%s/%s", strZ(this->archiveInfo->archiveId), strZ(walSegment)));
+        strNewFmt(STORAGE_REPO_ARCHIVE "/%s/%s", strZ(this->archiveInfo->archiveId), strZ(walSegment)),
+        .compressible = compressible);
 
     buildArchiveGetPipeLine(ioReadFilterGroup(storageReadIo(storageRead)), this->archiveInfo);
+    return storageRead;
+}
+
+static bool
+readBeginOfRecord(WalFilterState *const this)
+{
+    bool result = false;
+    MEM_CONTEXT_TEMP_BEGIN();
+
+    const StorageRead *const storageRead = getNearWal(this, false);
+
+    if (storageRead == NULL)
+    {
+        goto end;
+    }
+
+    ioReadOpen(storageReadIo(storageRead));
+    this->is_begin = true;
+    this->input_offset = 0;
+    this->page_offset = 0;
+
+    Buffer *const buffer = bufNew(this->walPageSize);
+    size_t size = ioRead(storageReadIo(storageRead), buffer);
+    bufUsedSet(buffer, size);
+
+    while (true)
+    {
+        if (!readRecord(this, buffer))
+        {
+            if (ioReadEof(storageReadIo(storageRead)))
+            {
+                if (this->got_len >= offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid))
+                {
+                    // xl_info and xl_rmid is in prev file. Nothing to do
+                    result = false;
+                    break;
+                }
+
+                result = true;
+                break;
+            }
+            else
+            {
+                bufUsedZero(buffer);
+                size = ioRead(storageReadIo(storageRead), buffer);
+                bufUsedSet(buffer, size);
+            }
+        }
+        lstClearFast(this->headers);
+    }
+    this->page = NULL;
+    ioReadClose(storageReadIo(storageRead));
+end:
+    MEM_CONTEXT_TEMP_END();
+    return result;
+}
+
+static void
+getEndOfRecord(WalFilterState *const this)
+{
+    MEM_CONTEXT_TEMP_BEGIN();
+
+    const StorageRead *const storageRead = getNearWal(this, true);
+
+    if (storageRead == NULL)
+    {
+        THROW_FMT(FormatError, "The file with the end of the %s record is missing", strZ(pgLsnToStr(this->recPtr)));
+    }
 
     ioReadOpen(storageReadIo(storageRead));
 
@@ -563,7 +520,7 @@ getEndOfRecord(WalFilterState *const this)
         {
             if (ioReadEof(storageReadIo(storageRead)))
             {
-                THROW(FormatError, "Unexpected WAL end");
+                THROW_FMT(FormatError, "%s - Unexpected WAL end", strZ(pgLsnToStr(this->recPtr)));
             }
 
             bufUsedZero(buffer);
@@ -571,9 +528,8 @@ getEndOfRecord(WalFilterState *const this)
             bufUsedSet(buffer, size);
         }
     }
-
+    ioReadClose(storageReadIo(storageRead));
     MEM_CONTEXT_TEMP_END();
-    return true;
 }
 
 static void
@@ -589,6 +545,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
 
     ASSERT(this != NULL);
     ASSERT(output != NULL);
+    ASSERT(input == NULL || bufUsed(input) % this->walPageSize == 0);
 
     // Avoid creating local variables before the record is fully read.
     // Since if the input buffer is exhausted, we can exit the function.
@@ -601,14 +558,13 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             const size_t size_on_page = this->got_len;
 
             // if xl_info and xl_rmid of the header is in current file then read end of record from next file if it exits
-            if (this->got_len >= offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid) && getEndOfRecord(this))
+            if (this->got_len >= offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid))
             {
+                getEndOfRecord(this);
                 filterRecord(this);
             }
 
-            checkOutputSize(output, size_on_page);
-            memcpy(bufRemainsPtr(output), this->record, size_on_page);
-            bufUsedInc(output, size_on_page);
+            bufCatC(output, (const unsigned char *) this->record, 0, size_on_page);
         }
         this->done = true;
         goto end;
@@ -617,11 +573,9 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     if (this->is_begin)
     {
         this->is_begin = false;
-        // Before reading pages, we need to know the page size. Extracting the size from the first header.
-        getWalInfo(bufPtrConst(input), &this->walPageSize, &this->segSize);
 
-        readPage(this, input, 0);
-
+        readPage(this, input, noStep);
+        this->recPtr = this->current_header->xlp_pageaddr;
         if (this->current_header->xlp_info & XLP_FIRST_IS_CONTRECORD && !(this->current_header->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD))
         {
             if (readBeginOfRecord(this))
@@ -634,32 +588,35 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                 {
                     // Since we are at the very beginning of the file, let's assume that the current input buffer is enough to fully
                     // read this record.
-                    THROW(FormatError, "record is too big");
+                    THROW_FMT(FormatError, "%s - record is too big", strZ(pgLsnToStr(this->recPtr)));
                 }
                 filterRecord(this);
 
+                ASSERT(offset <= 8);
                 memmove(this->record, ((char *) this->record) + offset, this->record->xl_tot_len - offset);
                 this->got_len -= offset;
 
+                ASSERT(this->recPtr == this->current_header->xlp_pageaddr);
                 writeRecord(this, output);
                 this->i++;
                 this->same_input = true;
                 lstClearFast(this->headers);
                 goto end;
             } // else
-            checkOutputSize(output, SizeOfXLogLongPHD);
-            memcpy(bufRemainsPtr(output), this->current_header, SizeOfXLogLongPHD);
-            bufUsedInc(output, SizeOfXLogLongPHD);
-            this->total_offset += SizeOfXLogLongPHD;
+
+            this->input_offset = 0;
+            readPage(this, input, noStep);
+            ASSERT(this->recPtr == this->current_header->xlp_pageaddr);
+            bufCatC(output, (const unsigned char *) this->current_header, 0, SizeOfXLogLongPHD);
+
+            this->recPtr += SizeOfXLogLongPHD;
             lstClearFast(this->headers);
 
             // The header that needs to be modified is in another file or not exists. Just copy it as is.
-            checkOutputSize(output, MAXALIGN(this->current_header->xlp_rem_len));
-            memcpy(bufRemainsPtr(output), this->page + this->page_offset, MAXALIGN(this->current_header->xlp_rem_len));
+            bufCatC(output, this->page, this->page_offset, MAXALIGN(this->current_header->xlp_rem_len));
 
-            bufUsedInc(output, MAXALIGN(this->current_header->xlp_rem_len));
             this->page_offset += MAXALIGN(this->current_header->xlp_rem_len);
-            this->total_offset += MAXALIGN(this->current_header->xlp_rem_len);
+            this->recPtr += MAXALIGN(this->current_header->xlp_rem_len);
         }
     }
 
@@ -668,17 +625,15 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     {
         // Copy rest of current page
         size_t to_write = this->walPageSize - this->page_offset;
-        checkOutputSize(output, to_write);
-        memcpy(bufRemainsPtr(output), this->page + this->page_offset, to_write);
-        bufUsedInc(output, to_write);
+
+        bufCatC(output, this->page, this->page_offset, to_write);
         this->page_offset = 0;
 
         if (bufUsed(input) > this->input_offset)
         {
             to_write = bufUsed(input) - this->input_offset;
-            checkOutputSize(output, to_write);
-            memcpy(bufRemainsPtr(output), bufPtrConst(input) + this->input_offset, to_write);
-            bufUsedInc(output, to_write);
+
+            bufCatC(output, bufPtrConst(input), this->input_offset, to_write);
             this->input_offset = 0;
         }
         this->same_input = false;
@@ -725,7 +680,7 @@ WalFilterInputSame(const THIS_VOID)
 }
 
 FN_EXTERN IoFilter *
-walFilterNew(const unsigned int pgVersion, const StringId fork, const PgPageSize pageSize, const ArchiveGetFile *const archiveInfo)
+walFilterNew(const StringId fork, const PgControl pgControl, const ArchiveGetFile *const archiveInfo)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
     FUNCTION_LOG_END();
@@ -734,15 +689,17 @@ walFilterNew(const unsigned int pgVersion, const StringId fork, const PgPageSize
     {
         memset(this, 0, sizeof(WalFilterState));
         this->is_begin = true;
-        this->record = memNew(pageSize);
-        this->rec_buf_size = pageSize;
+        this->record = memNew(pgControl.pageSize);
+        this->rec_buf_size = pgControl.pageSize;
         this->headers = lstNewP(SizeOfXLogLongPHD);
         this->archiveInfo = archiveInfo;
-        this->heapPageSize = pageSize;
+        this->heapPageSize = pgControl.pageSize;
+        this->walPageSize = pgControl.walPageSize;
+        this->segSize = pgControl.walSegmentSize;
 
         for (unsigned int i = 0; i < LENGTH_OF(interfaces); ++i)
         {
-            if (interfaces[i].pgVersion == pgVersion && interfaces[i].fork == fork)
+            if (interfaces[i].pgVersion == pgControl.version && interfaces[i].fork == fork)
             {
                 this->walInterface = &interfaces[i];
                 break;
@@ -750,7 +707,7 @@ walFilterNew(const unsigned int pgVersion, const StringId fork, const PgPageSize
         }
         if (this->walInterface == NULL)
         {
-            THROW_FMT(VersionNotSupportedError, "WAL filtering is unsupported for this Greenplum version");
+            THROW(VersionNotSupportedError, "WAL filtering is unsupported for this Postgres version");
         }
     }
     OBJ_NEW_END();

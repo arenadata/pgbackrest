@@ -1,12 +1,12 @@
-#ifndef PGBACKREST_TEST_RECORD_PROCESS_H
-#define PGBACKREST_TEST_RECORD_PROCESS_H
+#ifndef COMMON_WALFILTER_VERSIONS_RECORDPROCESSGPDB6_H
+#define COMMON_WALFILTER_VERSIONS_RECORDPROCESSGPDB6_H
 
-#include "common/walFilter/greenplumCommon.h"
+#include "common/walFilter/postgresCommon.h"
 
 #define GPDB6_XLOG_PAGE_MAGIC 0xD07E
 
-FN_EXTERN bool getRelFileNodeGPDB6(const XLogRecord *record, RelFileNode **node);
+FN_EXTERN const RelFileNode *getRelFileNodeGPDB6(const XLogRecord *record);
 
 FN_EXTERN void validXLogRecordHeaderGPDB6(const XLogRecord *record, PgPageSize heapPageSize);
 FN_EXTERN void validXLogRecordGPDB6(const XLogRecord *record, PgPageSize heapPageSize);
-#endif // PGBACKREST_TEST_RECORD_PROCESS_H
+#endif // COMMON_WALFILTER_VERSIONS_RECORDPROCESSGPDB6_H
