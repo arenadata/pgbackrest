@@ -1227,6 +1227,10 @@ testRun(void)
 
         TEST_RESULT_LOG("P00   INFO: found 000000010000000100000001 in the repo1: 9.4-1 archive");
 
+        HRN_STORAGE_REMOVE(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/000000010000000100000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+
         TEST_TITLE("pass filter option");
 
         argList = strLstDup(baseArgList);
@@ -1239,6 +1243,33 @@ testRun(void)
         TEST_RESULT_VOID(cmdArchiveGet(), "archive-get");
 
         TEST_RESULT_LOG("P00   INFO: found 00000001.history in the repo1: 9.4-1 archive");
+
+        TEST_TITLE("async wal filter");
+
+        argList = strLstDup(baseArgList);
+
+        hrnCfgArgRawBool(argList, cfgOptArchiveAsync, true);
+        hrnCfgArgRawZ(argList, cfgOptSpoolPath, TEST_PATH "/spool");
+        strLstAddZ(argList, "000000010000000100000002");
+        strLstAddZ(argList, TEST_PATH "/pg/pg_wal/RECOVERYXLOG");
+
+        HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
+
+        Buffer *walSegmentBuffer = bufNew(64 * 1024 * 1024);
+        memset(bufPtr(walSegmentBuffer), 0, 64 * 1024 * 1024);
+        bufUsedInc(walSegmentBuffer, 64 * 1024 * 1024);
+
+        HRN_STORAGE_PUT(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/000000010000000100000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+            walSegmentBuffer);
+
+        // A test that the wal filter is applied with async archive-get.
+        TEST_ERROR(
+            cmdArchiveGet(), FileReadError,
+            "raised from local-1 protocol: unable to get 000000010000000100000002:\n"
+            "repo1: 9.4-1/0000000100000001/000000010000000100000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd"
+            " [FormatError] 0/0 - wrong page magic");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();

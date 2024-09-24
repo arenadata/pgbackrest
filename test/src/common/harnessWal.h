@@ -4,27 +4,32 @@
 #include "common/type/param.h"
 #include "common/walFilter/postgresCommon.h"
 
+#define DEFAULT_GDPB_XLOG_PAGE_SIZE pgPageSize32
+#define DEFAULT_GDPB_PAGE_SIZE pgPageSize32
+#define GPDB6_XLOG_PAGE_HEADER_MAGIC 0xD07E
+#define GPDB6_XLOG_SEG_SIZE (64 * 1024 * 1024)
+
 typedef enum InsertRecordFlags
 {
     NO_FLAGS = 0,
-    INCOMPLETE_RECORD = 1 << 0,
-    OVERWRITE = 1 << 1,
-    COND_FLAG = 1 << 2,
-    NO_COND_FLAG = 1 << 3,
-    ZERO_REM_LEN = 1 << 4,
-    WRONG_REM_LEN = 1 << 5
-}InsertRecordFlags;
+    INCOMPLETE_RECORD = 1 << 0, // Do not write the continuation of the record on the next page.
+    OVERWRITE = 1 << 1, // Add the XLP_FIRST_IS_OVERWRITE_CONTRECORD flag to the page header.
+    COND_FLAG = 1 << 2, // Force the XLP_FIRST_IS_CONTRECORD flag to be set in the page header.
+    NO_COND_FLAG = 1 << 3, // Force not to set the XLP_FIRST_IS_CONTRECORD flag in the page header.
+    ZERO_REM_LEN = 1 << 4, // Set the xlp_rem_len field to 0 in the page header of the next page.
+    WRONG_REM_LEN = 1 << 5 // Set the xlp_rem_len field to a wrong non-zero value (1) in the page header of the next page.
+} InsertRecordFlags;
 
 typedef struct InsertXRecordParam
 {
     VAR_PARAM_HEADER;
     uint16_t magic;
-    uint32_t begin_offset;
+    uint32_t beginOffset;
     uint64_t segno;
     PgPageSize walPageSize;
-}InsertXRecordParam;
+} InsertXRecordParam;
 
-XLogRecord *hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t body_size, void *body);
+XLogRecord *hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t bodySize, void *body);
 
 #define hrnGpdbWalInsertXRecordP(wal, record, flags, ...) \
     hrnGpdbWalInsertXRecord(wal, record, (InsertXRecordParam){VAR_PARAM_INIT, __VA_ARGS__}, flags)
