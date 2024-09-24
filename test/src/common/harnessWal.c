@@ -1,6 +1,7 @@
 #include "build.auto.h"
 
 #include "common/type/object.h"
+#include "common/walFilter/versions/recordProcessGPDB6.h"
 #include "harnessWal.h"
 #include "postgres/interface/crc32.h"
 #include "string.h"
@@ -10,13 +11,19 @@
 #define RECORD_BODY_PLACEHOLDER 0XAB
 
 XLogRecord *
-hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t bodySize, void *body)
+hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t bodySize, void *body, CreateXRecordParam param)
 {
+    if (param.heapPageSize == 0)
+        param.heapPageSize = DEFAULT_GDPB_XLOG_PAGE_SIZE;
+
+    if (param.xl_len == 0)
+        param.xl_len = bodySize;
+
     XLogRecord *record = memNew(SizeOfXLogRecord + bodySize);
     *record = (XLogRecord){
         .xl_tot_len = (uint32_t) (SizeOfXLogRecord + bodySize),
         .xl_xid = TRANSACTION_ID_PLACEHOLDER,
-        .xl_len = bodySize,
+        .xl_len = param.xl_len,
         .xl_info = info,
         .xl_rmid = (uint8_t) rmid,
         .xl_prev = PREV_RECPTR_PLACEHOLDER
@@ -30,11 +37,7 @@ hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t bodySize, void *body)
     else
         memcpy(XLogRecGetData(record), body, bodySize);
 
-    uint32_t crc = crc32cInit();
-    crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), bodySize);
-    crc = crc32cComp(crc, (unsigned char *) record, offsetof(XLogRecord, xl_crc));
-    crc = crc32cFinish(crc);
-    record->xl_crc = crc;
+    record->xl_crc = recordChecksumGPDB6(record, param.heapPageSize);
 
     return record;
 }

@@ -37,10 +37,18 @@ typedef struct WalInterface
     uint16_t header_magic;
     void (*validXLogRecordHeader)(const XLogRecord *record, PgPageSize heapPageSize);
     void (*validXLogRecord)(const XLogRecord *record, PgPageSize heapPageSize);
+    pg_crc32 (*recordChecksum)(const XLogRecord *record, PgPageSize heapPageSize);
 } WalInterface;
 
 static WalInterface interfaces[] = {
-    {PG_VERSION_94, CFGOPTVAL_FORK_GPDB, GPDB6_XLOG_PAGE_MAGIC, validXLogRecordHeaderGPDB6, validXLogRecordGPDB6}
+    {
+        PG_VERSION_94,
+        CFGOPTVAL_FORK_GPDB,
+        GPDB6_XLOG_PAGE_MAGIC,
+        validXLogRecordHeaderGPDB6,
+        validXLogRecordGPDB6,
+        recordChecksumGPDB6
+    }
 };
 
 typedef struct WalFilter
@@ -308,13 +316,7 @@ stepReadBody:
 static void
 filterRecord(WalFilterState *const this)
 {
-    // In the case of overwrite contrecord, we do not need to try to filter it, since the record may not have a body at all.
-    if (this->gotLen != this->record->xl_tot_len)
-    {
-        return;
-    }
-
-    const RelFileNode *node = getRelFileNodeGPDB6(this->record);
+    const RelFileNode *const node = getRelFileNodeGPDB6(this->record);
     if (!node)
     {
         return;
@@ -334,12 +336,7 @@ filterRecord(WalFilterState *const this)
 
     this->record->xl_rmid = RM_XLOG_ID;
     this->record->xl_info = XLOG_NOOP;
-    uint32_t crc = crc32cInit();
-    crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(this->record), this->record->xl_len);
-    crc = crc32cComp(crc, (unsigned char *) this->record, offsetof(XLogRecord, xl_crc));
-    crc = crc32cFinish(crc);
-
-    this->record->xl_crc = crc;
+    this->record->xl_crc = this->walInterface->recordChecksum(this->record, this->heapPageSize);
 }
 
 static void
@@ -627,17 +624,19 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         goto end;
     }
 
-    if (readRecord(this, input) == ReadRecordNeedBuffer)
+    if (readRecord(this, input) == ReadRecordSuccess)
     {
-        goto end;
+        // In the case of overwrite contrecord, we do not need to try to filter it, since the record may not have a body at all.
+        if (this->gotLen == this->record->xl_tot_len)
+        {
+            filterRecord(this);
+        }
+
+        writeRecord(this, output);
+
+        this->sameInput = true;
+        lstClearFast(this->headers);
     }
-
-    filterRecord(this);
-
-    writeRecord(this, output);
-
-    this->sameInput = true;
-    lstClearFast(this->headers);
 end:
     FUNCTION_LOG_RETURN_VOID();
 }

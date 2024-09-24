@@ -9,4 +9,5 @@ FN_EXTERN const RelFileNode *getRelFileNodeGPDB6(const XLogRecord *record);
 
 FN_EXTERN void validXLogRecordHeaderGPDB6(const XLogRecord *record, PgPageSize heapPageSize);
 FN_EXTERN void validXLogRecordGPDB6(const XLogRecord *record, PgPageSize heapPageSize);
+FN_EXTERN pg_crc32 recordChecksumGPDB6(const XLogRecord *record, PgPageSize heapPageSize);
 #endif // COMMON_WALFILTER_VERSIONS_RECORDPROCESSGPDB6_H

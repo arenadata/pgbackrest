@@ -29,7 +29,17 @@ typedef struct InsertXRecordParam
     PgPageSize walPageSize;
 } InsertXRecordParam;
 
-XLogRecord *hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t bodySize, void *body);
+typedef struct CreateXRecordParam
+{
+    VAR_PARAM_HEADER;
+    PgPageSize heapPageSize;
+    uint32_t xl_len;
+} CreateXRecordParam;
+
+#define hrnGpdbCreateXRecordP(rmid, info, bodySize, body, ...) \
+    hrnGpdbCreateXRecord(rmid, info, bodySize, body, (CreateXRecordParam){VAR_PARAM_INIT, __VA_ARGS__})
+
+XLogRecord *hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t bodySize, void *body, CreateXRecordParam param);
 
 #define hrnGpdbWalInsertXRecordP(wal, record, flags, ...) \
     hrnGpdbWalInsertXRecord(wal, record, (InsertXRecordParam){VAR_PARAM_INIT, __VA_ARGS__}, flags)

@@ -470,3 +470,35 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
         THROW_FMT(FormatError, "incorrect resource manager data checksum in record. expect: %u, but got: %u", record->xl_crc, crc);
     }
 }
+
+pg_crc32
+recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
+{
+    const uint32 len = record->xl_len;
+
+    pg_crc32 crc = crc32cInit();
+    crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
+
+    BkpBlock bkpb;
+    /* Add in the backup blocks, if any */
+    const char *blk = (char *) XLogRecGetData(record) + len;
+    for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
+    {
+        uint32 blen;
+
+        if (!(record->xl_info & XLR_BKP_BLOCK(i)))
+            continue;
+
+        memcpy(&bkpb, blk, sizeof(BkpBlock));
+
+        blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb.hole_length;
+
+        crc = crc32cComp(crc, (unsigned char *) blk, blen);
+        blk += blen;
+    }
+
+    /* Finally include the record header */
+    crc = crc32cComp(crc, (unsigned char *) record, offsetof(XLogRecord, xl_crc));
+
+    return crc32cFinish(crc);
+}
