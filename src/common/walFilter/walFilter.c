@@ -118,9 +118,9 @@ checkOutputSize(Buffer *const output, const size_t size)
     }
 }
 
-// Reading the next page from the input buffer. If the input buffer is exhausted, remember the current step and returns false.
-// In this case, we should exit the process function to get a new input buffer.
-// Returns true on success page read.
+// Reading the next page from the input buffer. If the input buffer is exhausted, remember the current step and returns
+// ReadRecordNeedBuffer. In this case, we should exit the process function to get a new input buffer.
+// Returns ReadRecordSuccess on success page read.
 static inline
 bool
 readPage(WalFilterState *const this, const Buffer *const input, const ReadStep step)
@@ -131,7 +131,7 @@ readPage(WalFilterState *const this, const Buffer *const input, const ReadStep s
         this->currentStep = step;
         this->inputOffset = 0;
         this->sameInput = false;
-        return false;
+        return ReadRecordNeedBuffer;
     }
     this->page = bufPtrConst(input) + this->inputOffset;
     this->inputOffset += this->walPageSize;
@@ -148,7 +148,7 @@ readPage(WalFilterState *const this, const Buffer *const input, const ReadStep s
 
     lstAdd(this->headers, this->currentHeader);
 
-    return true;
+    return ReadRecordSuccess;
 }
 
 static inline uint32_t
@@ -471,31 +471,18 @@ readBeginOfRecord(WalFilterState *const this)
     size_t size = ioRead(storageReadIo(storageRead), buffer);
     bufUsedSet(buffer, size);
 
-    while (true)
+    while (!ioReadEof(storageReadIo(storageRead)))
     {
         if (readRecord(this, buffer) == ReadRecordNeedBuffer)
         {
-            if (ioReadEof(storageReadIo(storageRead)))
-            {
-                if (this->gotLen >= offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid))
-                {
-                    // xl_info and xl_rmid is in prev file. Nothing to do
-                    result = false;
-                    break;
-                }
-
-                result = true;
-                break;
-            }
-            else
-            {
-                bufUsedZero(buffer);
-                size = ioRead(storageReadIo(storageRead), buffer);
-                bufUsedSet(buffer, size);
-            }
+            bufUsedZero(buffer);
+            size = ioRead(storageReadIo(storageRead), buffer);
+            bufUsedSet(buffer, size);
         }
         lstClearFast(this->headers);
     }
+    // If xl_info and xl_rmid is in prev file then nothing to do
+    result = this->gotLen < offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid);
     this->page = NULL;
     ioReadClose(storageReadIo(storageRead));
 end:
