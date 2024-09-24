@@ -613,19 +613,16 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     // When meeting wal switch record, we write the rest of the file as is.
     if (this->isSwitchWal)
     {
-        // Copy rest of current page
-        size_t to_write = this->walPageSize - this->pageOffset;
-
-        bufCatC(output, this->page, this->pageOffset, to_write);
-        this->pageOffset = 0;
+        if (this->pageOffset != 0)
+        {
+            // Copy the rest of the current page
+            bufCatC(output, this->page, this->pageOffset, this->walPageSize - this->pageOffset);
+            this->pageOffset = 0;
+        }
 
         if (bufUsed(input) > this->inputOffset)
-        {
-            to_write = bufUsed(input) - this->inputOffset;
-
-            bufCatC(output, bufPtrConst(input), this->inputOffset, to_write);
-            this->inputOffset = 0;
-        }
+            bufCatC(output, bufPtrConst(input), this->inputOffset, bufUsed(input) - this->inputOffset);
+        this->inputOffset = 0;
         this->sameInput = false;
         goto end;
     }

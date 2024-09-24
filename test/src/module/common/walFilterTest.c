@@ -976,28 +976,13 @@ testRun(void)
             XRecordInfo walRecords[] = {
                 {RM_XLOG_ID, XLOG_NOOP, 100}
             };
-            buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
-        }
-        result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
-        TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
-        MEM_CONTEXT_TEMP_END();
 
-        TEST_TITLE("copy data after wal switch from beginning of page");
-        MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
-        {
-            wal = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
-            XRecordInfo walRecords[] = {
-                {RM_XLOG_ID, XLOG_NOOP, DEFAULT_GDPB_XLOG_PAGE_SIZE - 500},
-                {RM_XLOG_ID, XLOG_NOOP, 1000}
-            };
             buildWalP(wal, walRecords, LENGTH_OF(walRecords), 0);
-
             size_t to_write = DEFAULT_GDPB_XLOG_PAGE_SIZE * 3 - bufUsed(wal);
             memset(bufRemainsPtr(wal), 0xFF, to_write);
             bufUsedInc(wal, to_write);
         }
-        result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
+        result = testFilter(filter, wal, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
         MEM_CONTEXT_TEMP_END();
 
