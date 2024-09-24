@@ -589,7 +589,6 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
 
                 ASSERT(this->recPtr == this->currentHeader->xlp_pageaddr);
                 writeRecord(this, output);
-                this->recordNum++;
                 this->sameInput = true;
                 lstClearFast(this->headers);
                 goto end;
