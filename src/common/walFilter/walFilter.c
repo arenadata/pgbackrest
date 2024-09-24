@@ -23,6 +23,12 @@ typedef enum
     stepReadBody,
 } ReadStep;
 
+typedef enum
+{
+    ReadRecordNeedBuffer,
+    ReadRecordSuccess
+} ReadRecordStatus;
+
 typedef struct WalInterface
 {
     unsigned int pgVersion;
@@ -152,7 +158,7 @@ getRecordSize(const unsigned char *const buffer)
 }
 
 // Returns true on success record read and returns false if a new input buffer is needed to continue reading.
-static bool
+static ReadRecordStatus
 readRecord(WalFilterState *const this, const Buffer *const input)
 {
     // Go back to the place where the reading was interrupted due to the exhaustion of the input buffer.
@@ -177,7 +183,7 @@ readRecord(WalFilterState *const this, const Buffer *const input)
 stepBeginOfRecord:
         if (!readPage(this, input, stepBeginOfRecord))
         {
-            return false;
+            return ReadRecordNeedBuffer;
         }
 
         if (this->isBegin)
@@ -221,14 +227,14 @@ stepBeginOfRecord:
 stepReadHeader:
         if (!readPage(this, input, stepReadHeader))
         {
-            return false;
+            return ReadRecordNeedBuffer;
         }
 
         if (this->currentHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD)
         {
             // This record has been overwritten.
             // Write to the output what we managed to read as is, skipping filtering.
-            return true;
+            return ReadRecordSuccess;
         }
 
         if (!(this->currentHeader->xlp_info & XLP_FIRST_IS_CONTRECORD))
@@ -261,14 +267,14 @@ stepReadHeader:
 stepReadBody:
         if (!readPage(this, input, stepReadBody))
         {
-            return false;
+            return ReadRecordNeedBuffer;
         }
 
         if (this->currentHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD)
         {
             // This record has been overwritten.
             // Write to the output what we managed to read as is, skipping filtering.
-            return true;
+            return ReadRecordSuccess;
         }
 
         if (!(this->currentHeader->xlp_info & XLP_FIRST_IS_CONTRECORD))
@@ -295,7 +301,7 @@ stepReadBody:
         this->isSwitchWal = true;
     }
     this->recordNum++;
-    return true;
+    return ReadRecordSuccess;
 }
 
 static void
@@ -467,7 +473,7 @@ readBeginOfRecord(WalFilterState *const this)
 
     while (true)
     {
-        if (!readRecord(this, buffer))
+        if (readRecord(this, buffer) == ReadRecordNeedBuffer)
         {
             if (ioReadEof(storageReadIo(storageRead)))
             {
@@ -514,19 +520,16 @@ getEndOfRecord(WalFilterState *const this)
     Buffer *const buffer = bufNew(this->walPageSize);
     size_t size = ioRead(storageReadIo(storageRead), buffer);
     bufUsedSet(buffer, size);
-    while (this->gotLen != this->record->xl_tot_len)
+    while (readRecord(this, buffer) == ReadRecordNeedBuffer)
     {
-        if (!readRecord(this, buffer))
+        if (ioReadEof(storageReadIo(storageRead)))
         {
-            if (ioReadEof(storageReadIo(storageRead)))
-            {
-                THROW_FMT(FormatError, "%s - Unexpected WAL end", strZ(pgLsnToStr(this->recPtr)));
-            }
-
-            bufUsedZero(buffer);
-            size = ioRead(storageReadIo(storageRead), buffer);
-            bufUsedSet(buffer, size);
+            THROW_FMT(FormatError, "%s - Unexpected WAL end", strZ(pgLsnToStr(this->recPtr)));
         }
+
+        bufUsedZero(buffer);
+        size = ioRead(storageReadIo(storageRead), buffer);
+        bufUsedSet(buffer, size);
     }
     ioReadClose(storageReadIo(storageRead));
     MEM_CONTEXT_TEMP_END();
@@ -584,7 +587,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                 const size_t offset = this->gotLen;
                 this->inputOffset = 0;
                 lstClearFast(this->headers);
-                if (!readRecord(this, input))
+                if (readRecord(this, input) == ReadRecordNeedBuffer)
                 {
                     // Since we are at the very beginning of the file, let's assume that the current input buffer is enough to fully
                     // read this record.
@@ -640,7 +643,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         goto end;
     }
 
-    if (!readRecord(this, input))
+    if (readRecord(this, input) == ReadRecordNeedBuffer)
     {
         goto end;
     }
