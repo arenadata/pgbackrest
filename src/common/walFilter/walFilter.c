@@ -442,7 +442,7 @@ getNearWal (WalFilterState *const this, bool isNext)
         this->archiveInfo->cipherType == cipherTypeNone && compressTypeFromName(this->archiveInfo->file) == compressTypeNone;
 
     const StorageRead *const storageRead = storageNewReadP(
-        storageRepoIdx(0),
+        storageRepoIdx(this->archiveInfo->repoIdx),
         strNewFmt(STORAGE_REPO_ARCHIVE "/%s/%s", strZ(this->archiveInfo->archiveId), strZ(walSegment)),
         .compressible = compressible);
 
