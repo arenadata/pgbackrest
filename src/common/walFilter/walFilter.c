@@ -112,7 +112,7 @@ walFilterToLog(const WalFilterState *const this, StringStatic *const debugLog)
 }
 
 #define FUNCTION_LOG_WAL_FILTER_TYPE                                                                                               \
-    ZstDecompress *
+    WalFilterState *
 #define FUNCTION_LOG_WAL_FILTER_FORMAT(value, buffer, bufferSize)                                                                  \
     FUNCTION_LOG_OBJECT_FORMAT(value, walFilterToLog, buffer, bufferSize)
 
@@ -126,12 +126,10 @@ checkOutputSize(Buffer *const output, const size_t size)
     }
 }
 
-// Reading the next page from the input buffer. If the input buffer is exhausted, remember the current step and returns false.
-// In this case, we should exit the process function to get a new input buffer.
-// Returns true on success page read.
-static inline
-bool
-readPage(WalFilterState *const this, const Buffer *const input, const ReadStep step)
+// Save next page addr from input buffer to page field. If the input buffer is exhausted, remember the current step and returns
+// false. In this case, we should exit the process function to get a new input buffer. Returns true on success page read.
+static inline bool
+getNextPage(WalFilterState *const this, const Buffer *const input, const ReadStep step)
 {
     if (this->inputOffset >= bufUsed(input))
     {
@@ -143,10 +141,9 @@ readPage(WalFilterState *const this, const Buffer *const input, const ReadStep s
     }
     this->page = bufPtrConst(input) + this->inputOffset;
     this->inputOffset += this->walPageSize;
-    this->pageOffset = 0;
     this->currentStep = noStep;
     this->currentHeader = (XLogPageHeaderData *) this->page;
-    this->pageOffset += XLogPageHeaderSize(this->currentHeader);
+    this->pageOffset = XLogPageHeaderSize(this->currentHeader);
 
     // Make sure that WAL belongs to supported Postgres version, since magic value is different in different versions.
     if (this->currentHeader->xlp_magic != this->walInterface->header_magic)
@@ -190,7 +187,7 @@ readRecord(WalFilterState *const this, const Buffer *const input)
     if (this->pageOffset == 0 || this->pageOffset >= this->walPageSize)
     {
 stepBeginOfRecord:
-        if (!readPage(this, input, stepBeginOfRecord))
+        if (!getNextPage(this, input, stepBeginOfRecord))
         {
             return ReadRecordNeedBuffer;
         }
@@ -234,7 +231,7 @@ stepBeginOfRecord:
     {
         this->gotLen = this->walPageSize - this->pageOffset;
 stepReadHeader:
-        if (!readPage(this, input, stepReadHeader))
+        if (!getNextPage(this, input, stepReadHeader))
         {
             return ReadRecordNeedBuffer;
         }
@@ -274,7 +271,7 @@ stepReadHeader:
     while (this->gotLen != this->record->xl_tot_len)
     {
 stepReadBody:
-        if (!readPage(this, input, stepReadBody))
+        if (!getNextPage(this, input, stepReadBody))
         {
             return ReadRecordNeedBuffer;
         }
@@ -562,7 +559,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     {
         this->isBegin = false;
 
-        readPage(this, input, noStep);
+        getNextPage(this, input, noStep);
         this->recPtr = this->currentHeader->xlp_pageaddr;
         if (this->currentHeader->xlp_info & XLP_FIRST_IS_CONTRECORD && !(this->currentHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD))
         {
@@ -592,7 +589,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             } // else
 
             this->inputOffset = 0;
-            readPage(this, input, noStep);
+            getNextPage(this, input, noStep);
             ASSERT(this->recPtr == this->currentHeader->xlp_pageaddr);
             bufCatC(output, (const unsigned char *) this->currentHeader, 0, SizeOfXLogLongPHD);
 
