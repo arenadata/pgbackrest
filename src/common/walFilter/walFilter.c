@@ -87,7 +87,7 @@ typedef struct WalFilter
     uint32_t recordNum;
 
     bool done;
-    bool sameInput;
+    bool inputSame;
     bool isSwitchWal;
 } WalFilterState;
 
@@ -136,7 +136,7 @@ getNextPage(WalFilterState *const this, const Buffer *const input, const ReadSte
         ASSERT(step != noStep);
         this->currentStep = step;
         this->inputOffset = 0;
-        this->sameInput = false;
+        this->inputSame = false;
         return false;
     }
     this->page = bufPtrConst(input) + this->inputOffset;
@@ -583,7 +583,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
 
                 ASSERT(this->recPtr == this->currentHeader->xlp_pageaddr);
                 writeRecord(this, output);
-                this->sameInput = true;
+                this->inputSame = true;
                 lstClearFast(this->headers);
                 goto end;
             } // else
@@ -617,7 +617,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         if (bufUsed(input) > this->inputOffset)
             bufCatC(output, bufPtrConst(input), this->inputOffset, bufUsed(input) - this->inputOffset);
         this->inputOffset = 0;
-        this->sameInput = false;
+        this->inputSame = false;
         goto end;
     }
 
@@ -631,7 +631,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
 
         writeRecord(this, output);
 
-        this->sameInput = true;
+        this->inputSame = true;
         lstClearFast(this->headers);
     }
 end:
@@ -658,7 +658,7 @@ WalFilterInputSame(const THIS_VOID)
         FUNCTION_TEST_PARAM(WAL_FILTER, this);
     FUNCTION_TEST_END();
 
-    FUNCTION_TEST_RETURN(BOOL, this->sameInput);
+    FUNCTION_TEST_RETURN(BOOL, this->inputSame);
 }
 
 FN_EXTERN IoFilter *

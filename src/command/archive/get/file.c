@@ -71,6 +71,16 @@ archiveGetFile(
     if (cfgOptionTest(cfgOptFilter) && walIsSegment(request))
     {
         pgControl = pgControlFromFile(storagePg(), cfgOptionStrNull(cfgOptPgVersionForce));
+
+        if (pgControl.walPageSize > cfgOptionUInt(cfgOptBufferSize))
+        {
+            THROW_FMT(
+                ConfigError,
+                "The buffer must be greater than or equal to the page size of the WAL file. Page size: %s, buffer size: %s.",
+                strZ(strSizeFormat(pgControl.walPageSize)),
+                strZ(strSizeFormat(cfgOptionUInt(cfgOptBufferSize))));
+        }
+
         isFilterRequired = true;
     }
 

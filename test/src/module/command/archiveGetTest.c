@@ -1216,7 +1216,7 @@ testRun(void)
 
         HRN_PG_CONTROL_OVERRIDE_VERSION_PUT(
             storagePgWrite(), PG_VERSION_94, 9420600, .systemId = HRN_PG_SYSTEMID_94, .catalogVersion = 301908232,
-            .pageSize = 32768, .walSegmentSize = 64 * 1024 * 1024);
+            .pageSize = pgPageSize32, .walSegmentSize = 64 * 1024 * 1024, .walPageSize = pgPageSize32);
 
         HRN_STORAGE_PUT_EMPTY(
             storageRepoWrite(), STORAGE_REPO_ARCHIVE "/9.4-1/000000010000000100000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
@@ -1270,6 +1270,20 @@ testRun(void)
             "raised from local-1 protocol: unable to get 000000010000000100000002:\n"
             "repo1: 9.4-1/0000000100000001/000000010000000100000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd"
             " [FormatError] 0/0 - wrong page magic");
+
+        TEST_TITLE("Test error on the buffer is smaller than the WAL page size.");
+
+        argList = strLstDup(baseArgList);
+
+        hrnCfgArgRawZ(argList, cfgOptBufferSize, "16KiB");
+        strLstAddZ(argList, "000000010000000100000002");
+        strLstAddZ(argList, TEST_PATH "/pg/pg_wal/RECOVERYXLOG");
+
+        HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
+
+        TEST_ERROR(
+            cmdArchiveGet(), ConfigError,
+            "The buffer must be greater than or equal to the page size of the WAL file. Page size: 32KB, buffer size: 16KB.");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();

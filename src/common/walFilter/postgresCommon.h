@@ -110,5 +110,8 @@ typedef struct XLogRecord
 
     /* ACTUAL LOG DATA FOLLOWS AT END OF STRUCT */
 } XLogRecord;
+_Static_assert(
+    MAXALIGN(offsetof(XLogRecord, xl_info)) == MAXALIGN(offsetof(XLogRecord, xl_rmid)),
+    "The xl_info and xl_rmid fields are in different 8 byte chunks.");
 
 #endif // COMMON_WALFILTER_POSTGRESCOMMON_H
