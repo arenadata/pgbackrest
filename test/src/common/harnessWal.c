@@ -73,7 +73,8 @@ hrnGpdbWalInsertXRecord(
         if (param.beginOffset)
             longHeader.std.xlp_info |= XLP_FIRST_IS_CONTRECORD;
 
-        memcpy(bufRemainsPtr(walBuffer), &longHeader, sizeof(longHeader));
+        *((XLogLongPageHeaderData *) bufRemainsPtr(walBuffer)) = longHeader;
+
         bufUsedInc(walBuffer, sizeof(longHeader));
         size_t alignSize = MAXALIGN(sizeof(longHeader)) - sizeof(longHeader);
         memset(bufRemainsPtr(walBuffer), 0, alignSize);
@@ -95,7 +96,7 @@ hrnGpdbWalInsertXRecord(
         else
             header.xlp_info = 0;
 
-        memcpy(bufRemainsPtr(walBuffer), &header, sizeof(header));
+        *((XLogPageHeaderData *) bufRemainsPtr(walBuffer)) = header;
         bufUsedInc(walBuffer, sizeof(header));
         memset(bufRemainsPtr(walBuffer), 0, XLogPageHeaderSize(&header) - sizeof(header));
         bufUsedInc(walBuffer, XLogPageHeaderSize(&header) - sizeof(header));

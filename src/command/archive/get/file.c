@@ -88,9 +88,6 @@ archiveGetFile(
     {
         const ArchiveGetFile *const actual = lstGet(actualList, actualIdx);
 
-        // Is the file compressible during the copy?
-        bool compressible = true;
-
         TRY_BEGIN()
         {
             MEM_CONTEXT_TEMP_BEGIN()
@@ -98,7 +95,8 @@ archiveGetFile(
                 StorageWrite *const destination = storageNewWriteP(
                     storage, walDestination, .noCreatePath = true, .noSyncFile = true, .noSyncPath = true, .noAtomic = true);
 
-                compressible = buildArchiveGetPipeLine(ioWriteFilterGroup(storageWriteIo(destination)), actual);
+                // Is the file compressible during the copy?
+                bool compressible = buildArchiveGetPipeLine(ioWriteFilterGroup(storageWriteIo(destination)), actual);
 
                 if (isFilterRequired)
                 {

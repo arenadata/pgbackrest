@@ -26,7 +26,7 @@ typedef uint32 BlockNumber;
 #define RM_XLOG_ID 0
 #define XLOG_SWITCH 0x40
 #define XLOG_NOOP   0x20
-
+#define MAXPGPATH       1024
 // macros
 
 /* ----------------

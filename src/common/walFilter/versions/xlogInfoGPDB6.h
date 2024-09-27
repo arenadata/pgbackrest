@@ -56,12 +56,12 @@ enum
     XLOG_HEAP_INSERT =        0x00,
     XLOG_HEAP_DELETE =        0x10,
     XLOG_HEAP_UPDATE =        0x20,
-    XLOG_HEAP_MOVE =   0x30,
-    XLOG_HEAP_HOT_UPDATE = 0x40,
-    XLOG_HEAP_NEWPAGE =    0x50,
-    XLOG_HEAP_LOCK =       0x60,
-    XLOG_HEAP_INPLACE =    0x70,
-    XLOG_HEAP_INIT_PAGE =  0x80,
+    XLOG_HEAP_MOVE =          0x30,
+    XLOG_HEAP_HOT_UPDATE =    0x40,
+    XLOG_HEAP_NEWPAGE =       0x50,
+    XLOG_HEAP_LOCK =          0x60,
+    XLOG_HEAP_INPLACE =       0x70,
+    XLOG_HEAP_INIT_PAGE =     0x80,
 
 // btree
     XLOG_BTREE_INSERT_LEAF =        0x00,

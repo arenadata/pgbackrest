@@ -56,7 +56,6 @@ static WalInterface interfaces[] = {
 typedef struct WalFilter
 {
     ReadStep currentStep;
-    const unsigned char *page;
 
     PgPageSize heapPageSize;
     PgPageSize walPageSize;
@@ -68,7 +67,7 @@ typedef struct WalFilter
     size_t inputOffset;
     XLogRecPtr recPtr;
 
-    XLogPageHeaderData *currentHeader;
+    XLogPageHeaderData *currentPageHeader;
 
     XLogRecord *record;
     uint32_t recBufSize;
@@ -139,19 +138,19 @@ getNextPage(WalFilterState *const this, const Buffer *const input)
         this->inputSame = false;
         return false;
     }
-    this->page = bufPtrConst(input) + this->inputOffset;
-    this->inputOffset += this->walPageSize;
+
     this->currentStep = noStep;
-    this->currentHeader = (XLogPageHeaderData *) this->page;
-    this->pageOffset = XLogPageHeaderSize(this->currentHeader);
+    this->currentPageHeader = (XLogPageHeaderData *) (bufPtrConst(input) + this->inputOffset);
+    this->pageOffset = XLogPageHeaderSize(this->currentPageHeader);
+    this->inputOffset += this->walPageSize;
 
     // Make sure that WAL belongs to supported Postgres version, since magic value is different in different versions.
-    if (this->currentHeader->xlp_magic != this->walInterface->header_magic)
+    if (this->currentPageHeader->xlp_magic != this->walInterface->header_magic)
     {
         THROW_FMT(FormatError, "%s - wrong page magic", strZ(pgLsnToStr(this->recPtr)));
     }
 
-    lstAdd(this->pageHeaders, this->currentHeader);
+    lstAdd(this->pageHeaders, this->currentPageHeader);
 
     return true;
 }
@@ -184,7 +183,7 @@ readRecord(WalFilterState *const this, const Buffer *const input)
             goto stepReadBody;
     }
 
-    if (this->pageOffset == 0 || this->pageOffset >= this->walPageSize)
+    if (this->pageOffset == 0 || this->pageOffset == this->walPageSize)
     {
         this->currentStep = stepBeginOfRecord;
 stepBeginOfRecord:
@@ -198,20 +197,20 @@ stepBeginOfRecord:
             this->isBegin = false;
             // There may be an unfinished record from the previous file at the beginning of the file. Just skip it.
             // We should have handled it elsewhere.
-            if (this->currentHeader->xlp_info & XLP_FIRST_IS_CONTRECORD &&
-                !(this->currentHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD))
+            if (this->currentPageHeader->xlp_info & XLP_FIRST_IS_CONTRECORD &&
+                !(this->currentPageHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD))
             {
-                this->pageOffset += MAXALIGN(this->currentHeader->xlp_rem_len);
+                this->pageOffset += MAXALIGN(this->currentPageHeader->xlp_rem_len);
             }
         }
-        else if (this->currentHeader->xlp_info & XLP_FIRST_IS_CONTRECORD)
+        else if (this->currentPageHeader->xlp_info & XLP_FIRST_IS_CONTRECORD)
         {
             THROW_FMT(FormatError, "%s - should not be XLP_FIRST_IS_CONTRECORD", strZ(pgLsnToStr(this->recPtr)));
         }
     }
 
     // Record header can be split between pages but first field xl_tot_len is always on single page
-    uint32_t record_size = getRecordSize(this->page + this->pageOffset);
+    uint32_t record_size = getRecordSize(((unsigned char *) this->currentPageHeader) + this->pageOffset);
 
     if (this->recBufSize < record_size)
     {
@@ -223,7 +222,10 @@ stepBeginOfRecord:
         this->recBufSize = record_size;
     }
 
-    memcpy(this->record, this->page + this->pageOffset, Min(SizeOfXLogRecord, this->walPageSize - this->pageOffset));
+    memcpy(
+        this->record,
+        ((unsigned char *) this->currentPageHeader) + this->pageOffset,
+        Min(SizeOfXLogRecord, this->walPageSize - this->pageOffset));
 
     this->totLen = this->record->xl_tot_len;
 
@@ -238,19 +240,22 @@ stepReadHeader:
             return ReadRecordNeedBuffer;
         }
 
-        if (this->currentHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD)
+        if (this->currentPageHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD)
         {
             // This record has been overwritten.
             // Write to the output what we managed to read as is, skipping filtering.
             return ReadRecordSuccess;
         }
 
-        if (!(this->currentHeader->xlp_info & XLP_FIRST_IS_CONTRECORD))
+        if (!(this->currentPageHeader->xlp_info & XLP_FIRST_IS_CONTRECORD))
         {
             THROW_FMT(FormatError, "%s - should be XLP_FIRST_IS_CONTRECORD", strZ(pgLsnToStr(this->recPtr)));
         }
 
-        memcpy(((char *) this->record) + this->gotLen, this->page + this->pageOffset, SizeOfXLogRecord - this->gotLen);
+        memcpy(
+            ((char *) this->record) + this->gotLen,
+            ((unsigned char *) this->currentPageHeader) + this->pageOffset,
+            SizeOfXLogRecord - this->gotLen);
         this->totLen -= this->gotLen;
         this->headerSize = SizeOfXLogRecord - this->gotLen;
     }
@@ -263,7 +268,8 @@ stepReadHeader:
     this->walInterface->validXLogRecordHeader(this->record, this->heapPageSize);
     // Read rest of the record on this page
     size_t to_read = Min(this->record->xl_tot_len - SizeOfXLogRecord, this->walPageSize - this->pageOffset - SizeOfXLogRecord);
-    memcpy(XLogRecGetData(this->record), this->page + this->pageOffset + this->headerSize, to_read);
+    memcpy(
+        XLogRecGetData(this->record), ((unsigned char *) this->currentPageHeader) + this->pageOffset + this->headerSize, to_read);
     this->gotLen += to_read;
 
     // Move pointer to the next record on the page
@@ -279,27 +285,27 @@ stepReadBody:
             return ReadRecordNeedBuffer;
         }
 
-        if (this->currentHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD)
+        if (this->currentPageHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD)
         {
             // This record has been overwritten.
             // Write to the output what we managed to read as is, skipping filtering.
             return ReadRecordSuccess;
         }
 
-        if (!(this->currentHeader->xlp_info & XLP_FIRST_IS_CONTRECORD))
+        if (!(this->currentPageHeader->xlp_info & XLP_FIRST_IS_CONTRECORD))
         {
             THROW_FMT(FormatError, "%s - should be XLP_FIRST_IS_CONTRECORD", strZ(pgLsnToStr(this->recPtr)));
         }
 
-        if (this->currentHeader->xlp_rem_len == 0 ||
-            this->totLen != (this->currentHeader->xlp_rem_len + this->gotLen))
+        if (this->currentPageHeader->xlp_rem_len == 0 ||
+            this->totLen != (this->currentPageHeader->xlp_rem_len + this->gotLen))
         {
             THROW_FMT(FormatError, "%s - invalid contrecord length: expect: %zu, get %u", strZ(pgLsnToStr(this->recPtr)),
-                      this->record->xl_tot_len - this->gotLen, this->currentHeader->xlp_rem_len);
+                      this->record->xl_tot_len - this->gotLen, this->currentPageHeader->xlp_rem_len);
         }
 
-        size_t to_write = Min(this->currentHeader->xlp_rem_len, this->walPageSize - this->pageOffset);
-        memcpy(((char *) this->record) + this->gotLen, this->page + this->pageOffset, to_write);
+        size_t to_write = Min(this->currentPageHeader->xlp_rem_len, this->walPageSize - this->pageOffset);
+        memcpy(((char *) this->record) + this->gotLen, ((unsigned char *) this->currentPageHeader) + this->pageOffset, to_write);
         this->pageOffset += MAXALIGN(to_write);
         this->gotLen += to_write;
     }
@@ -322,7 +328,7 @@ filterRecord(WalFilterState *const this)
         return;
     }
 
-    bool isPassTheFilter = false;
+    bool isPassTheFilter;
 
     // isRelationNeeded can allocate memory on the first call. Therefore, we switch the context.
     MEM_CONTEXT_OBJ_BEGIN(this)
@@ -334,26 +340,14 @@ filterRecord(WalFilterState *const this)
         return;
     }
 
-    // Preserve the number of backup blocks.
-    int backupBlockCount = 0;
-    for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
-    {
-        if (!(this->record->xl_info & XLR_BKP_BLOCK(i)))
-            continue;
-        backupBlockCount++;
-    }
-
     this->record->xl_rmid = RM_XLOG_ID;
-    this->record->xl_info = XLOG_NOOP;
-    for (int i = 0; i < backupBlockCount; i++)
-    {
-        this->record->xl_info |= (uint8_t) XLR_BKP_BLOCK(i);
-    }
+    // Save 4 least significant bits which represent backup blocks flags.
+    this->record->xl_info = XLOG_NOOP | (this->record->xl_info & 0xF);
     this->record->xl_crc = this->walInterface->recordChecksum(this->record, this->heapPageSize);
 }
 
 static void
-writeRecord(WalFilterState *const this, Buffer *const output)
+writeRecord(WalFilterState *const this, Buffer *const output, const unsigned char *recordData)
 {
     uint32_t header_i = 0;
     if (this->recPtr % this->walPageSize == 0)
@@ -361,11 +355,11 @@ writeRecord(WalFilterState *const this, Buffer *const output)
         ASSERT(!lstEmpty(this->pageHeaders));
         const XLogPageHeaderData *const header = lstGet(this->pageHeaders, header_i);
         const size_t to_write = XLogPageHeaderSize(header);
+        header_i++;
 
         bufCatC(output, (const unsigned char *) header, 0, to_write);
 
         this->recPtr += to_write;
-        header_i++;
     }
 
     size_t wrote = 0;
@@ -374,7 +368,7 @@ writeRecord(WalFilterState *const this, Buffer *const output)
         const size_t space_on_page = this->walPageSize - (size_t) (this->recPtr % this->walPageSize);
         const size_t to_write = Min(space_on_page, this->gotLen - wrote);
 
-        bufCatC(output, (const unsigned char *) this->record, wrote, to_write);
+        bufCatC(output, recordData, wrote, to_write);
 
         wrote += to_write;
         this->recPtr += to_write;
@@ -402,8 +396,8 @@ static const StorageRead *
 getNearWal (WalFilterState *const this, bool isNext)
 {
     const String *walSegment = NULL;
-    const TimeLineID timeLine = this->currentHeader->xlp_tli;
-    uint64_t segno = this->currentHeader->xlp_pageaddr / this->segSize;
+    const TimeLineID timeLine = this->currentPageHeader->xlp_tli;
+    uint64_t segno = this->currentPageHeader->xlp_pageaddr / this->segSize;
     const String *const path = strNewFmt("%08X%08X", timeLine, (uint32) (segno / XLogSegmentsPerXLogId(this->segSize)));
 
     const StringList *const segmentList = storageListP(
@@ -495,7 +489,7 @@ readBeginOfRecord(WalFilterState *const this)
     }
     // If xl_info and xl_rmid is in prev file then nothing to do
     result = this->gotLen < offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid);
-    this->page = NULL;
+
     ioReadClose(storageReadIo(storageRead));
 end:
     MEM_CONTEXT_TEMP_END();
@@ -576,10 +570,14 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     {
         this->isBegin = false;
 
+#ifdef DEBUG
+        bool ret =
+#endif
         getNextPage(this, input);
-        this->recPtr = this->currentHeader->xlp_pageaddr;
-        if (this->currentHeader->xlp_info & XLP_FIRST_IS_CONTRECORD &&
-            !(this->currentHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD))
+        ASSERT(ret);
+        this->recPtr = this->currentPageHeader->xlp_pageaddr;
+        if (this->currentPageHeader->xlp_info & XLP_FIRST_IS_CONTRECORD &&
+            !(this->currentPageHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD))
         {
             if (readBeginOfRecord(this))
             {
@@ -596,11 +594,10 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                 filterRecord(this);
 
                 ASSERT(offset <= 8);
-                memmove(this->record, ((char *) this->record) + offset, this->record->xl_tot_len - offset);
                 this->gotLen -= offset;
 
-                ASSERT(this->recPtr == this->currentHeader->xlp_pageaddr);
-                writeRecord(this, output);
+                ASSERT(this->recPtr == this->currentPageHeader->xlp_pageaddr);
+                writeRecord(this, output, ((const unsigned char *) this->record) + offset);
                 this->inputSame = true;
                 lstClearFast(this->pageHeaders);
                 goto end;
@@ -608,17 +605,17 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
 
             this->inputOffset = 0;
             getNextPage(this, input);
-            ASSERT(this->recPtr == this->currentHeader->xlp_pageaddr);
-            bufCatC(output, (const unsigned char *) this->currentHeader, 0, SizeOfXLogLongPHD);
+            ASSERT(this->recPtr == this->currentPageHeader->xlp_pageaddr);
+            bufCatC(output, (const unsigned char *) this->currentPageHeader, 0, SizeOfXLogLongPHD);
             this->recPtr += SizeOfXLogLongPHD;
 
             lstClearFast(this->pageHeaders);
 
             // The header that needs to be modified is in another file or not exists. Just copy it as is.
-            bufCatC(output, this->page, this->pageOffset, MAXALIGN(this->currentHeader->xlp_rem_len));
+            bufCatC(output, bufPtrConst(input), this->pageOffset, MAXALIGN(this->currentPageHeader->xlp_rem_len));
 
-            this->pageOffset += MAXALIGN(this->currentHeader->xlp_rem_len);
-            this->recPtr += MAXALIGN(this->currentHeader->xlp_rem_len);
+            this->pageOffset += MAXALIGN(this->currentPageHeader->xlp_rem_len);
+            this->recPtr += MAXALIGN(this->currentPageHeader->xlp_rem_len);
         }
     }
 
@@ -628,7 +625,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         if (this->pageOffset != 0)
         {
             // Copy the rest of the current page
-            bufCatC(output, this->page, this->pageOffset, this->walPageSize - this->pageOffset);
+            bufCatC(output, (const unsigned char *) this->currentPageHeader, this->pageOffset, this->walPageSize - this->pageOffset);
             this->pageOffset = 0;
         }
 
@@ -647,7 +644,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             filterRecord(this);
         }
 
-        writeRecord(this, output);
+        writeRecord(this, output, (const unsigned char *) this->record);
 
         this->inputSame = true;
         lstClearFast(this->pageHeaders);
