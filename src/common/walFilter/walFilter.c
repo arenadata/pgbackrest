@@ -333,7 +333,7 @@ filterRecord(WalFilterState *const this)
     }
 
     // Preserve the number of backup blocks.
-    uint32_t backupBlockCount = 0;
+    uint8_t backupBlockCount = 0;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
     {
         if (!(this->record->xl_info & XLR_BKP_BLOCK(i)))
@@ -343,7 +343,7 @@ filterRecord(WalFilterState *const this)
 
     this->record->xl_rmid = RM_XLOG_ID;
     this->record->xl_info = XLOG_NOOP;
-    for (uint32_t i = 0; i < backupBlockCount; i++)
+    for (uint8_t i = 0; i < backupBlockCount; i++)
     {
         this->record->xl_info |= XLR_BKP_BLOCK(i);
     }
