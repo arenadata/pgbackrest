@@ -393,13 +393,10 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
     pg_crc32 crc = crc32cInit();
     crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
 
-    const BkpBlock *bkpb;
     /* Add in the backup blocks, if any */
     const char *blk = (char *) XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
     {
-        uint32 blen;
-
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
             continue;
 
@@ -408,13 +405,13 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
             THROW_FMT(FormatError, "invalid backup block size in record");
         }
 
-        bkpb = (BkpBlock *) blk;
+        const BkpBlock *bkpb = (BkpBlock *) blk;
 
         if (bkpb->hole_offset + bkpb->hole_length > heapPageSize)
         {
             THROW_FMT(FormatError, "incorrect hole size in record");
         }
-        blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
+        uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
 
         if (remaining < blen)
         {
@@ -449,7 +446,6 @@ recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
     pg_crc32 crc = crc32cInit();
     crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
 
-    const BkpBlock *bkpb;
     /* Add in the backup blocks, if any */
     const char *blk = (char *) XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
@@ -459,7 +455,7 @@ recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
             continue;
 
-        bkpb = (BkpBlock *) blk;
+        const BkpBlock *bkpb = (BkpBlock *) blk;
 
         blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
 
