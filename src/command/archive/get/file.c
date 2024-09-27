@@ -103,7 +103,7 @@ archiveGetFile(
                 if (isFilterRequired)
                 {
                     ioFilterGroupAdd(ioWriteFilterGroup(storageWriteIo(destination)),
-                                     walFilterNew(cfgOptionStrId(cfgOptFork), pgControl, actual));
+                                     walFilterNew(pgControl, actual));
                 }
                 // Copy the file
                 storageCopyP(

@@ -169,7 +169,7 @@ testRun(void)
 
         TEST_TITLE("simple read begin from prev file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -206,7 +206,7 @@ testRun(void)
 
         TEST_TITLE("incomplete record in the beginning of prev file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
             record = hrnGpdbCreateXRecordP(RM_XLOG_ID, XLOG_NOOP, 100, NULL);
@@ -244,7 +244,7 @@ testRun(void)
 
         TEST_TITLE("override record in the beginning of prev file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
             record = hrnGpdbCreateXRecordP(
@@ -277,7 +277,7 @@ testRun(void)
 
         TEST_TITLE("no prev file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *zeros = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
             memset(bufPtr(zeros), 0, bufUsed(zeros));
@@ -303,7 +303,7 @@ testRun(void)
 
         TEST_TITLE("no WAL files in repository");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
 
         wal2 = bufNew(1024 * 1024);
         record = hrnGpdbCreateXRecordP(RM_XLOG_ID, XLOG_NOOP, 100, NULL);
@@ -321,7 +321,7 @@ testRun(void)
 
         TEST_TITLE("usefully part of the record in prev file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -356,7 +356,7 @@ testRun(void)
 
         TEST_TITLE("record is too big");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -391,7 +391,7 @@ testRun(void)
 
         TEST_TITLE("multiply WAL files");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -443,7 +443,7 @@ testRun(void)
 
         TEST_TITLE("read multiply pages from prev file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 4);
 
@@ -504,7 +504,7 @@ testRun(void)
         archiveInfo.file = STRDEF(
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd.gz");
 
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -583,7 +583,7 @@ testRun(void)
 
         TEST_TITLE("simple read end from next file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -616,7 +616,7 @@ testRun(void)
 
         TEST_TITLE("no files in repository");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
 
         wal2 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
         record = hrnGpdbCreateXRecordP(
@@ -633,7 +633,7 @@ testRun(void)
 
         TEST_TITLE("multiply WAL files");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -683,7 +683,7 @@ testRun(void)
 
         TEST_TITLE("no next file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *zeros = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
             memset(bufPtr(zeros), 0, bufUsed(zeros));
@@ -714,7 +714,7 @@ testRun(void)
 
         TEST_TITLE("read more then one page from next file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
 
@@ -748,7 +748,7 @@ testRun(void)
 
         TEST_TITLE("Unexpected WAL end");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
 
@@ -780,7 +780,7 @@ testRun(void)
 
         TEST_TITLE("usefully part of header in the next file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -836,7 +836,7 @@ testRun(void)
         archiveInfo.file = STRDEF(
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd.gz");
 
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -881,7 +881,7 @@ testRun(void)
 
         TEST_TITLE("one simple record");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -895,7 +895,7 @@ testRun(void)
 
         TEST_TITLE("split header");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -910,7 +910,7 @@ testRun(void)
 
         TEST_TITLE("split body");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -925,7 +925,7 @@ testRun(void)
 
         TEST_TITLE("not enough input buffer - begin of record");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -940,7 +940,7 @@ testRun(void)
 
         TEST_TITLE("not enough input buffer - header");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -955,7 +955,7 @@ testRun(void)
 
         TEST_TITLE("not enough input buffer - body");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -970,7 +970,7 @@ testRun(void)
 
         TEST_TITLE("copy data after wal switch");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
             XRecordInfo walRecords[] = {
@@ -988,7 +988,7 @@ testRun(void)
 
         TEST_TITLE("override record in header");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
 
@@ -1010,7 +1010,7 @@ testRun(void)
 
         TEST_TITLE("override record in body");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
 
@@ -1033,7 +1033,7 @@ testRun(void)
 
         TEST_TITLE("override record at the beginning");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             record = hrnGpdbCreateXRecordP(RM_XLOG_ID, XLOG_NOOP, 100, NULL);
@@ -1049,7 +1049,7 @@ testRun(void)
 
         TEST_TITLE("valid full page image with max size");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
@@ -1075,7 +1075,7 @@ testRun(void)
 
         TEST_TITLE("long record");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1099,7 +1099,7 @@ testRun(void)
 
         TEST_TITLE("wrong header magic");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             record = hrnGpdbCreateXRecordP(RM_XLOG_ID, XLOG_NOOP, 100, NULL);
@@ -1112,7 +1112,7 @@ testRun(void)
 
         TEST_TITLE("XLP_FIRST_IS_CONTRECORD in the beginning of the record");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1129,7 +1129,7 @@ testRun(void)
 
         TEST_TITLE("no XLP_FIRST_IS_CONTRECORD in split header");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1145,7 +1145,7 @@ testRun(void)
 
         TEST_TITLE("no XLP_FIRST_IS_CONTRECORD in split body");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1161,7 +1161,7 @@ testRun(void)
 
         TEST_TITLE("zero rem_len");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1179,7 +1179,7 @@ testRun(void)
 
         TEST_TITLE("wrong rem_len");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1197,7 +1197,7 @@ testRun(void)
 
         TEST_TITLE("non zero length of xlog switch record body");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1213,7 +1213,7 @@ testRun(void)
 
         TEST_TITLE("record with zero length");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1226,7 +1226,7 @@ testRun(void)
 
         TEST_TITLE("invalid record length");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             record = hrnGpdbCreateXRecordP(0, XLOG_NOOP, 100, NULL);
@@ -1239,7 +1239,7 @@ testRun(void)
 
         TEST_TITLE("invalid record length 2");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             record = hrnGpdbCreateXRecordP(0, XLOG_NOOP, 100, NULL);
@@ -1255,7 +1255,7 @@ testRun(void)
 
         TEST_TITLE("invalid resource manager ID");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             record = hrnGpdbCreateXRecordP(UINT8_MAX, XLOG_NOOP, 100, NULL);
@@ -1267,7 +1267,7 @@ testRun(void)
 
         TEST_TITLE("invalid backup block size in record");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
@@ -1281,7 +1281,7 @@ testRun(void)
 
         TEST_TITLE("incorrect hole size in record");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
@@ -1301,7 +1301,7 @@ testRun(void)
 
         TEST_TITLE("invalid backup block size in record");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
@@ -1321,7 +1321,7 @@ testRun(void)
 
         TEST_TITLE("incorrect total length in record");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
@@ -1341,7 +1341,7 @@ testRun(void)
 
         TEST_TITLE("incorrect resource manager data checksum in record");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             record = hrnGpdbCreateXRecordP(0, XLOG_NOOP, 100, NULL);
@@ -1355,7 +1355,7 @@ testRun(void)
         MEM_CONTEXT_TEMP_END();
     }
 
-    if (testBegin("GPDB6 specific tests"))
+    if (testBegin("GPDB 6 specific tests"))
     {
         const PgControl pgControl = {
             .version = PG_VERSION_94,
@@ -1420,9 +1420,9 @@ testRun(void)
 
         {
             xl_heap_new_cid *xlrec = (xl_heap_new_cid *) XLogRecGetData(record);
-            xlrec->target.node.spcNode = 1;
-            xlrec->target.node.dbNode = 2;
-            xlrec->target.node.relNode = 3;
+            xlrec->target.spcNode = 1;
+            xlrec->target.dbNode = 2;
+            xlrec->target.relNode = 3;
 
             const RelFileNode *node = getRelFileNodeGPDB6(record);
             RelFileNode node_expect = {1, 2, 3};
@@ -1543,7 +1543,7 @@ testRun(void)
 
         TEST_TITLE("Unsupported hash resource manager");
         record = hrnGpdbCreateXRecordP(RM_HASH_ID, 0, 100, NULL);
-        TEST_ERROR(getRelFileNodeGPDB6(record), FormatError, "Not supported in GPDB6. Shouldn't be here");
+        TEST_ERROR(getRelFileNodeGPDB6(record), FormatError, "Not supported in GPDB 6. Shouldn't be here");
         memFree(record);
 
         TEST_TITLE("Unknown resource manager");
@@ -1568,13 +1568,14 @@ testRun(void)
         hrnCfgArgRawZ(argListCommon, cfgOptRepoPath, TEST_PATH "/repo");
 
         hrnCfgArgRawZ(argListCommon, cfgOptFilter, TEST_PATH "/recovery_filter.json");
+        hrnCfgArgRawZ(argListCommon, cfgOptFork, CFGOPTVAL_FORK_GPDB_Z);
         HRN_CFG_LOAD(cfgCmdRestore, argListCommon);
 
         const Storage *storageTest = storagePosixNewP(TEST_PATH_STR, .write = true);
         HRN_STORAGE_PUT_Z(storageTest, "recovery_filter.json", "[]");
 
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, &archiveInfo);
+        filter = walFilterNew(pgControl, &archiveInfo);
         RelFileNode node1 = {
             .dbNode = 30000,
             .spcNode = 1000,
@@ -1687,6 +1688,7 @@ testRun(void)
         argListCommon = strLstNew();
         hrnCfgArgRawZ(argListCommon, cfgOptStanza, "test1");
         hrnCfgArgRawZ(argListCommon, cfgOptPgPath, TEST_PATH "/pg");
+        hrnCfgArgRawZ(argListCommon, cfgOptFork, CFGOPTVAL_FORK_GPDB_Z);
 
         storageTest = storagePosixNewP(TEST_PATH_STR, .write = true);
         HRN_STORAGE_PUT_Z(storageTest, "recovery_filter.json", strZ(jsonstr));
@@ -1695,7 +1697,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdRestore, argListCommon);
 
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         wal = bufNew(1024 * 1024);
         Buffer *expect_wal = bufNew(1024 * 1024);
 
@@ -1770,7 +1772,7 @@ testRun(void)
 
         TEST_TITLE("Filter - empty filer list");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         wal = bufNew(1024 * 1024);
         Buffer *expect_wal = bufNew(1024 * 1024);
 
@@ -1817,25 +1819,6 @@ testRun(void)
         MEM_CONTEXT_TEMP_END();
     }
 
-    if (testBegin("Unsupported GPDB version"))
-    {
-        PgControl pgControl = {
-            .version = PG_VERSION_94,
-            .pageSize = DEFAULT_GDPB_PAGE_SIZE,
-            .walPageSize = DEFAULT_GDPB_XLOG_PAGE_SIZE,
-            .walSegmentSize = GPDB6_XLOG_SEG_SIZE
-        };
-
-        TEST_ERROR(
-            walFilterNew(CFGOPTVAL_FORK_POSTGRESQL, pgControl, NULL),
-            VersionNotSupportedError, "WAL filtering is unsupported for this Postgres version");
-
-        pgControl.version = PG_VERSION_95;
-        TEST_ERROR(
-            walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL),
-            VersionNotSupportedError, "WAL filtering is unsupported for this Postgres version");
-    }
-
     if (testBegin("Alternative page sizes"))
     {
         // Some basic tests of non-standard (for gpdb) xlog page sizes.
@@ -1848,7 +1831,7 @@ testRun(void)
 
         TEST_TITLE("one simple record");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1862,7 +1845,7 @@ testRun(void)
 
         TEST_TITLE("split header");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1877,7 +1860,7 @@ testRun(void)
 
         TEST_TITLE("split body");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
@@ -1892,7 +1875,7 @@ testRun(void)
 
         TEST_TITLE("valid full page image with max size");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(CFGOPTVAL_FORK_GPDB, pgControl, NULL);
+        filter = walFilterNew(pgControl, NULL);
         {
             wal = bufNew(1024 * 1024);
             uint8_t info = XLOG_FPI;
@@ -1915,6 +1898,31 @@ testRun(void)
         result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
         TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
         MEM_CONTEXT_TEMP_END();
+    }
+
+    if (testBegin("Unsupported GPDB version"))
+    {
+        PgControl pgControl = {
+            .version = PG_VERSION_95,
+            .pageSize = DEFAULT_GDPB_PAGE_SIZE,
+            .walPageSize = DEFAULT_GDPB_XLOG_PAGE_SIZE,
+            .walSegmentSize = GPDB6_XLOG_SEG_SIZE
+        };
+
+        TEST_ERROR(
+            walFilterNew(pgControl, NULL),
+            VersionNotSupportedError, "WAL filtering is unsupported for this Postgres version");
+
+        StringList *argBaseList = strLstNew();
+        hrnCfgArgRawZ(argBaseList, cfgOptFork, CFGOPTVAL_FORK_POSTGRESQL_Z);
+        hrnCfgArgRawZ(argBaseList, cfgOptStanza, "test1");
+        hrnCfgArgRawZ(argBaseList, cfgOptPgPath, TEST_PATH "/pg");
+        hrnCfgArgRawZ(argBaseList, cfgOptRepoPath, TEST_PATH "/repo");
+        HRN_CFG_LOAD(cfgCmdArchiveGet, argBaseList);
+        pgControl.version = PG_VERSION_94;
+        TEST_ERROR(
+            walFilterNew(pgControl, NULL),
+            VersionNotSupportedError, "WAL filtering is unsupported for this Postgres version");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();

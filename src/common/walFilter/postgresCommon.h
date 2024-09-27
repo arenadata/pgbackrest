@@ -95,6 +95,26 @@ typedef struct XLogLongPageHeaderData
     uint32 xlp_xlog_blcksz;         /* just as a cross-check */
 } XLogLongPageHeaderData;
 
+/*
+ * The overall layout of an XLOG record is:
+ *      Fixed-size header (XLogRecord struct)
+ *      rmgr-specific data
+ *      BkpBlock
+ *      backup block data
+ *      BkpBlock
+ *      backup block data
+ *      ...
+ *
+ * where there can be zero to four backup blocks (as signaled by xl_info flag
+ * bits).  XLogRecord structs always start on MAXALIGN boundaries in the WAL
+ * files, and we round up SizeOfXLogRecord so that the rmgr data is also
+ * guaranteed to begin on a MAXALIGN boundary.  However, no padding is added
+ * to align BkpBlock structs or backup block data.
+ *
+ * NOTE: xl_len counts only the rmgr data, not the XLogRecord header,
+ * and also not any backup blocks.  xl_tot_len counts everything.  Neither
+ * length field is rounded up to an alignment boundary.
+ */
 typedef struct XLogRecord
 {
     uint32 xl_tot_len;          /* total len of entire record */

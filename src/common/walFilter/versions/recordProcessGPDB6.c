@@ -21,7 +21,6 @@
 #define XLR_BKP_BLOCK(iblk)     (0x08 >> (iblk)) /* iblk in 0..3 */
 
 typedef uint32 CommandId;
-typedef uint16 OffsetNumber;
 
 typedef enum ForkNumber
 {
@@ -49,29 +48,6 @@ typedef struct xl_smgr_truncate
     RelFileNode rnode;
 } xl_smgr_truncate;
 
-typedef struct BlockIdData
-{
-    uint16 bi_hi;
-    uint16 bi_lo;
-} BlockIdData;
-
-typedef struct ItemPointerData
-{
-    BlockIdData ip_blkid;
-    OffsetNumber ip_posid;
-}
-
-#ifdef __arm__
-__attribute__((packed))         /* Appropriate whack upside the head for ARM */
-#endif
-ItemPointerData;
-
-typedef struct xl_heaptid
-{
-    RelFileNode node;
-    ItemPointerData tid;        /* changed tuple id */
-} xl_heaptid;
-
 typedef struct xl_heap_new_cid
 {
     /*
@@ -92,7 +68,8 @@ typedef struct xl_heap_new_cid
     /*
      * Store the relfilenode/ctid pair to facilitate lookups.
      */
-    xl_heaptid target;
+    // RelFileNode is the first field in xl_heaptid.
+    RelFileNode target;
 } xl_heap_new_cid;
 
 // Get RelFileNode from XLOG record.
@@ -158,7 +135,7 @@ getHeap2(const XLogRecord *record)
     if (info == XLOG_HEAP2_NEW_CID)
     {
         xl_heap_new_cid *xlrec = (xl_heap_new_cid *) XLogRecGetData(record);
-        return &xlrec->target.node;
+        return &xlrec->target;
     }
 
     if (info == XLOG_HEAP2_REWRITE)
@@ -379,7 +356,7 @@ getRelFileNodeGPDB6(const XLogRecord *record)
             return NULL;
 
         case RM_HASH_ID:
-            THROW(FormatError, "Not supported in GPDB6. Shouldn't be here");
+            THROW(FormatError, "Not supported in GPDB 6. Shouldn't be here");
     }
     THROW(FormatError, "Unknown resource manager");
 }
@@ -424,7 +401,7 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
     pg_crc32 crc = crc32cInit();
     crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
 
-    BkpBlock bkpb;
+    BkpBlock *bkpb;
     /* Add in the backup blocks, if any */
     const char *blk = (char *) XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
@@ -438,13 +415,14 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
         {
             THROW_FMT(FormatError, "invalid backup block size in record");
         }
-        memcpy(&bkpb, blk, sizeof(BkpBlock));
 
-        if (bkpb.hole_offset + bkpb.hole_length > heapPageSize)
+        bkpb = (BkpBlock *) blk;
+
+        if (bkpb->hole_offset + bkpb->hole_length > heapPageSize)
         {
             THROW_FMT(FormatError, "incorrect hole size in record");
         }
-        blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb.hole_length;
+        blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
 
         if (remaining < blen)
         {
@@ -479,7 +457,7 @@ recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
     pg_crc32 crc = crc32cInit();
     crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
 
-    BkpBlock bkpb;
+    BkpBlock *bkpb;
     /* Add in the backup blocks, if any */
     const char *blk = (char *) XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
@@ -489,9 +467,9 @@ recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
             continue;
 
-        memcpy(&bkpb, blk, sizeof(BkpBlock));
+        bkpb = (BkpBlock *) blk;
 
-        blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb.hole_length;
+        blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
 
         crc = crc32cComp(crc, (unsigned char *) blk, blen);
         blk += blen;

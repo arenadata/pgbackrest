@@ -15,6 +15,8 @@
 #include "storage/helper.h"
 #include "versions/recordProcessGPDB6.h"
 
+#define WAL_FILTER_TYPE STRID5("wal-fltr", 0x95186db0370)
+
 typedef enum
 {
     noStep, // This means that the process of reading the record is in an uninterrupted state.
@@ -70,14 +72,14 @@ typedef struct WalFilter
 
     XLogRecord *record;
     uint32_t recBufSize;
-    // Offset to the body of the record on the current page
+    // Size of header of the current record on the current page
     size_t headerOffset;
-    // How many bytes we read of this record
+    // How many bytes we read from this record
     size_t gotLen;
-    // Total size of record on current page
+    // Total size of the current record on current page
     size_t totLen;
 
-    List *headers;
+    List *pageHeaders;
 
     WalInterface *walInterface;
 
@@ -116,8 +118,7 @@ walFilterToLog(const WalFilterState *const this, StringStatic *const debugLog)
 #define FUNCTION_LOG_WAL_FILTER_FORMAT(value, buffer, bufferSize)                                                                  \
     FUNCTION_LOG_OBJECT_FORMAT(value, walFilterToLog, buffer, bufferSize)
 
-static inline
-void
+static inline void
 checkOutputSize(Buffer *const output, const size_t size)
 {
     if (bufRemains(output) <= size)
@@ -151,7 +152,7 @@ getNextPage(WalFilterState *const this, const Buffer *const input, const ReadSte
         THROW_FMT(FormatError, "%s - wrong page magic", strZ(pgLsnToStr(this->recPtr)));
     }
 
-    lstAdd(this->headers, this->currentHeader);
+    lstAdd(this->pageHeaders, this->currentHeader);
 
     return true;
 }
@@ -342,8 +343,8 @@ writeRecord(WalFilterState *const this, Buffer *const output)
     uint32_t header_i = 0;
     if (this->recPtr % this->walPageSize == 0)
     {
-        ASSERT(!lstEmpty(this->headers));
-        const XLogPageHeaderData *const header = lstGet(this->headers, header_i);
+        ASSERT(!lstEmpty(this->pageHeaders));
+        const XLogPageHeaderData *const header = lstGet(this->pageHeaders, header_i);
         const size_t to_write = XLogPageHeaderSize(header);
 
         bufCatC(output, (const unsigned char *) header, 0, to_write);
@@ -363,9 +364,9 @@ writeRecord(WalFilterState *const this, Buffer *const output)
         wrote += to_write;
 
         // write header
-        if (header_i < lstSize(this->headers))
+        if (header_i < lstSize(this->pageHeaders))
         {
-            bufCatC(output, lstGet(this->headers, header_i), 0, SizeOfXLogShortPHD);
+            bufCatC(output, lstGet(this->pageHeaders, header_i), 0, SizeOfXLogShortPHD);
 
             this->recPtr += SizeOfXLogShortPHD;
             header_i++;
@@ -474,7 +475,7 @@ readBeginOfRecord(WalFilterState *const this)
             size = ioRead(storageReadIo(storageRead), buffer);
             bufUsedSet(buffer, size);
         }
-        lstClearFast(this->headers);
+        lstClearFast(this->pageHeaders);
     }
     // If xl_info and xl_rmid is in prev file then nothing to do
     result = this->gotLen < offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid);
@@ -532,8 +533,8 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     ASSERT(output != NULL);
     ASSERT(input == NULL || bufUsed(input) % this->walPageSize == 0);
 
-    // Avoid creating local variables before the record is fully read.
-    // Since if the input buffer is exhausted, we can exit the function.
+    // Avoid creating local variables before the record is fully read,
+    // since if the input buffer is exhausted, we can exit the function.
 
     if (input == NULL)
     {
@@ -568,7 +569,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                 // Remember how much we read from the prev file in order to skip this size when writing.
                 const size_t offset = this->gotLen;
                 this->inputOffset = 0;
-                lstClearFast(this->headers);
+                lstClearFast(this->pageHeaders);
                 if (readRecord(this, input) == ReadRecordNeedBuffer)
                 {
                     // Since we are at the very beginning of the file, let's assume that the current input buffer is enough to fully
@@ -584,9 +585,9 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                 ASSERT(this->recPtr == this->currentHeader->xlp_pageaddr);
                 writeRecord(this, output);
                 this->inputSame = true;
-                lstClearFast(this->headers);
+                lstClearFast(this->pageHeaders);
                 goto end;
-            } // else
+            }
 
             this->inputOffset = 0;
             getNextPage(this, input, noStep);
@@ -594,7 +595,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             bufCatC(output, (const unsigned char *) this->currentHeader, 0, SizeOfXLogLongPHD);
 
             this->recPtr += SizeOfXLogLongPHD;
-            lstClearFast(this->headers);
+            lstClearFast(this->pageHeaders);
 
             // The header that needs to be modified is in another file or not exists. Just copy it as is.
             bufCatC(output, this->page, this->pageOffset, MAXALIGN(this->currentHeader->xlp_rem_len));
@@ -632,7 +633,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         writeRecord(this, output);
 
         this->inputSame = true;
-        lstClearFast(this->headers);
+        lstClearFast(this->pageHeaders);
     }
 end:
     FUNCTION_LOG_RETURN_VOID();
@@ -662,24 +663,27 @@ WalFilterInputSame(const THIS_VOID)
 }
 
 FN_EXTERN IoFilter *
-walFilterNew(const StringId fork, const PgControl pgControl, const ArchiveGetFile *const archiveInfo)
+walFilterNew(const PgControl pgControl, const ArchiveGetFile *const archiveInfo)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
+        FUNCTION_LOG_PARAM(PG_CONTROL, pgControl);
     FUNCTION_LOG_END();
 
     OBJ_NEW_BEGIN(WalFilterState, .childQty = MEM_CONTEXT_QTY_MAX, .allocQty = MEM_CONTEXT_QTY_MAX)
     {
-        memset(this, 0, sizeof(WalFilterState));
-        this->isBegin = true;
-        this->record = memNew(pgControl.pageSize);
-        this->recBufSize = pgControl.pageSize;
-        this->headers = lstNewP(SizeOfXLogLongPHD);
-        this->archiveInfo = archiveInfo;
-        this->heapPageSize = pgControl.pageSize;
-        this->walPageSize = pgControl.walPageSize;
-        this->segSize = pgControl.walSegmentSize;
+        *this = (WalFilterState){
+            .isBegin = true,
+            .record = memNew(pgControl.pageSize),
+            .recBufSize = pgControl.pageSize,
+            .pageHeaders = lstNewP(SizeOfXLogLongPHD),
+            .archiveInfo = archiveInfo,
+            .heapPageSize = pgControl.pageSize,
+            .walPageSize = pgControl.walPageSize,
+            .segSize = pgControl.walSegmentSize,
+        };
 
-        for (unsigned int i = 0; i < LENGTH_OF(interfaces); ++i)
+        StringId fork = cfgOptionStrId(cfgOptFork);
+        for (unsigned int i = 0; i < LENGTH_OF(interfaces); i++)
         {
             if (interfaces[i].pgVersion == pgControl.version && interfaces[i].fork == fork)
             {
@@ -697,6 +701,6 @@ walFilterNew(const StringId fork, const PgControl pgControl, const ArchiveGetFil
     FUNCTION_LOG_RETURN(
         IO_FILTER,
         ioFilterNewP(
-            WAL_FILTER_TYPE, this, NULL,.done = WalFilterDone, .inOut = walFilterProcess,
+            WAL_FILTER_TYPE, this, NULL, .done = WalFilterDone, .inOut = walFilterProcess,
             .inputSame = WalFilterInputSame));
 }
