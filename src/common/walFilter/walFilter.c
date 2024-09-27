@@ -371,7 +371,7 @@ writeRecord(WalFilterState *const this, Buffer *const output)
     size_t wrote = 0;
     while (this->gotLen != wrote)
     {
-        const size_t space_on_page = this->walPageSize - this->recPtr % this->walPageSize;
+        const size_t space_on_page = this->walPageSize - (size_t) (this->recPtr % this->walPageSize);
         const size_t to_write = Min(space_on_page, this->gotLen - wrote);
 
         bufCatC(output, (const unsigned char *) this->record, wrote, to_write);
