@@ -73,7 +73,7 @@ typedef struct WalFilter
     XLogRecord *record;
     uint32_t recBufSize;
     // Size of header of the current record on the current page
-    size_t headerOffset;
+    size_t headerSize;
     // How many bytes we read from this record
     size_t gotLen;
     // Total size of the current record on current page
@@ -130,12 +130,11 @@ checkOutputSize(Buffer *const output, const size_t size)
 // Save next page addr from input buffer to page field. If the input buffer is exhausted, remember the current step and returns
 // false. In this case, we should exit the process function to get a new input buffer. Returns true on success page read.
 static inline bool
-getNextPage(WalFilterState *const this, const Buffer *const input, const ReadStep step)
+getNextPage(WalFilterState *const this, const Buffer *const input)
 {
     if (this->inputOffset >= bufUsed(input))
     {
-        ASSERT(step != noStep);
-        this->currentStep = step;
+        ASSERT(this->currentStep != noStep);
         this->inputOffset = 0;
         this->inputSame = false;
         return false;
@@ -187,8 +186,9 @@ readRecord(WalFilterState *const this, const Buffer *const input)
 
     if (this->pageOffset == 0 || this->pageOffset >= this->walPageSize)
     {
+        this->currentStep = stepBeginOfRecord;
 stepBeginOfRecord:
-        if (!getNextPage(this, input, stepBeginOfRecord))
+        if (!getNextPage(this, input))
         {
             return ReadRecordNeedBuffer;
         }
@@ -231,8 +231,9 @@ stepBeginOfRecord:
     if (SizeOfXLogRecord > this->walPageSize - this->pageOffset)
     {
         this->gotLen = this->walPageSize - this->pageOffset;
+        this->currentStep = stepReadHeader;
 stepReadHeader:
-        if (!getNextPage(this, input, stepReadHeader))
+        if (!getNextPage(this, input))
         {
             return ReadRecordNeedBuffer;
         }
@@ -251,18 +252,18 @@ stepReadHeader:
 
         memcpy(((char *) this->record) + this->gotLen, this->page + this->pageOffset, SizeOfXLogRecord - this->gotLen);
         this->totLen -= this->gotLen;
-        this->headerOffset = SizeOfXLogRecord - this->gotLen;
+        this->headerSize = SizeOfXLogRecord - this->gotLen;
     }
     else
     {
-        this->headerOffset = SizeOfXLogRecord;
+        this->headerSize = SizeOfXLogRecord;
     }
     this->gotLen = SizeOfXLogRecord;
 
     this->walInterface->validXLogRecordHeader(this->record, this->heapPageSize);
     // Read rest of the record on this page
     size_t to_read = Min(this->record->xl_tot_len - SizeOfXLogRecord, this->walPageSize - this->pageOffset - SizeOfXLogRecord);
-    memcpy(XLogRecGetData(this->record), this->page + this->pageOffset + this->headerOffset, to_read);
+    memcpy(XLogRecGetData(this->record), this->page + this->pageOffset + this->headerSize, to_read);
     this->gotLen += to_read;
 
     // Move pointer to the next record on the page
@@ -271,8 +272,9 @@ stepReadHeader:
     // Rest of the record data is on the next page
     while (this->gotLen != this->record->xl_tot_len)
     {
+        this->currentStep = stepReadBody;
 stepReadBody:
-        if (!getNextPage(this, input, stepReadBody))
+        if (!getNextPage(this, input))
         {
             return ReadRecordNeedBuffer;
         }
@@ -345,7 +347,7 @@ filterRecord(WalFilterState *const this)
     this->record->xl_info = XLOG_NOOP;
     for (int i = 0; i < backupBlockCount; i++)
     {
-        this->record->xl_info |= XLR_BKP_BLOCK(i);
+        this->record->xl_info |= (uint8_t) XLR_BKP_BLOCK(i);
     }
     this->record->xl_crc = this->walInterface->recordChecksum(this->record, this->heapPageSize);
 }
@@ -574,9 +576,10 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     {
         this->isBegin = false;
 
-        getNextPage(this, input, noStep);
+        getNextPage(this, input);
         this->recPtr = this->currentHeader->xlp_pageaddr;
-        if (this->currentHeader->xlp_info & XLP_FIRST_IS_CONTRECORD && !(this->currentHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD))
+        if (this->currentHeader->xlp_info & XLP_FIRST_IS_CONTRECORD &&
+            !(this->currentHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD))
         {
             if (readBeginOfRecord(this))
             {
@@ -604,7 +607,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             }
 
             this->inputOffset = 0;
-            getNextPage(this, input, noStep);
+            getNextPage(this, input);
             ASSERT(this->recPtr == this->currentHeader->xlp_pageaddr);
             bufCatC(output, (const unsigned char *) this->currentHeader, 0, SizeOfXLogLongPHD);
             this->recPtr += SizeOfXLogLongPHD;
