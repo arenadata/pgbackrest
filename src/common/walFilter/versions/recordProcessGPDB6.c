@@ -450,14 +450,12 @@ recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
     const char *blk = (char *) XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
     {
-        uint32 blen;
-
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
             continue;
 
         const BkpBlock *bkpb = (BkpBlock *) blk;
 
-        blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
+        uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
 
         crc = crc32cComp(crc, (unsigned char *) blk, blen);
         blk += blen;
