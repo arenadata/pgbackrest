@@ -1156,7 +1156,7 @@ testRun(void)
             hrnGpdbWalInsertXRecordP(wal, record, NO_COND_FLAG);
             fillLastPage(wal, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         }
-        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "0/7f06 - should be XLP_FIRST_IS_CONTRECORD");
+        TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "0/7f08 - should be XLP_FIRST_IS_CONTRECORD");
         MEM_CONTEXT_TEMP_END();
 
         TEST_TITLE("zero rem_len");
@@ -1174,7 +1174,7 @@ testRun(void)
         }
         TEST_ERROR(
             testFilter(
-                filter, wal, bufSize(wal), bufSize(wal)), FormatError, "0/7f06 - invalid contrecord length: expect: 284, get 0");
+                filter, wal, bufSize(wal), bufSize(wal)), FormatError, "0/7f08 - invalid contrecord length: expect: 284, get 0");
         MEM_CONTEXT_TEMP_END();
 
         TEST_TITLE("wrong rem_len");
@@ -1192,7 +1192,7 @@ testRun(void)
         }
         TEST_ERROR(
             testFilter(
-                filter, wal, bufSize(wal), bufSize(wal)), FormatError, "0/7f06 - invalid contrecord length: expect: 284, get 1");
+                filter, wal, bufSize(wal), bufSize(wal)), FormatError, "0/7f08 - invalid contrecord length: expect: 284, get 1");
         MEM_CONTEXT_TEMP_END();
 
         TEST_TITLE("non zero length of xlog switch record body");
@@ -1653,6 +1653,69 @@ testRun(void)
         HRN_STORAGE_REMOVE(
             storageRepoWrite(),
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+        MEM_CONTEXT_TEMP_END();
+
+        TEST_TITLE("Filter record with backup blocks");
+        MEM_CONTEXT_TEMP_BEGIN();
+        RelFileNode node1 = {
+            .dbNode = 30000,
+            .spcNode = 1000,
+            .relNode = 17000
+        };
+        filter = walFilterNew(pgControl, NULL);
+        {
+            wal = bufNew(1024 * 1024);
+            uint8_t info = XLOG_FPI;
+            info |= XLR_BKP_BLOCK(0);
+            info |= XLR_BKP_BLOCK(1);
+            info |= XLR_BKP_BLOCK(2);
+            info |= XLR_BKP_BLOCK(3);
+
+            uint32_t bodySize = sizeof(node1) + XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + DEFAULT_GDPB_PAGE_SIZE);
+            char *body = memNew(bodySize);
+            RelFileNode *node = (RelFileNode *) body;
+            *node = node1;
+            memset(body + sizeof(node1), 0, bodySize - sizeof(node1));
+
+            record = hrnGpdbCreateXRecordP(RM_XLOG_ID, info, bodySize, body, .xl_len = sizeof(node1));
+
+            hrnGpdbWalInsertXRecordP(wal, record, NO_FLAGS);
+            record = hrnGpdbCreateXRecordP(0, XLOG_SWITCH, 0, NULL);
+            hrnGpdbWalInsertXRecordP(wal, record, NO_FLAGS);
+            fillLastPage(wal, DEFAULT_GDPB_XLOG_PAGE_SIZE);
+        }
+        Buffer *expect_wal = bufNew(1024 * 1024);
+        {
+            uint8_t info = XLOG_NOOP;
+            info |= XLR_BKP_BLOCK(0);
+            info |= XLR_BKP_BLOCK(1);
+            info |= XLR_BKP_BLOCK(2);
+            info |= XLR_BKP_BLOCK(3);
+
+            uint32_t bodySize = sizeof(node1) + XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + DEFAULT_GDPB_PAGE_SIZE);
+            char *body = memNew(bodySize);
+            RelFileNode *node = (RelFileNode *) body;
+            *node = node1;
+            memset(body + sizeof(node1), 0, bodySize - sizeof(node1));
+
+            record = hrnGpdbCreateXRecordP(RM_XLOG_ID, info, bodySize, body, .xl_len = sizeof(node1));
+            hrnGpdbWalInsertXRecordP(expect_wal, record, NO_FLAGS);
+
+            record = hrnGpdbCreateXRecordP(0, XLOG_SWITCH, 0, NULL);
+            hrnGpdbWalInsertXRecordP(expect_wal, record, NO_FLAGS);
+
+            fillLastPage(expect_wal, DEFAULT_GDPB_XLOG_PAGE_SIZE);
+        }
+        HRN_FORK_BEGIN()
+        {
+            HRN_FORK_CHILD_BEGIN()
+            {
+                result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
+                TEST_RESULT_BOOL(bufEq(expect_wal, result), true, "filtered wal is different from expected");
+            }
+            HRN_FORK_CHILD_END();
+        }
+        HRN_FORK_END();
         MEM_CONTEXT_TEMP_END();
 
         TEST_TITLE("Filter");

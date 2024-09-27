@@ -12,14 +12,6 @@
 #define XLR_INFO_MASK           0x0F
 #define XLOG_HEAP_OPMASK        0x70
 
-/*
- * If we backed up any disk blocks with the XLOG record, we use flag bits in
- * xl_info to signal it.  We support backup of up to 4 disk blocks per XLOG
- * record.
- */
-#define XLR_MAX_BKP_BLOCKS      4
-#define XLR_BKP_BLOCK(iblk)     (0x08 >> (iblk)) /* iblk in 0..3 */
-
 typedef uint32 CommandId;
 
 typedef enum ForkNumber
@@ -401,7 +393,7 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
     pg_crc32 crc = crc32cInit();
     crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
 
-    BkpBlock *bkpb;
+    const BkpBlock *bkpb;
     /* Add in the backup blocks, if any */
     const char *blk = (char *) XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
@@ -457,7 +449,7 @@ recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
     pg_crc32 crc = crc32cInit();
     crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
 
-    BkpBlock *bkpb;
+    const BkpBlock *bkpb;
     /* Add in the backup blocks, if any */
     const char *blk = (char *) XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)

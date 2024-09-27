@@ -55,6 +55,14 @@ typedef uint32 BlockNumber;
 #define Min(x, y)       ((x) < (y) ? (x) : (y))
 
 /*
+ * If we backed up any disk blocks with the XLOG record, we use flag bits in
+ * xl_info to signal it.  We support backup of up to 4 disk blocks per XLOG
+ * record.
+ */
+#define XLR_MAX_BKP_BLOCKS      4
+#define XLR_BKP_BLOCK(iblk)     (0x08 >> (iblk)) /* iblk in 0..3 */
+
+/*
  * The XLOG is split into WAL segments (physical files) of the size indicated
  * by XLOG_SEG_SIZE.
  */

@@ -332,8 +332,21 @@ filterRecord(WalFilterState *const this)
         return;
     }
 
+    // Preserve the number of backup blocks.
+    uint32_t backupBlockCount = 0;
+    for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
+    {
+        if (!(this->record->xl_info & XLR_BKP_BLOCK(i)))
+            continue;
+        backupBlockCount++;
+    }
+
     this->record->xl_rmid = RM_XLOG_ID;
     this->record->xl_info = XLOG_NOOP;
+    for (uint32_t i = 0; i < backupBlockCount; i++)
+    {
+        this->record->xl_info |= XLR_BKP_BLOCK(i);
+    }
     this->record->xl_crc = this->walInterface->recordChecksum(this->record, this->heapPageSize);
 }
 
@@ -356,12 +369,13 @@ writeRecord(WalFilterState *const this, Buffer *const output)
     size_t wrote = 0;
     while (this->gotLen != wrote)
     {
-        const size_t space_on_page = this->walPageSize - bufUsed(output) % this->walPageSize;
+        const size_t space_on_page = this->walPageSize - this->recPtr % this->walPageSize;
         const size_t to_write = Min(space_on_page, this->gotLen - wrote);
 
         bufCatC(output, (const unsigned char *) this->record, wrote, to_write);
 
         wrote += to_write;
+        this->recPtr += to_write;
 
         // write header
         if (header_i < lstSize(this->pageHeaders))
@@ -377,8 +391,8 @@ writeRecord(WalFilterState *const this, Buffer *const output)
     checkOutputSize(output, alignSize);
     memset(bufRemainsPtr(output), 0, alignSize);
     bufUsedInc(output, alignSize);
+    this->recPtr += alignSize;
 
-    this->recPtr += this->totLen;
     this->gotLen = 0;
 }
 
@@ -593,8 +607,8 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             getNextPage(this, input, noStep);
             ASSERT(this->recPtr == this->currentHeader->xlp_pageaddr);
             bufCatC(output, (const unsigned char *) this->currentHeader, 0, SizeOfXLogLongPHD);
-
             this->recPtr += SizeOfXLogLongPHD;
+
             lstClearFast(this->pageHeaders);
 
             // The header that needs to be modified is in another file or not exists. Just copy it as is.
