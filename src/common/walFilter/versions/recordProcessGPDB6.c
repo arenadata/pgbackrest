@@ -84,7 +84,7 @@ getXlog(const XLogRecord *record)
             return NULL;
 
         case XLOG_FPI:
-            return (RelFileNode *) XLogRecGetData(record);
+            return (const RelFileNode *) XLogRecGetData(record);
     }
     THROW_FMT(FormatError, "XLOG UNKNOWN: %d", info);
 }
@@ -98,11 +98,11 @@ getStorage(const XLogRecord *record)
     switch (info)
     {
         case XLOG_SMGR_CREATE:
-            return (RelFileNode *) XLogRecGetData(record);
+            return (const RelFileNode *) XLogRecGetData(record);
 
         case XLOG_SMGR_TRUNCATE:
         {
-            xl_smgr_truncate *xlrec = (xl_smgr_truncate *) XLogRecGetData(record);
+            const xl_smgr_truncate *xlrec = (const xl_smgr_truncate *) XLogRecGetData(record);
             return &xlrec->rnode;
         }
     }
@@ -122,7 +122,7 @@ getHeap2(const XLogRecord *record)
 
     if (info == XLOG_HEAP2_NEW_CID)
     {
-        xl_heap_new_cid *xlrec = (xl_heap_new_cid *) XLogRecGetData(record);
+        const xl_heap_new_cid *xlrec = (const xl_heap_new_cid *) XLogRecGetData(record);
         return &xlrec->target;
     }
 
@@ -135,12 +135,12 @@ getHeap2(const XLogRecord *record)
     // XLOG_HEAP2_VISIBLE
     // XLOG_HEAP2_MULTI_INSERT
     // XLOG_HEAP2_LOCK_UPDATED
-    return (RelFileNode *) XLogRecGetData(record);
+    return (const RelFileNode *) XLogRecGetData(record);
 }
 
 // Get RelFileNode from Heap record.
 // This function throws an exception only for XLOG_HEAP_MOVE since this type is no longer used.
-static RelFileNode *
+static const RelFileNode *
 getHeap(const XLogRecord *record)
 {
     uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -159,11 +159,11 @@ getHeap(const XLogRecord *record)
     // XLOG_HEAP_NEWPAGE
     // XLOG_HEAP_LOCK
     // XLOG_HEAP_INPLACE
-    return (RelFileNode *) XLogRecGetData(record);
+    return (const RelFileNode *) XLogRecGetData(record);
 }
 
 // Get RelFileNode from Btree record.
-static RelFileNode *
+static const RelFileNode *
 getBtree(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -183,14 +183,14 @@ getBtree(const XLogRecord *record)
         case XLOG_BTREE_UNLINK_PAGE:
         case XLOG_BTREE_NEWROOT:
         case XLOG_BTREE_REUSE_PAGE:
-            return (RelFileNode *) XLogRecGetData(record);
+            return (const RelFileNode *) XLogRecGetData(record);
     }
 
     THROW_FMT(FormatError, "Btree UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Gin record.
-static RelFileNode *
+static const RelFileNode *
 getGin(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -206,14 +206,14 @@ getGin(const XLogRecord *record)
         case XLOG_GIN_UPDATE_META_PAGE:
         case XLOG_GIN_INSERT_LISTPAGE:
         case XLOG_GIN_DELETE_LISTPAGE:
-            return (RelFileNode *) XLogRecGetData(record);
+            return (const RelFileNode *) XLogRecGetData(record);
     }
 
     THROW_FMT(FormatError, "GIN UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Gist record.
-static RelFileNode *
+static const RelFileNode *
 getGist(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -222,25 +222,25 @@ getGist(const XLogRecord *record)
         case XLOG_GIST_PAGE_UPDATE:
         case XLOG_GIST_PAGE_SPLIT:
         case XLOG_GIST_CREATE_INDEX:
-            return (RelFileNode *) XLogRecGetData(record);
+            return (const RelFileNode *) XLogRecGetData(record);
     }
     THROW_FMT(FormatError, "GIST UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Seq record.
-static RelFileNode *
+static const RelFileNode *
 getSeq(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
     if (info == XLOG_SEQ_LOG)
     {
-        return (RelFileNode *) XLogRecGetData(record);
+        return (const RelFileNode *) XLogRecGetData(record);
     }
     THROW_FMT(FormatError, "Sequence UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Spgist record.
-static RelFileNode *
+static const RelFileNode *
 getSpgist(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -256,13 +256,13 @@ getSpgist(const XLogRecord *record)
         case XLOG_SPGIST_VACUUM_LEAF:
         case XLOG_SPGIST_VACUUM_ROOT:
         case XLOG_SPGIST_VACUUM_REDIRECT:
-            return (RelFileNode *) XLogRecGetData(record);
+            return (const RelFileNode *) XLogRecGetData(record);
     }
     THROW_FMT(FormatError, "SPGIST UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Bitmap record.
-static RelFileNode *
+static const RelFileNode *
 getBitmap(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -274,13 +274,13 @@ getBitmap(const XLogRecord *record)
         case XLOG_BITMAP_INSERT_WORDS:
         case XLOG_BITMAP_UPDATEWORD:
         case XLOG_BITMAP_UPDATEWORDS:
-            return (RelFileNode *) XLogRecGetData(record);
+            return (const RelFileNode *) XLogRecGetData(record);
     }
     THROW_FMT(FormatError, "Bitmap UNKNOWN: %d", info);
 }
 
 // Get RelFileNode from Appendonly record.
-static RelFileNode *
+static const RelFileNode *
 getAppendonly(const XLogRecord *record)
 {
     const uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
@@ -288,7 +288,7 @@ getAppendonly(const XLogRecord *record)
     {
         case XLOG_APPENDONLY_INSERT:
         case XLOG_APPENDONLY_TRUNCATE:
-            return (RelFileNode *) XLogRecGetData(record);
+            return (const RelFileNode *) XLogRecGetData(record);
     }
     THROW_FMT(FormatError, "Appendonly UNKNOWN: %d", info);
 }
@@ -387,10 +387,10 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
 
     remaining -= (uint32) (SizeOfXLogRecord + len);
     pg_crc32 crc = crc32cInit();
-    crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
+    crc = crc32cComp(crc, XLogRecGetData(record), len);
 
     /* Add in the backup blocks, if any */
-    const char *blk = XLogRecGetData(record) + len;
+    const unsigned char *blk = XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
     {
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
@@ -400,7 +400,6 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
         {
             THROW_FMT(FormatError, "invalid backup block size in record");
         }
-
 
         const BkpBlock *bkpb = (const BkpBlock *) blk;
         if (bkpb->hole_offset + bkpb->hole_length > heapPageSize)
@@ -435,15 +434,15 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
 }
 
 pg_crc32
-recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
+xLogRecordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
 {
     const uint32 len = record->xl_len;
 
     pg_crc32 crc = crc32cInit();
-    crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
+    crc = crc32cComp(crc, XLogRecGetData(record), len);
 
     /* Add in the backup blocks, if any */
-    const char *blk = XLogRecGetData(record) + len;
+    const unsigned char *blk = XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
     {
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
@@ -453,7 +452,7 @@ recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
 
         uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
 
-        crc = crc32cComp(crc, (unsigned char *) blk, blen);
+        crc = crc32cComp(crc, blk, blen);
         blk += blen;
     }
 

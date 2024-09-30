@@ -33,11 +33,11 @@ hrnGpdbCreateXRecord(uint8_t rmid, uint8_t info, uint32_t bodySize, void *body, 
     memset((char *) record + sizeof(XLogRecord), 0, alignSize);
 
     if (body == NULL)
-        memset(XLogRecGetData(record), RECORD_BODY_PLACEHOLDER, bodySize);
+        memset((void *) XLogRecGetData(record), RECORD_BODY_PLACEHOLDER, bodySize);
     else
-        memcpy(XLogRecGetData(record), body, bodySize);
+        memcpy((void *) XLogRecGetData(record), body, bodySize);
 
-    record->xl_crc = recordChecksumGPDB6(record, param.heapPageSize);
+    record->xl_crc = xLogRecordChecksumGPDB6(record, param.heapPageSize);
 
     return record;
 }

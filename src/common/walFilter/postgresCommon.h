@@ -22,6 +22,7 @@ typedef uint32 BlockNumber;
 #define XLP_FIRST_IS_CONTRECORD     0x0001
 /* Replaces a missing contrecord; see CreateOverwriteContrecordRecord */
 #define XLP_FIRST_IS_OVERWRITE_CONTRECORD 0x0008
+
 /*
  * XLOG uses only low 4 bits of xl_info.  High 4 bits may be used by rmgr.
  */
@@ -54,7 +55,7 @@ typedef uint32 BlockNumber;
 #define XLogPageHeaderSize(hdr)     \
     (((hdr)->xlp_info & XLP_LONG_HEADER) ? SizeOfXLogLongPHD : SizeOfXLogShortPHD)
 #define SizeOfXLogRecord    MAXALIGN(sizeof(XLogRecord))
-#define XLogRecGetData(record)  ((char*) (record) + SizeOfXLogRecord)
+#define XLogRecGetData(record)  ((const unsigned char*) (record) + SizeOfXLogRecord)
 #define Min(x, y)       ((x) < (y) ? (x) : (y))
 
 /*

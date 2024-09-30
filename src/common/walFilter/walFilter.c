@@ -39,7 +39,7 @@ typedef struct WalInterface
     uint16_t header_magic;
     void (*validXLogRecordHeader)(const XLogRecord *record, PgPageSize heapPageSize);
     void (*validXLogRecord)(const XLogRecord *record, PgPageSize heapPageSize);
-    pg_crc32 (*recordChecksum)(const XLogRecord *record, PgPageSize heapPageSize);
+    pg_crc32 (*xLogRecordChecksum)(const XLogRecord *record, PgPageSize heapPageSize);
 } WalInterface;
 
 static WalInterface interfaces[] = {
@@ -49,7 +49,7 @@ static WalInterface interfaces[] = {
         GPDB6_XLOG_PAGE_MAGIC,
         validXLogRecordHeaderGPDB6,
         validXLogRecordGPDB6,
-        recordChecksumGPDB6
+        xLogRecordChecksumGPDB6
     }
 };
 
@@ -267,10 +267,12 @@ stepReadHeader:
 
     this->walInterface->validXLogRecordHeader(this->record, this->heapPageSize);
     // Read rest of the record on this page
-    size_t to_read = Min(this->record->xl_tot_len - SizeOfXLogRecord, this->walPageSize - this->pageOffset - SizeOfXLogRecord);
+    size_t toRead = Min(this->record->xl_tot_len - SizeOfXLogRecord, this->walPageSize - this->pageOffset - SizeOfXLogRecord);
     memcpy(
-        XLogRecGetData(this->record), ((unsigned char *) this->currentPageHeader) + this->pageOffset + this->headerSize, to_read);
-    this->gotLen += to_read;
+        (void *) XLogRecGetData(this->record),
+        ((unsigned char *) this->currentPageHeader) + this->pageOffset + this->headerSize,
+        toRead);
+    this->gotLen += toRead;
 
     // Move pointer to the next record on the page
     this->pageOffset += MAXALIGN(this->totLen);
@@ -343,7 +345,7 @@ filterRecord(WalFilterState *const this)
     this->record->xl_rmid = RM_XLOG_ID;
     // Save 4 least significant bits which represent backup blocks flags.
     this->record->xl_info = (uint8_t) (XLOG_NOOP | (this->record->xl_info & XLR_INFO_MASK));
-    this->record->xl_crc = this->walInterface->recordChecksum(this->record, this->heapPageSize);
+    this->record->xl_crc = this->walInterface->xLogRecordChecksum(this->record, this->heapPageSize);
 }
 
 static void
