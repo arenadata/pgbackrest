@@ -6,10 +6,6 @@
 #include "recordProcessGPDB6.h"
 #include "xlogInfoGPDB6.h"
 
-/*
- * XLOG uses only low 4 bits of xl_info.  High 4 bits may be used by rmgr.
- */
-#define XLR_INFO_MASK           0x0F
 #define XLOG_HEAP_OPMASK        0x70
 
 typedef uint32 CommandId;
@@ -405,14 +401,14 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
             THROW_FMT(FormatError, "invalid backup block size in record");
         }
 
-        const BkpBlock *bkpb = (const BkpBlock *) blk;
 
+        const BkpBlock *bkpb = (const BkpBlock *) blk;
         if (bkpb->hole_offset + bkpb->hole_length > heapPageSize)
         {
             THROW_FMT(FormatError, "incorrect hole size in record");
         }
-        uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
 
+        uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
         if (remaining < blen)
         {
             THROW_FMT(FormatError, "invalid backup block size in record");

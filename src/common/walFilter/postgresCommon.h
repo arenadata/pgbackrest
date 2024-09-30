@@ -22,6 +22,10 @@ typedef uint32 BlockNumber;
 #define XLP_FIRST_IS_CONTRECORD     0x0001
 /* Replaces a missing contrecord; see CreateOverwriteContrecordRecord */
 #define XLP_FIRST_IS_OVERWRITE_CONTRECORD 0x0008
+/*
+ * XLOG uses only low 4 bits of xl_info.  High 4 bits may be used by rmgr.
+ */
+#define XLR_INFO_MASK           0x0F
 
 #define RM_XLOG_ID 0
 #define XLOG_SWITCH 0x40
