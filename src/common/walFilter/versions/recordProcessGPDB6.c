@@ -407,13 +407,13 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
             THROW_FMT(FormatError, "incorrect hole size in record");
         }
 
-        uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
+        const uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
         if (remaining < blen)
         {
             THROW_FMT(FormatError, "invalid backup block size in record");
         }
         remaining -= blen;
-        crc = crc32cComp(crc, (unsigned char *) blk, blen);
+        crc = crc32cComp(crc, blk, blen);
         blk += blen;
     }
 
@@ -424,7 +424,7 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
     }
 
     /* Finally include the record header */
-    crc = crc32cComp(crc, (unsigned char *) record, offsetof(XLogRecord, xl_crc));
+    crc = crc32cComp(crc, (const unsigned char *) record, offsetof(XLogRecord, xl_crc));
     crc = crc32cFinish(crc);
 
     if (crc != record->xl_crc)
@@ -450,14 +450,14 @@ xLogRecordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
 
         const BkpBlock *bkpb = (const BkpBlock *) blk;
 
-        uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
+        const uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
 
         crc = crc32cComp(crc, blk, blen);
         blk += blen;
     }
 
     /* Finally include the record header */
-    crc = crc32cComp(crc, (unsigned char *) record, offsetof(XLogRecord, xl_crc));
+    crc = crc32cComp(crc, (const unsigned char *) record, offsetof(XLogRecord, xl_crc));
 
     return crc32cFinish(crc);
 }

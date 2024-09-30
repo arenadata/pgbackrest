@@ -3,7 +3,6 @@
 #include "common/type/object.h"
 #include "common/walFilter/versions/recordProcessGPDB6.h"
 #include "harnessWal.h"
-#include "postgres/interface/crc32.h"
 #include "string.h"
 
 #define TRANSACTION_ID_PLACEHOLDER 0xADDE
