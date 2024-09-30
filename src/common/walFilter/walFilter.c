@@ -342,7 +342,7 @@ filterRecord(WalFilterState *const this)
 
     this->record->xl_rmid = RM_XLOG_ID;
     // Save 4 least significant bits which represent backup blocks flags.
-    this->record->xl_info = XLOG_NOOP | (this->record->xl_info & 0xF);
+    this->record->xl_info = (uint8_t) (XLOG_NOOP | (this->record->xl_info & 0xF));
     this->record->xl_crc = this->walInterface->recordChecksum(this->record, this->heapPageSize);
 }
 
