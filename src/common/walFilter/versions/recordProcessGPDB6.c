@@ -390,7 +390,7 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
     crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
 
     /* Add in the backup blocks, if any */
-    const char *blk = (char *) XLogRecGetData(record) + len;
+    const char *blk = XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
     {
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
@@ -443,7 +443,7 @@ recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
     crc = crc32cComp(crc, (unsigned char *) XLogRecGetData(record), len);
 
     /* Add in the backup blocks, if any */
-    const char *blk = (char *) XLogRecGetData(record) + len;
+    const char *blk = XLogRecGetData(record) + len;
     for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
     {
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
