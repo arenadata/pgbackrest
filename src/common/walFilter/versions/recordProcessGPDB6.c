@@ -405,7 +405,7 @@ validXLogRecordGPDB6(const XLogRecord *const record, const PgPageSize heapPageSi
             THROW_FMT(FormatError, "invalid backup block size in record");
         }
 
-        const BkpBlock *bkpb = (BkpBlock *) blk;
+        const BkpBlock *bkpb = (const BkpBlock *) blk;
 
         if (bkpb->hole_offset + bkpb->hole_length > heapPageSize)
         {
@@ -453,7 +453,7 @@ recordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize)
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
             continue;
 
-        const BkpBlock *bkpb = (BkpBlock *) blk;
+        const BkpBlock *bkpb = (const BkpBlock *) blk;
 
         uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
 
