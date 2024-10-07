@@ -604,10 +604,14 @@ option:
     type: string
     required: false
     command:
+      archive-get: {}
+      restore: {}
       manifest: {}
       repo-ls: {}
     command-role:
       main: {}
+      async: {}
+      local: {}
 
   ignore-missing:
     type: boolean
