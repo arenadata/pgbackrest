@@ -379,6 +379,8 @@ void hrnHostSqlExec(HrnHost *this, const String *statement);
         hrnHostSqlExec(this, STR(statement));                                                                                      \
     } while (0)
 
+void hrnHostWaitPgBackRestDone(HrnHost *const this);
+
 // Query a single value
 FN_INLINE_ALWAYS PackRead *
 hrnHostSqlValue(HrnHost *const this, const char *const statement)
@@ -463,6 +465,7 @@ typedef struct HrnHostConfigUpdateParam
 {
     VAR_PARAM_HEADER;
     const Variant *archiveAsync;                                    // Update async archiving?
+    const Variant *spoolPath;                                       // Spool path
 } HrnHostConfigUpdateParam;
 
 #define hrnHostConfigUpdateP(...)                                                                                                  \
