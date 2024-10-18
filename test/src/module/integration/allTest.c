@@ -253,8 +253,8 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
-            hrnHostConfigUpdateP(
-                .archiveAsync = BOOL_TRUE_VAR, .spoolPath = VARSTR(strNewFmt("%s/1", strZ(hrnHostSpoolPath(pg1)))));
+            // Set unique spool path
+            UPDATE_SPOOL_PATH();
 
             // Restore
             TEST_HOST_BR(pg1, CFGCMD_RESTORE, .option = zNewFmt("--force --repo=%u", hrnHostRepoTotal()));
@@ -273,6 +273,7 @@ testRun(void)
             // Stop the cluster and try again
             HRN_HOST_PG_STOP(pg1);
 
+            // Set unique spool path
             UPDATE_SPOOL_PATH();
 
             // Restore
@@ -308,6 +309,7 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
+            // Set unique spool path
             UPDATE_SPOOL_PATH();
 
             // Restore
@@ -342,6 +344,7 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
+            // Set unique spool path
             UPDATE_SPOOL_PATH();
 
             // Restore
@@ -360,6 +363,7 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
+            // Set unique spool path
             UPDATE_SPOOL_PATH();
 
             // Restore
@@ -380,6 +384,7 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
+            // Set unique spool path
             UPDATE_SPOOL_PATH();
 
             // Restore
@@ -397,6 +402,7 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
+            // Set unique spool path
             UPDATE_SPOOL_PATH();
 
             TEST_HOST_BR(pg1, CFGCMD_RESTORE, .option = zNewFmt("--delta --type=standby --target-timeline=%s", xidTimeline));
