@@ -45,6 +45,10 @@ Test statuses
 
 #define TEST_RESTORE_POINT                                          "pgbackrest"
 
+#define UPDATE_SPOOL_PATH() \
+    hrnHostConfigUpdateP(   \
+        .archiveAsync = BOOL_TRUE_VAR, .spoolPath = VARSTR(strNewFmt("%s/" STRINGIFY(__COUNTER__), strZ(hrnHostSpoolPath(pg1)))))
+
 /***********************************************************************************************************************************
 Test Run
 ***********************************************************************************************************************************/
@@ -269,8 +273,7 @@ testRun(void)
             // Stop the cluster and try again
             HRN_HOST_PG_STOP(pg1);
 
-            hrnHostConfigUpdateP(
-                .archiveAsync = BOOL_TRUE_VAR, .spoolPath = VARSTR(strNewFmt("%s/2", strZ(hrnHostSpoolPath(pg1)))));
+            UPDATE_SPOOL_PATH();
 
             // Restore
             TEST_HOST_BR(pg1, CFGCMD_RESTORE, .option = "--delta --type=immediate --target-action=promote --db-exclude=exclude_me");
@@ -305,8 +308,7 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
-            hrnHostConfigUpdateP(
-                .archiveAsync = BOOL_TRUE_VAR, .spoolPath = VARSTR(strNewFmt("%s/3", strZ(hrnHostSpoolPath(pg1)))));
+            UPDATE_SPOOL_PATH();
 
             // Restore
             TEST_HOST_BR(
@@ -340,8 +342,7 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
-            hrnHostConfigUpdateP(
-                .archiveAsync = BOOL_TRUE_VAR, .spoolPath = VARSTR(strNewFmt("%s/4", strZ(hrnHostSpoolPath(pg1)))));
+            UPDATE_SPOOL_PATH();
 
             // Restore
             TEST_HOST_BR(
@@ -359,8 +360,7 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
-            hrnHostConfigUpdateP(
-                .archiveAsync = BOOL_TRUE_VAR, .spoolPath = VARSTR(strNewFmt("%s/5", strZ(hrnHostSpoolPath(pg1)))));
+            UPDATE_SPOOL_PATH();
 
             // Restore
             TEST_HOST_BR(
@@ -380,8 +380,7 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
-            hrnHostConfigUpdateP(
-                .archiveAsync = BOOL_TRUE_VAR, .spoolPath = VARSTR(strNewFmt("%s/6", strZ(hrnHostSpoolPath(pg1)))));
+            UPDATE_SPOOL_PATH();
 
             // Restore
             TEST_HOST_BR(
@@ -398,8 +397,7 @@ testRun(void)
             // Stop the cluster
             HRN_HOST_PG_STOP(pg1);
 
-            hrnHostConfigUpdateP(
-                .archiveAsync = BOOL_TRUE_VAR, .spoolPath = VARSTR(strNewFmt("%s/7", strZ(hrnHostSpoolPath(pg1)))));
+            UPDATE_SPOOL_PATH();
 
             TEST_HOST_BR(pg1, CFGCMD_RESTORE, .option = zNewFmt("--delta --type=standby --target-timeline=%s", xidTimeline));
             HRN_HOST_PG_START(pg1);
