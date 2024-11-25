@@ -12,5 +12,6 @@ To run the tests, execute the script:
 <path_to_pgbackrest>/arenadata/run_docker.sh <image_id> [arch type]
 ```
 [arch type] stands for CPU architecture. Default value is x86-64. This argument is needed only for log files namings.
+[image_id] supports both GPDB 6 (`gpdb6_u22:latest`) and GPDB 7 (`gpdb7_u22:latest`).
 
 After launching the container the test scripts from `scripts` directory are executed. The logs will be stored in `<path_to_pgbackrest>/arenadata/logs` directory.
