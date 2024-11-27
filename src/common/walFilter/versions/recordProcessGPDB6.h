@@ -5,9 +5,10 @@
 
 #define GPDB6_XLOG_PAGE_MAGIC 0xD07E
 
-FN_EXTERN const RelFileNode *getRelFileNodeGPDB6(const XLogRecord *record);
-
-FN_EXTERN void validXLogRecordHeaderGPDB6(const XLogRecord *record, PgPageSize heapPageSize);
-FN_EXTERN void validXLogRecordGPDB6(const XLogRecord *record, PgPageSize heapPageSize);
-FN_EXTERN pg_crc32 xLogRecordChecksumGPDB6(const XLogRecord *record, const PgPageSize heapPageSize);
+FN_EXTERN void validXLogRecordHeaderGPDB6(const XLogRecordBase *record, PgPageSize heapPageSize);
+FN_EXTERN void validXLogRecordGPDB6(const XLogRecordBase *record, PgPageSize heapPageSize);
+FN_EXTERN uint32_t xLogRecordHeaderSizeGPDB6(void);
+FN_EXTERN uint32_t xLogRecordRmidSizeGPDB6(void);
+FN_EXTERN bool xLogRecordIsWalSwitchGPDB6(const XLogRecordBase *record);
+FN_EXTERN void filterRecordGPDB6(XLogRecordBase *recordBase, PgPageSize pageSize);
 #endif // COMMON_WALFILTER_VERSIONS_RECORDPROCESSGPDB6_H
