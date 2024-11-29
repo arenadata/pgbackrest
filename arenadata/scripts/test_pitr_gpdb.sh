@@ -128,6 +128,7 @@ GP_VERSION_NUM=$(pg_config --gp_version | cut -c 11)
 # Creating a distributed restore point..."
 if [ $GP_VERSION_NUM -le 6 ]; then
     psql -c "create extension gp_pitr;"
+    RESTORE_OPTIONS=""
 else
     RESTORE_OPTIONS="--target-action=promote"
 fi
