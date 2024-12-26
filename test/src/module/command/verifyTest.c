@@ -2080,7 +2080,10 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptSet, "BOGUS");
         HRN_CFG_LOAD(cfgCmdVerify, argList);
 
-        TEST_ERROR(restoreBackupSet(), BackupSetInvalidError, "backup set BOGUS is not valid");
+        TEST_ERROR(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            BackupSetInvalidError,
+            "backup set BOGUS is not valid");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();
