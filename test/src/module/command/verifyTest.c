@@ -2074,7 +2074,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("--set with invalid backup label");
 
-        StringList *argList = strLstDup(argListBase);
+        argList = strLstDup(argListBase);
         hrnCfgArgRawZ(argList, cfgOptOutput, "text");
         hrnCfgArgRawZ(argList, cfgOptVerbose, "y");
         hrnCfgArgRawZ(argList, cfgOptSet, "20181119-152900F_20181119-152910D");
