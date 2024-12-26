@@ -1974,7 +1974,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdVerify, argList);
 
         // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("text output, verbose with no verify failures");
+        TEST_TITLE("--set with a valid backup label");
 
         HRN_INFO_PUT(
             storageRepoWrite(), INFO_ARCHIVE_PATH_FILE, TEST_ARCHIVE_INFO_MULTI_HISTORY_BASE, .comment = "valid archive.info");
@@ -2066,7 +2066,27 @@ testRun(void)
             "status: error\n"
             "  archiveId: none found\n"
             "  backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 1, total valid files: 0\n"
-            "    missing: 0, checksum invalid: 1, size invalid: 0, other: 0", "verify text output, verbose, with no failures\n");
+            "    missing: 0, checksum invalid: 1, size invalid: 0, other: 0", "--set with a valid backup label\n");
+        TEST_RESULT_LOG(
+            "P00 DETAIL: no archives exist in the repo\n"
+            "P01   INFO: invalid checksum '20181119-152900F/pg_data/PG_VERSION'");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("--set with invalid backup label");
+
+        StringList *argList = strLstDup(argListBase);
+        hrnCfgArgRawZ(argList, cfgOptOutput, "text");
+        hrnCfgArgRawZ(argList, cfgOptVerbose, "y");
+        hrnCfgArgRawZ(argList, cfgOptSet, "20181119-152900F_20181119-152910D");
+        HRN_CFG_LOAD(cfgCmdVerify, argList);
+
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "stanza: db\n"
+            "status: error\n"
+            "  archiveId: none found\n"
+            "  backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 1, total valid files: 0\n"
+            "    missing: 0, checksum invalid: 1, size invalid: 0, other: 0", "--set with invalid backup label\n");
         TEST_RESULT_LOG(
             "P00 DETAIL: no archives exist in the repo\n"
             "P01   INFO: invalid checksum '20181119-152900F/pg_data/PG_VERSION'");
