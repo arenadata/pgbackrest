@@ -1535,12 +1535,21 @@ verifyProcess(const bool verboseText)
                 .backupResultList = lstNewP(sizeof(VerifyBackupResult), .comparator = lstComparatorStr),
             };
 
+            // Use backup label if specified via --set.
+            const String *const backupLabel = cfgOptionStrNull(cfgOptSet);
+            const String *const backupRegExpStr = backupLabel != NULL
+                ? strNewFmt("^%s$", strZ(backupLabel))
+                : backupRegExpP(.full = true, .differential = true, .incremental = true);
+
             // Get a list of backups in the repo sorted ascending
             jobData.backupList = strLstSort(
                 storageListP(
                     storage, STORAGE_REPO_BACKUP_STR,
-                    .expression = backupRegExpP(.full = true, .differential = true, .incremental = true)),
+                    .expression = backupRegExpStr),
                 sortOrderAsc);
+
+            if (backupLabel != NULL && strLstEmpty(jobData.backupList))
+                THROW_FMT(BackupSetInvalidError, "backup set %s is not valid", strZ(backupLabel));
 
             // Get a list of archive Ids in the repo (e.g. 9.4-1, 10-2, etc) sorted ascending by the db-id (number after the dash)
             jobData.archiveIdList = strLstSort(
