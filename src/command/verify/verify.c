@@ -20,6 +20,7 @@ Verify contents of the repository.
 #include "common/io/fdWrite.h"
 #include "common/io/io.h"
 #include "common/log.h"
+#include "common/regExp.h"
 #include "config/config.h"
 #include "info/infoArchive.h"
 #include "info/infoBackup.h"
