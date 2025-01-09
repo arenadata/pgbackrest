@@ -2084,7 +2084,7 @@ testRun(void)
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
             BackupSetInvalidError,
             "backup set 20181119-152900F_20181119-152910D is not valid");
-        
+
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("--set with backup label of incorrect format");
 
