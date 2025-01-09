@@ -2077,13 +2077,27 @@ testRun(void)
         argList = strLstDup(argListBase);
         hrnCfgArgRawZ(argList, cfgOptOutput, "text");
         hrnCfgArgRawZ(argList, cfgOptVerbose, "y");
-        hrnCfgArgRawZ(argList, cfgOptSet, "BOGUS");
+        hrnCfgArgRawZ(argList, cfgOptSet, "20181119-152900F_20181119-152910D");
         HRN_CFG_LOAD(cfgCmdVerify, argList);
 
         TEST_ERROR(
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
             BackupSetInvalidError,
-            "backup set BOGUS is not valid");
+            "backup set 20181119-152900F_20181119-152910D is not valid");
+        
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("--set with backup label of incorrect format");
+
+        argList = strLstDup(argListBase);
+        hrnCfgArgRawZ(argList, cfgOptOutput, "text");
+        hrnCfgArgRawZ(argList, cfgOptVerbose, "y");
+        hrnCfgArgRawZ(argList, cfgOptSet, "BOGUS");
+        HRN_CFG_LOAD(cfgCmdVerify, argList);
+
+        TEST_ERROR(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            OptionInvalidValueError,
+            "'BOGUS' is not a valid backup label format");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();
