@@ -1536,10 +1536,14 @@ verifyProcess(const bool verboseText)
             };
 
             // Use backup label if specified via --set.
-            const String *const backupLabel = cfgOptionStrNull(cfgOptSet);
-            const String *const backupRegExpStr = backupLabel != NULL
-                ? strNewFmt("^%s$", strZ(backupLabel))
-                : backupRegExpP(.full = true, .differential = true, .incremental = true);
+            const String *backupLabel = cfgOptionStrNull(cfgOptSet);
+            const String *backupRegExpStr = backupRegExpP(.full = true, .differential = true, .incremental = true);
+            if (backupLabel != NULL)
+            {
+                if (!regExpMatchOne(backupRegExpStr, backupLabel))
+                    THROW_FMT(OptionInvalidValueError, "'%s' is not a valid backup label format", strZ(backupLabel));
+                backupRegExpStr = strNewFmt("^%s$", strZ(backupLabel));
+            }
 
             // Get a list of backups in the repo sorted ascending
             jobData.backupList = strLstSort(
