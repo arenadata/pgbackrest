@@ -45,6 +45,7 @@ static const char *const lockTypeName[] =
 {
     "archive",                                                      // lockTypeArchive
     "backup",                                                       // lockTypeBackup
+    "restore",                                                      // lockTypeRestore
 };
 
 /***********************************************************************************************************************************
