@@ -642,6 +642,8 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("coverage for stanzaStatus branches && percent complete null for restore lock");
 
+        HRN_CFG_LOAD(cfgCmdInfo, argList2);
+
         // Db1 and Db3 (from above) have same system-id and db-version so consider them the same for WAL reporting
         HRN_STORAGE_PUT_EMPTY(
             storageRepoIdxWrite(0),
@@ -862,7 +864,7 @@ testRun(void)
                         "}"
                     "]",
                     // {uncrustify_on}
-                    "json - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+                    "json - single stanza, valid backup, no priors, no archives in latest DB, restore lock detected");
 
                 HRN_CFG_LOAD(cfgCmdInfo, argListText);
                 TEST_RESULT_STR_Z(
@@ -1129,7 +1131,7 @@ testRun(void)
                         "}"
                     "]",
                     // {uncrustify_on}
-                    "json - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+                    "json - single stanza, valid backup, no priors, no archives in latest DB, restore lock detected");
 
                 HRN_CFG_LOAD(cfgCmdInfo, argListText);
                 TEST_RESULT_STR_Z(
@@ -1155,7 +1157,7 @@ testRun(void)
                     "            wal start/stop: 000000030000000000000001 / 000000030000000000000001\n"
                     "            database size: 25.7MB, database backup size: 25.7MB\n"
                     "            repo1: backup set size: 3MB, backup size: 3KB\n",
-                    "text - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+                    "text - single stanza, valid backup, no priors, no archives in latest DB, restore lock detected");
 
                 // Notify child to release lock
                 HRN_FORK_PARENT_NOTIFY_PUT(0);
