@@ -634,77 +634,10 @@ testRun(void)
         }
         HRN_FORK_END();
 
-        // Cleanup
-        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.6-1", .recurse = true);
-        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.5-2", .recurse = true);
-        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.6-3", .recurse = true);
-
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("coverage for stanzaStatus branches && percent complete null for restore lock");
 
         HRN_CFG_LOAD(cfgCmdInfo, argList2);
-
-        // Db1 and Db3 (from above) have same system-id and db-version so consider them the same for WAL reporting
-        HRN_STORAGE_PUT_EMPTY(
-            storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/9.6-1/0000000100000000/000000010000000000000002-ac61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz",
-            .comment = "write WAL db1 timeline 1 repo1");
-        HRN_STORAGE_PUT_EMPTY(
-            storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/9.6-1/0000000100000000/000000010000000000000003-37dff2b7552a9d66e4bae1a762488a6885e7082c.gz",
-            .comment = "write WAL db1 timeline 1 repo1");
-        HRN_STORAGE_PUT_EMPTY(
-            storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/9.6-1/0000000200000000/000000020000000000000003-37dff2b7552a9d66e4bae1a762488a6885e7082c.gz",
-            .comment = "write WAL db1 timeline 2 repo1");
-        HRN_STORAGE_PATH_CREATE(
-            storageRepoWrite(), STORAGE_REPO_ARCHIVE "/9.6-1/0000000300000000",
-            .comment = "create empty db1 timeline 3 directory");
-
-        // Create a WAL file in 9.5-2 so that a prior will show
-        HRN_STORAGE_PUT_EMPTY(
-            storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/9.5-2/0000000100000000/000000010000000000000001-ac61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz",
-            .comment = "write WAL db2 timeline 1 repo1");
-
-        HRN_STORAGE_PUT_EMPTY(
-            storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/9.6-3/0000000300000000/000000030000000000000001-47dff2b7552a9d66e4bae1a762488a6885e7082c.gz",
-            .comment = "write WAL db3 timeline 3 repo1");
-
-        // Add WAL segment
-        HRN_INFO_PUT(
-            storageRepoIdxWrite(0), INFO_BACKUP_PATH_FILE,
-            "[db]\n"
-            "db-catalog-version=201608131\n"
-            "db-control-version=960\n"
-            "db-id=3\n"
-            "db-system-id=6569239123849665679\n"
-            "db-version=\"9.6\"\n"
-            "\n"
-            "[backup:current]\n"
-            "20181116-154756F={\"backrest-format\":5,\"backrest-version\":\"2.04\","
-            "\"backup-archive-start\":null,\"backup-archive-stop\":null,"
-            "\"backup-info-repo-size\":3159776,\"backup-info-repo-size-delta\":3159,\"backup-info-size\":26897030,"
-            "\"backup-info-size-delta\":26897030,\"backup-timestamp-start\":1542383276,\"backup-timestamp-stop\":1542383289,"
-            "\"backup-type\":\"full\",\"db-id\":1,\"option-archive-check\":true,\"option-archive-copy\":false,"
-            "\"option-backup-standby\":false,\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,"
-            "\"option-online\":true}\n"
-            "20201116-154900F={\"backrest-format\":5,\"backrest-version\":\"2.30\","
-            "\"backup-archive-start\":\"000000030000000000000001\",\"backup-archive-stop\":\"000000030000000000000001\","
-            "\"backup-info-repo-size\":3159776,\"backup-info-repo-size-delta\":3159,\"backup-info-size\":26897033,"
-            "\"backup-info-size-delta\":26897033,\"backup-timestamp-start\":1605541676,\"backup-timestamp-stop\":1605541680,"
-            "\"backup-type\":\"full\",\"db-id\":3,\"option-archive-check\":true,\"option-archive-copy\":false,"
-            "\"option-backup-standby\":false,\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,"
-            "\"option-online\":true}\n"
-            "\n"
-            "[db:history]\n"
-            "1={\"db-catalog-version\":201608131,\"db-control-version\":960,\"db-system-id\":6569239123849665679"
-            ",\"db-version\":\"9.6\"}\n"
-            "2={\"db-catalog-version\":201510051,\"db-control-version\":960,\"db-system-id\":6569239123849665666"
-            ",\"db-version\":\"9.5\"}\n"
-            "3={\"db-catalog-version\":201608131,\"db-control-version\":960,\"db-system-id\":6569239123849665679"
-            ",\"db-version\":\"9.6\"}\n");
 
         // Execute while a backup lock is held
         HRN_FORK_BEGIN()
@@ -905,69 +838,8 @@ testRun(void)
         }
         HRN_FORK_END();
 
-        // Cleanup
-        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.6-1", .recurse = true);
-        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.5-2", .recurse = true);
-        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.6-3", .recurse = true);
-
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("coverage for restore lock");
-
-        // Db1 and Db3 (from above) have same system-id and db-version so consider them the same for WAL reporting
-        HRN_STORAGE_PUT_EMPTY(
-            storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/9.6-1/0000000100000000/000000010000000000000002-ac61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz",
-            .comment = "write WAL db1 timeline 1 repo1");
-        HRN_STORAGE_PUT_EMPTY(
-            storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/9.6-1/0000000100000000/000000010000000000000003-37dff2b7552a9d66e4bae1a762488a6885e7082c.gz",
-            .comment = "write WAL db1 timeline 1 repo1");
-        HRN_STORAGE_PUT_EMPTY(
-            storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/9.6-1/0000000200000000/000000020000000000000003-37dff2b7552a9d66e4bae1a762488a6885e7082c.gz",
-            .comment = "write WAL db1 timeline 2 repo1");
-        HRN_STORAGE_PATH_CREATE(
-            storageRepoWrite(), STORAGE_REPO_ARCHIVE "/9.6-1/0000000300000000",
-            .comment = "create empty db1 timeline 3 directory");
-
-        // Create a WAL file in 9.5-2 so that a prior will show
-        HRN_STORAGE_PUT_EMPTY(
-            storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/9.5-2/0000000100000000/000000010000000000000001-ac61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz",
-            .comment = "write WAL db2 timeline 1 repo1");
-
-        HRN_INFO_PUT(
-            storageRepoIdxWrite(0), INFO_BACKUP_PATH_FILE,
-            "[db]\n"
-            "db-catalog-version=201608131\n"
-            "db-control-version=960\n"
-            "db-id=3\n"
-            "db-system-id=6569239123849665679\n"
-            "db-version=\"9.6\"\n"
-            "\n"
-            "[backup:current]\n"
-            "20181116-154756F={\"backrest-format\":5,\"backrest-version\":\"2.04\","
-            "\"backup-archive-start\":null,\"backup-archive-stop\":null,"
-            "\"backup-info-repo-size\":3159776,\"backup-info-repo-size-delta\":3159,\"backup-info-size\":26897030,"
-            "\"backup-info-size-delta\":26897030,\"backup-timestamp-start\":1542383276,\"backup-timestamp-stop\":1542383289,"
-            "\"backup-type\":\"full\",\"db-id\":1,\"option-archive-check\":true,\"option-archive-copy\":false,"
-            "\"option-backup-standby\":false,\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,"
-            "\"option-online\":true}\n"
-            "20201116-154900F={\"backrest-format\":5,\"backrest-version\":\"2.30\","
-            "\"backup-archive-start\":\"000000030000000000000001\",\"backup-archive-stop\":\"000000030000000000000001\","
-            "\"backup-info-repo-size\":3159776,\"backup-info-repo-size-delta\":3159,\"backup-info-size\":26897033,"
-            "\"backup-info-size-delta\":26897033,\"backup-timestamp-start\":1605541676,\"backup-timestamp-stop\":1605541680,"
-            "\"backup-type\":\"full\",\"db-id\":3,\"option-archive-check\":true,\"option-archive-copy\":false,"
-            "\"option-backup-standby\":false,\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,"
-            "\"option-online\":true}\n"
-            "\n"
-            "[db:history]\n"
-            "1={\"db-catalog-version\":201608131,\"db-control-version\":960,\"db-system-id\":6569239123849665679"
-            ",\"db-version\":\"9.6\"}\n"
-            "2={\"db-catalog-version\":201510051,\"db-control-version\":960,\"db-system-id\":6569239123849665666"
-            ",\"db-version\":\"9.5\"}\n"
-            "3={\"db-catalog-version\":201608131,\"db-control-version\":960,\"db-system-id\":6569239123849665679"
-            ",\"db-version\":\"9.6\"}\n");
 
         // Execute while a backup lock is held
         HRN_FORK_BEGIN()
