@@ -1617,7 +1617,6 @@ infoRender(void)
                             strNewFmt(" - %u.%02u%% complete", varUInt(restorePercentComplete) / 100, varUInt(restorePercentComplete) % 100) :
                             EMPTY_STR;
 
-
                     if (statusCode != INFO_STANZA_STATUS_CODE_OK)
                     {
                         // Update the overall stanza status and change displayed status if backup lock is found
