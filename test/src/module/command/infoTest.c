@@ -829,7 +829,7 @@ testRun(void)
                     "            wal start/stop: 000000030000000000000001 / 000000030000000000000001\n"
                     "            database size: 25.7MB, database backup size: 25.7MB\n"
                     "            repo1: backup set size: 3MB, backup size: 3KB\n",
-                    "text - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+                    "text - single stanza, valid backup, no priors, no archives in latest DB, restore lock detected");
 
                 // Notify child to release lock
                 HRN_FORK_PARENT_NOTIFY_PUT(0);
@@ -1002,7 +1002,7 @@ testRun(void)
                                 "\"code\":0,"
                                 "\"lock\":{"
                                     "\"backup\":{\"held\":false},"
-                                    "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":1435765},"
+                                    "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":1435765}"
                                 "},"
                                 "\"message\":\"ok\""
                             "}"
