@@ -1252,6 +1252,9 @@ formatTextDb(
     FUNCTION_TEST_RETURN_VOID();
 }
 
+/***********************************************************************************************************************************
+Get the lock info of the specified lock type for the stanza
+***********************************************************************************************************************************/
 static void
 infoUpdateStanzaLock(InfoStanzaLock *const stanzaLock, const String *const stanzaName, const LockType lockType)
 {
