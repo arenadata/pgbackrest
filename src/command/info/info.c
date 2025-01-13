@@ -263,7 +263,7 @@ stanzaStatus(const int code, const InfoStanzaRepo *const stanzaData, const Varia
     if (stanzaData->backupLock.size != NULL)
         kvPut(backupLockKv, STATUS_KEY_LOCK_SIZE_VAR, stanzaData->backupLock.size);
 
-    KeyValue *const restoreLockKv = kvPutKv(lockKv, STATUS_KEY_LOCK_BACKUP_VAR);
+    KeyValue *const restoreLockKv = kvPutKv(lockKv, STATUS_KEY_LOCK_RESTORE_VAR);
     kvPut(restoreLockKv, STATUS_KEY_LOCK_HELD_VAR, VARBOOL(stanzaData->restoreLock.lockHeld));
 
     if (stanzaData->restoreLock.percentComplete != NULL && cfgOptionStrId(cfgOptOutput) != CFGOPTVAL_OUTPUT_JSON)
