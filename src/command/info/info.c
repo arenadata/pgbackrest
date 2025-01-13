@@ -1264,6 +1264,11 @@ infoUpdateStanzaLock(InfoStanzaLock *const stanzaLock, const String *const stanz
         FUNCTION_TEST_PARAM(ENUM, lockType);
     FUNCTION_TEST_END();
 
+    FUNCTION_AUDIT_HELPER();
+
+    ASSERT(stanzaLock != NULL);
+    ASSERT(stanzaName != NULL);
+
     // If a backup lock check has not already been performed, then do so
     if (!stanzaLock->lockChecked)
     {
