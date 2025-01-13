@@ -133,6 +133,9 @@ command:
     command-role:
       local: {}
       remote: {}
+    lock-remote-required: true
+    lock-required: true
+    lock-type: restore
 
   server: {}
 

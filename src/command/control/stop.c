@@ -57,7 +57,8 @@ cmdStop(void)
                     if (!strEndsWithZ(lockFile, LOCK_FILE_EXT) ||
                         (cfgOptionTest(cfgOptStanza) &&
                          !strEq(lockFile, lockFileName(cfgOptionStr(cfgOptStanza), lockTypeArchive)) &&
-                         !strEq(lockFile, lockFileName(cfgOptionStr(cfgOptStanza), lockTypeBackup))))
+                         !strEq(lockFile, lockFileName(cfgOptionStr(cfgOptStanza), lockTypeBackup)) &&
+                         !strEq(lockFile, lockFileName(cfgOptionStr(cfgOptStanza), lockTypeRestore))))
                     {
                         continue;
                     }
