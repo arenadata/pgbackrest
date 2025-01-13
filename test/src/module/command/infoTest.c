@@ -339,6 +339,126 @@ testRun(void)
         HRN_FORK_END();
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("info files exist with mismatched db-ids and no current backups - restore lock detected");
+
+        // Only the current db information from the db:history will be processed.
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE,
+            "[db]\n"
+            "db-id=3\n"
+            "db-system-id=6569239123849665679\n"
+            "db-version=\"9.6\"\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-id\":6569239123849665679,\"db-version\":\"9.6\"}\n"
+            "2={\"db-id\":6569239123849665666,\"db-version\":\"9.5\"}\n"
+            "3={\"db-id\":6569239123849665679,\"db-version\":\"9.6\"}\n");
+
+        // Create a WAL directory in 9.5-2 but since there are no WAL files or backups it will not show
+        HRN_STORAGE_PATH_CREATE(
+            storageRepoWrite(), STORAGE_REPO_ARCHIVE "/9.5-2/0000000100000000",
+            .comment = "create empty db2 archive WAL1 directory");
+
+        // archive section will cross reference backup db-id 2 to archive db-id 3 but db section will only use the db-ids from
+        // backup.info. Execute while a backup lock is held.
+        HRN_FORK_BEGIN()
+        {
+            HRN_FORK_CHILD_BEGIN()
+            {
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("999-ffffffff"), STRDEF("stanza1"), lockTypeRestore);
+                TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
+
+                // Notify parent that lock has been acquired
+                HRN_FORK_CHILD_NOTIFY_PUT();
+
+                // Wait for parent to allow release lock
+                HRN_FORK_CHILD_NOTIFY_GET();
+
+                lockRelease(true);
+            }
+            HRN_FORK_CHILD_END();
+
+            HRN_FORK_PARENT_BEGIN()
+            {
+                // Wait for child to acquire lock
+                HRN_FORK_PARENT_NOTIFY_GET(0);
+
+                HRN_CFG_LOAD(cfgCmdInfo, argList);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    // {uncrustify_off - indentation}
+                    "["
+                        "{"
+                            "\"archive\":["
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":2,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.6-3\","
+                                    "\"max\":null,"
+                                    "\"min\":null"
+                                "}"
+                            "],"
+                             "\"backup\":[],"
+                             "\"cipher\":\"none\","
+                             "\"db\":["
+                                "{"
+                                    "\"id\":1,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665666,"
+                                    "\"version\":\"9.5\""
+                                "},"
+                                "{"
+                                    "\"id\":2,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665679,"
+                                    "\"version\":\"9.6\""
+                                "}"
+                            "],"
+                            "\"name\":\"stanza1\","
+                            "\"repo\":["
+                                "{"
+                                    "\"cipher\":\"none\","
+                                    "\"key\":1,"
+                                    "\"status\":{"
+                                        "\"code\":2,"
+                                        "\"message\":\"no valid backups\""
+                                    "}"
+                                "}"
+                            "],"
+                            "\"status\":{"
+                                "\"code\":2,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":true}"
+                                "},"
+                                "\"message\":\"no valid backups\""
+                            "}"
+                        "}"
+                    "]",
+                    // {uncrustify_on}
+                    "json - single stanza, no valid backups, restore lock detected");
+
+                HRN_CFG_LOAD(cfgCmdInfo, argListText);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    "stanza: stanza1\n"
+                    "    status: error (no valid backups, restore running)\n"
+                    "    cipher: none\n"
+                    "\n"
+                    "    db (current)\n"
+                    "        wal archive min/max (9.6): none present\n",
+                    "text - single stanza, no valid backups, restore lock detected");
+
+                // Notify child to release lock
+                HRN_FORK_PARENT_NOTIFY_PUT(0);
+            }
+            HRN_FORK_PARENT_END();
+        }
+        HRN_FORK_END();
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("multi-repo - stanza missing on specified repo");
 
         StringList *argList2 = strLstDup(argListTextStanzaOpt);
