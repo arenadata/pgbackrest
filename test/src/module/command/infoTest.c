@@ -1928,10 +1928,27 @@ testRun(void)
             }
             HRN_FORK_CHILD_END();
 
+            HRN_FORK_CHILD_BEGIN()
+            {
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("999-ffffffff"), STRDEF("stanza3"), lockTypeRestore);
+                TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
+                TEST_RESULT_VOID(lockWriteDataP(lockTypeRestore, .percentComplete = VARUINT(1234)), "write lock data");
+
+                // Notify parent that lock has been acquired
+                HRN_FORK_CHILD_NOTIFY_PUT();
+
+                // Wait for parent to allow release lock
+                HRN_FORK_CHILD_NOTIFY_GET();
+
+                lockRelease(true);
+            }
+            HRN_FORK_CHILD_END();
+
             HRN_FORK_PARENT_BEGIN()
             {
                 // Wait for child to acquire lock
                 HRN_FORK_PARENT_NOTIFY_GET(0);
+                HRN_FORK_PARENT_NOTIFY_GET(1);
 
                 HRN_CFG_LOAD(cfgCmdInfo, argListMultiRepo);
                 TEST_RESULT_STR_Z(
@@ -2000,7 +2017,7 @@ testRun(void)
                     "        wal archive min/max (9.4): none present\n"
                     "\n"
                     "stanza: stanza3\n"
-                    "    status: mixed\n"
+                    "    status: mixed (restore running - 12.34% complete)\n"
                     "        repo1: error (missing stanza path)\n"
                     "        repo2: ok\n"
                     "    cipher: mixed\n"
@@ -2019,6 +2036,7 @@ testRun(void)
 
                 // Notify child to release lock
                 HRN_FORK_PARENT_NOTIFY_PUT(0);
+                HRN_FORK_PARENT_NOTIFY_PUT(1);
             }
             HRN_FORK_PARENT_END();
         }
