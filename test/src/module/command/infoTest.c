@@ -703,7 +703,7 @@ testRun(void)
         {
             HRN_FORK_CHILD_BEGIN()
             {
-                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("777-afafafaf"), STRDEF("stanza1"), lockTypeBackup);
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("777-afafafaf"), STRDEF("stanza1"), lockTypeRestore);
                 TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
                 TEST_RESULT_VOID(lockWriteDataP(lockTypeRestore), "write lock data");
 
@@ -966,7 +966,7 @@ testRun(void)
         {
             HRN_FORK_CHILD_BEGIN()
             {
-                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("777-afafafaf"), STRDEF("stanza1"), lockTypeBackup);
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("777-afafafaf"), STRDEF("stanza1"), lockTypeRestore);
                 TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
                 TEST_RESULT_VOID(
                     lockWriteDataP(
