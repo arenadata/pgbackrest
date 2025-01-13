@@ -667,6 +667,12 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.5-2/0000000100000000/000000010000000000000001-ac61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz",
             .comment = "write WAL db2 timeline 1 repo1");
 
+        HRN_STORAGE_PUT_EMPTY(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/9.6-3/0000000300000000/000000030000000000000001-47dff2b7552a9d66e4bae1a762488a6885e7082c.gz",
+            .comment = "write WAL db3 timeline 3 repo1");
+
+        // Add WAL segment
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), INFO_BACKUP_PATH_FILE,
             "[db]\n"
