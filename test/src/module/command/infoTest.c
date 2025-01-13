@@ -639,6 +639,536 @@ testRun(void)
         HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.5-2", .recurse = true);
         HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.6-3", .recurse = true);
 
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("coverage for stanzaStatus branches && percent complete null for restore lock");
+
+        // Db1 and Db3 (from above) have same system-id and db-version so consider them the same for WAL reporting
+        HRN_STORAGE_PUT_EMPTY(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/9.6-1/0000000100000000/000000010000000000000002-ac61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz",
+            .comment = "write WAL db1 timeline 1 repo1");
+        HRN_STORAGE_PUT_EMPTY(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/9.6-1/0000000100000000/000000010000000000000003-37dff2b7552a9d66e4bae1a762488a6885e7082c.gz",
+            .comment = "write WAL db1 timeline 1 repo1");
+        HRN_STORAGE_PUT_EMPTY(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/9.6-1/0000000200000000/000000020000000000000003-37dff2b7552a9d66e4bae1a762488a6885e7082c.gz",
+            .comment = "write WAL db1 timeline 2 repo1");
+        HRN_STORAGE_PATH_CREATE(
+            storageRepoWrite(), STORAGE_REPO_ARCHIVE "/9.6-1/0000000300000000",
+            .comment = "create empty db1 timeline 3 directory");
+
+        // Create a WAL file in 9.5-2 so that a prior will show
+        HRN_STORAGE_PUT_EMPTY(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/9.5-2/0000000100000000/000000010000000000000001-ac61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz",
+            .comment = "write WAL db2 timeline 1 repo1");
+
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(0), INFO_BACKUP_PATH_FILE,
+            "[db]\n"
+            "db-catalog-version=201608131\n"
+            "db-control-version=960\n"
+            "db-id=3\n"
+            "db-system-id=6569239123849665679\n"
+            "db-version=\"9.6\"\n"
+            "\n"
+            "[backup:current]\n"
+            "20181116-154756F={\"backrest-format\":5,\"backrest-version\":\"2.04\","
+            "\"backup-archive-start\":null,\"backup-archive-stop\":null,"
+            "\"backup-info-repo-size\":3159776,\"backup-info-repo-size-delta\":3159,\"backup-info-size\":26897030,"
+            "\"backup-info-size-delta\":26897030,\"backup-timestamp-start\":1542383276,\"backup-timestamp-stop\":1542383289,"
+            "\"backup-type\":\"full\",\"db-id\":1,\"option-archive-check\":true,\"option-archive-copy\":false,"
+            "\"option-backup-standby\":false,\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,"
+            "\"option-online\":true}\n"
+            "20201116-154900F={\"backrest-format\":5,\"backrest-version\":\"2.30\","
+            "\"backup-archive-start\":\"000000030000000000000001\",\"backup-archive-stop\":\"000000030000000000000001\","
+            "\"backup-info-repo-size\":3159776,\"backup-info-repo-size-delta\":3159,\"backup-info-size\":26897033,"
+            "\"backup-info-size-delta\":26897033,\"backup-timestamp-start\":1605541676,\"backup-timestamp-stop\":1605541680,"
+            "\"backup-type\":\"full\",\"db-id\":3,\"option-archive-check\":true,\"option-archive-copy\":false,"
+            "\"option-backup-standby\":false,\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,"
+            "\"option-online\":true}\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-catalog-version\":201608131,\"db-control-version\":960,\"db-system-id\":6569239123849665679"
+            ",\"db-version\":\"9.6\"}\n"
+            "2={\"db-catalog-version\":201510051,\"db-control-version\":960,\"db-system-id\":6569239123849665666"
+            ",\"db-version\":\"9.5\"}\n"
+            "3={\"db-catalog-version\":201608131,\"db-control-version\":960,\"db-system-id\":6569239123849665679"
+            ",\"db-version\":\"9.6\"}\n");
+
+        // Execute while a backup lock is held
+        HRN_FORK_BEGIN()
+        {
+            HRN_FORK_CHILD_BEGIN()
+            {
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("777-afafafaf"), STRDEF("stanza1"), lockTypeBackup);
+                TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
+                TEST_RESULT_VOID(lockWriteDataP(lockTypeRestore), "write lock data");
+
+                // Notify parent that lock has been acquired
+                HRN_FORK_CHILD_NOTIFY_PUT();
+
+                // Wait for parent to allow release lock
+                HRN_FORK_CHILD_NOTIFY_GET();
+
+                lockRelease(true);
+            }
+            HRN_FORK_CHILD_END();
+
+            HRN_FORK_PARENT_BEGIN()
+            {
+                // Wait for child to acquire lock
+                HRN_FORK_PARENT_NOTIFY_GET(0);
+
+                HRN_CFG_LOAD(cfgCmdInfo, argList);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    // {uncrustify_off - indentation}
+                    "["
+                        "{"
+                             "\"archive\":["
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":1,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.6-1\","
+                                    "\"max\":\"000000020000000000000003\","
+                                    "\"min\":\"000000010000000000000002\""
+                                "},"
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":2,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.5-2\","
+                                    "\"max\":\"000000010000000000000001\","
+                                    "\"min\":\"000000010000000000000001\""
+                                "},"
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":3,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.6-3\","
+                                    "\"max\":\"000000030000000000000001\","
+                                    "\"min\":\"000000030000000000000001\""
+                                "}"
+                            "],"
+                             "\"backup\":["
+                                "{"
+                                    "\"archive\":{"
+                                        "\"start\":null,"
+                                        "\"stop\":null"
+                                    "},"
+                                    "\"backrest\":{"
+                                        "\"format\":5,"
+                                        "\"version\":\"2.04\""
+                                    "},"
+                                    "\"database\":{"
+                                        "\"id\":1,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"info\":{"
+                                        "\"delta\":26897030,"
+                                        "\"repository\":{"
+                                            "\"delta\":3159,"
+                                            "\"size\":3159776"
+                                        "},"
+                                        "\"size\":26897030"
+                                    "},"
+                                    "\"label\":\"20181116-154756F\","
+                                    "\"prior\":null,"
+                                    "\"reference\":null,"
+                                    "\"timestamp\":{"
+                                        "\"start\":1542383276,"
+                                        "\"stop\":1542383289"
+                                    "},"
+                                    "\"type\":\"full\""
+                                "},"
+                                "{"
+                                    "\"archive\":{"
+                                        "\"start\":\"000000030000000000000001\","
+                                        "\"stop\":\"000000030000000000000001\""
+                                    "},"
+                                    "\"backrest\":{"
+                                        "\"format\":5,"
+                                        "\"version\":\"2.30\""
+                                    "},"
+                                    "\"database\":{"
+                                        "\"id\":3,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"info\":{"
+                                        "\"delta\":26897033,"
+                                        "\"repository\":{"
+                                            "\"delta\":3159,"
+                                            "\"size\":3159776"
+                                        "},"
+                                        "\"size\":26897033"
+                                    "},"
+                                    "\"label\":\"20201116-154900F\","
+                                    "\"prior\":null,"
+                                    "\"reference\":null,"
+                                    "\"timestamp\":{"
+                                        "\"start\":1605541676,"
+                                        "\"stop\":1605541680"
+                                    "},"
+                                    "\"type\":\"full\""
+                                "}"
+                            "],"
+                             "\"cipher\":\"none\","
+                             "\"db\":["
+                                "{"
+                                    "\"id\":1,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665679,"
+                                    "\"version\":\"9.6\""
+                                "},"
+                                "{"
+                                    "\"id\":2,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665666,"
+                                    "\"version\":\"9.5\""
+                                "},"
+                                "{"
+                                    "\"id\":3,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665679,"
+                                    "\"version\":\"9.6\""
+                                "}"
+                            "],"
+                            "\"name\":\"stanza1\","
+                            "\"repo\":["
+                                "{"
+                                    "\"cipher\":\"none\","
+                                    "\"key\":1,"
+                                    "\"status\":{"
+                                        "\"code\":0,"
+                                        "\"message\":\"ok\""
+                                    "}"
+                                "}"
+                            "],"
+                            "\"status\":{"
+                                "\"code\":0,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":true}"
+                                "},"
+                                "\"message\":\"ok\""
+                            "}"
+                        "}"
+                    "]",
+                    // {uncrustify_on}
+                    "json - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+
+                HRN_CFG_LOAD(cfgCmdInfo, argListText);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    "stanza: stanza1\n"
+                    "    status: ok (restore running)\n"
+                    "    cipher: none\n"
+                    "\n"
+                    "    db (prior)\n"
+                    "        wal archive min/max (9.5): 000000010000000000000001/000000010000000000000001\n"
+                    "\n"
+                    "    db (current)\n"
+                    "        wal archive min/max (9.6): 000000010000000000000002/000000030000000000000001\n"
+                    "\n"
+                    "        full backup: 20181116-154756F\n"
+                    "            timestamp start/stop: 2018-11-16 15:47:56+00 / 2018-11-16 15:48:09+00\n"
+                    "            wal start/stop: n/a\n"
+                    "            database size: 25.7MB, database backup size: 25.7MB\n"
+                    "            repo1: backup set size: 3MB, backup size: 3KB\n"
+                    "\n"
+                    "        full backup: 20201116-154900F\n"
+                    "            timestamp start/stop: 2020-11-16 15:47:56+00 / 2020-11-16 15:48:00+00\n"
+                    "            wal start/stop: 000000030000000000000001 / 000000030000000000000001\n"
+                    "            database size: 25.7MB, database backup size: 25.7MB\n"
+                    "            repo1: backup set size: 3MB, backup size: 3KB\n",
+                    "text - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+
+                // Notify child to release lock
+                HRN_FORK_PARENT_NOTIFY_PUT(0);
+            }
+            HRN_FORK_PARENT_END();
+        }
+        HRN_FORK_END();
+
+        // Cleanup
+        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.6-1", .recurse = true);
+        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.5-2", .recurse = true);
+        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.6-3", .recurse = true);
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("coverage for restore lock");
+
+        // Db1 and Db3 (from above) have same system-id and db-version so consider them the same for WAL reporting
+        HRN_STORAGE_PUT_EMPTY(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/9.6-1/0000000100000000/000000010000000000000002-ac61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz",
+            .comment = "write WAL db1 timeline 1 repo1");
+        HRN_STORAGE_PUT_EMPTY(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/9.6-1/0000000100000000/000000010000000000000003-37dff2b7552a9d66e4bae1a762488a6885e7082c.gz",
+            .comment = "write WAL db1 timeline 1 repo1");
+        HRN_STORAGE_PUT_EMPTY(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/9.6-1/0000000200000000/000000020000000000000003-37dff2b7552a9d66e4bae1a762488a6885e7082c.gz",
+            .comment = "write WAL db1 timeline 2 repo1");
+        HRN_STORAGE_PATH_CREATE(
+            storageRepoWrite(), STORAGE_REPO_ARCHIVE "/9.6-1/0000000300000000",
+            .comment = "create empty db1 timeline 3 directory");
+
+        // Create a WAL file in 9.5-2 so that a prior will show
+        HRN_STORAGE_PUT_EMPTY(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/9.5-2/0000000100000000/000000010000000000000001-ac61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz",
+            .comment = "write WAL db2 timeline 1 repo1");
+
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(0), INFO_BACKUP_PATH_FILE,
+            "[db]\n"
+            "db-catalog-version=201608131\n"
+            "db-control-version=960\n"
+            "db-id=3\n"
+            "db-system-id=6569239123849665679\n"
+            "db-version=\"9.6\"\n"
+            "\n"
+            "[backup:current]\n"
+            "20181116-154756F={\"backrest-format\":5,\"backrest-version\":\"2.04\","
+            "\"backup-archive-start\":null,\"backup-archive-stop\":null,"
+            "\"backup-info-repo-size\":3159776,\"backup-info-repo-size-delta\":3159,\"backup-info-size\":26897030,"
+            "\"backup-info-size-delta\":26897030,\"backup-timestamp-start\":1542383276,\"backup-timestamp-stop\":1542383289,"
+            "\"backup-type\":\"full\",\"db-id\":1,\"option-archive-check\":true,\"option-archive-copy\":false,"
+            "\"option-backup-standby\":false,\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,"
+            "\"option-online\":true}\n"
+            "20201116-154900F={\"backrest-format\":5,\"backrest-version\":\"2.30\","
+            "\"backup-archive-start\":\"000000030000000000000001\",\"backup-archive-stop\":\"000000030000000000000001\","
+            "\"backup-info-repo-size\":3159776,\"backup-info-repo-size-delta\":3159,\"backup-info-size\":26897033,"
+            "\"backup-info-size-delta\":26897033,\"backup-timestamp-start\":1605541676,\"backup-timestamp-stop\":1605541680,"
+            "\"backup-type\":\"full\",\"db-id\":3,\"option-archive-check\":true,\"option-archive-copy\":false,"
+            "\"option-backup-standby\":false,\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,"
+            "\"option-online\":true}\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-catalog-version\":201608131,\"db-control-version\":960,\"db-system-id\":6569239123849665679"
+            ",\"db-version\":\"9.6\"}\n"
+            "2={\"db-catalog-version\":201510051,\"db-control-version\":960,\"db-system-id\":6569239123849665666"
+            ",\"db-version\":\"9.5\"}\n"
+            "3={\"db-catalog-version\":201608131,\"db-control-version\":960,\"db-system-id\":6569239123849665679"
+            ",\"db-version\":\"9.6\"}\n");
+
+        // Execute while a backup lock is held
+        HRN_FORK_BEGIN()
+        {
+            HRN_FORK_CHILD_BEGIN()
+            {
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("777-afafafaf"), STRDEF("stanza1"), lockTypeBackup);
+                TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
+                TEST_RESULT_VOID(
+                    lockWriteDataP(
+                        lockTypeRestore, .percentComplete = VARUINT(4545), .sizeComplete = VARUINT64(1435765),
+                        .size = VARUINT64(3159000)),
+                    "write lock data");
+
+                // Notify parent that lock has been acquired
+                HRN_FORK_CHILD_NOTIFY_PUT();
+
+                // Wait for parent to allow release lock
+                HRN_FORK_CHILD_NOTIFY_GET();
+
+                lockRelease(true);
+            }
+            HRN_FORK_CHILD_END();
+
+            HRN_FORK_PARENT_BEGIN()
+            {
+                // Wait for child to acquire lock
+                HRN_FORK_PARENT_NOTIFY_GET(0);
+
+                HRN_CFG_LOAD(cfgCmdInfo, argList);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    // {uncrustify_off - indentation}
+                    "["
+                        "{"
+                             "\"archive\":["
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":1,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.6-1\","
+                                    "\"max\":\"000000020000000000000003\","
+                                    "\"min\":\"000000010000000000000002\""
+                                "},"
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":2,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.5-2\","
+                                    "\"max\":\"000000010000000000000001\","
+                                    "\"min\":\"000000010000000000000001\""
+                                "},"
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":3,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.6-3\","
+                                    "\"max\":\"000000030000000000000001\","
+                                    "\"min\":\"000000030000000000000001\""
+                                "}"
+                            "],"
+                             "\"backup\":["
+                                "{"
+                                    "\"archive\":{"
+                                        "\"start\":null,"
+                                        "\"stop\":null"
+                                    "},"
+                                    "\"backrest\":{"
+                                        "\"format\":5,"
+                                        "\"version\":\"2.04\""
+                                    "},"
+                                    "\"database\":{"
+                                        "\"id\":1,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"info\":{"
+                                        "\"delta\":26897030,"
+                                        "\"repository\":{"
+                                            "\"delta\":3159,"
+                                            "\"size\":3159776"
+                                        "},"
+                                        "\"size\":26897030"
+                                    "},"
+                                    "\"label\":\"20181116-154756F\","
+                                    "\"prior\":null,"
+                                    "\"reference\":null,"
+                                    "\"timestamp\":{"
+                                        "\"start\":1542383276,"
+                                        "\"stop\":1542383289"
+                                    "},"
+                                    "\"type\":\"full\""
+                                "},"
+                                "{"
+                                    "\"archive\":{"
+                                        "\"start\":\"000000030000000000000001\","
+                                        "\"stop\":\"000000030000000000000001\""
+                                    "},"
+                                    "\"backrest\":{"
+                                        "\"format\":5,"
+                                        "\"version\":\"2.30\""
+                                    "},"
+                                    "\"database\":{"
+                                        "\"id\":3,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"info\":{"
+                                        "\"delta\":26897033,"
+                                        "\"repository\":{"
+                                            "\"delta\":3159,"
+                                            "\"size\":3159776"
+                                        "},"
+                                        "\"size\":26897033"
+                                    "},"
+                                    "\"label\":\"20201116-154900F\","
+                                    "\"prior\":null,"
+                                    "\"reference\":null,"
+                                    "\"timestamp\":{"
+                                        "\"start\":1605541676,"
+                                        "\"stop\":1605541680"
+                                    "},"
+                                    "\"type\":\"full\""
+                                "}"
+                            "],"
+                             "\"cipher\":\"none\","
+                             "\"db\":["
+                                "{"
+                                    "\"id\":1,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665679,"
+                                    "\"version\":\"9.6\""
+                                "},"
+                                "{"
+                                    "\"id\":2,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665666,"
+                                    "\"version\":\"9.5\""
+                                "},"
+                                "{"
+                                    "\"id\":3,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665679,"
+                                    "\"version\":\"9.6\""
+                                "}"
+                            "],"
+                            "\"name\":\"stanza1\","
+                            "\"repo\":["
+                                "{"
+                                    "\"cipher\":\"none\","
+                                    "\"key\":1,"
+                                    "\"status\":{"
+                                        "\"code\":0,"
+                                        "\"message\":\"ok\""
+                                    "}"
+                                "}"
+                            "],"
+                            "\"status\":{"
+                                "\"code\":0,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":1435765},""
+                                "},"
+                                "\"message\":\"ok\""
+                            "}"
+                        "}"
+                    "]",
+                    // {uncrustify_on}
+                    "json - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+
+                HRN_CFG_LOAD(cfgCmdInfo, argListText);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    "stanza: stanza1\n"
+                    "    status: ok (restore running - 45.45% complete)\n"
+                    "    cipher: none\n"
+                    "\n"
+                    "    db (prior)\n"
+                    "        wal archive min/max (9.5): 000000010000000000000001/000000010000000000000001\n"
+                    "\n"
+                    "    db (current)\n"
+                    "        wal archive min/max (9.6): 000000010000000000000002/000000030000000000000001\n"
+                    "\n"
+                    "        full backup: 20181116-154756F\n"
+                    "            timestamp start/stop: 2018-11-16 15:47:56+00 / 2018-11-16 15:48:09+00\n"
+                    "            wal start/stop: n/a\n"
+                    "            database size: 25.7MB, database backup size: 25.7MB\n"
+                    "            repo1: backup set size: 3MB, backup size: 3KB\n"
+                    "\n"
+                    "        full backup: 20201116-154900F\n"
+                    "            timestamp start/stop: 2020-11-16 15:47:56+00 / 2020-11-16 15:48:00+00\n"
+                    "            wal start/stop: 000000030000000000000001 / 000000030000000000000001\n"
+                    "            database size: 25.7MB, database backup size: 25.7MB\n"
+                    "            repo1: backup set size: 3MB, backup size: 3KB\n",
+                    "text - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+
+                // Notify child to release lock
+                HRN_FORK_PARENT_NOTIFY_PUT(0);
+            }
+            HRN_FORK_PARENT_END();
+        }
+        HRN_FORK_END();
+
+        // Cleanup
+        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.6-1", .recurse = true);
+        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.5-2", .recurse = true);
+        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/9.6-3", .recurse = true);
+
         // backup.info/archive.info files exist, backups exist, archives exist, multi-repo (mixed) with one stanza existing on both
         // repos and the db history is different between the repos
         // -------------------------------------------------------------------------------------------------------------------------
