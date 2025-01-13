@@ -1122,7 +1122,7 @@ testRun(void)
                                 "\"code\":0,"
                                 "\"lock\":{"
                                     "\"backup\":{\"held\":false},"
-                                    "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":1435765},""
+                                    "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":1435765},"
                                 "},"
                                 "\"message\":\"ok\""
                             "}"
