@@ -1608,7 +1608,7 @@ infoRender(void)
                     const KeyValue *const stanzaStatus = varKv(kvGet(stanzaInfo, STANZA_KEY_STATUS_VAR));
                     const int statusCode = varInt(kvGet(stanzaStatus, STATUS_KEY_CODE_VAR));
 
-                    // Get the lock info
+                    // Get the backup lock info
                     const KeyValue *const lockKv = varKv(kvGet(stanzaStatus, STATUS_KEY_LOCK_VAR));
                     const KeyValue *const backupLockKv = varKv(kvGet(lockKv, STATUS_KEY_LOCK_BACKUP_VAR));
                     const bool backupLockHeld = varBool(kvGet(backupLockKv, STATUS_KEY_LOCK_HELD_VAR));
@@ -1617,6 +1617,7 @@ infoRender(void)
                         backupPercentComplete != NULL ?
                             strNewFmt(" - %u.%02u%% complete", varUInt(backupPercentComplete) / 100, varUInt(backupPercentComplete) % 100) :
                             EMPTY_STR;
+                    // Get the restore lock info
                     const KeyValue *const restoreLockKv = varKv(kvGet(lockKv, STATUS_KEY_LOCK_RESTORE_VAR));
                     const bool restoreLockHeld = varBool(kvGet(restoreLockKv, STATUS_KEY_LOCK_HELD_VAR));
                     const Variant *const restorePercentComplete = kvGet(restoreLockKv, STATUS_KEY_LOCK_PERCENT_COMPLETE_VAR);

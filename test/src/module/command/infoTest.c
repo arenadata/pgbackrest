@@ -360,7 +360,7 @@ testRun(void)
             .comment = "create empty db2 archive WAL1 directory");
 
         // archive section will cross reference backup db-id 2 to archive db-id 3 but db section will only use the db-ids from
-        // backup.info. Execute while a backup lock is held.
+        // backup.info. Execute while a restore lock is held.
         HRN_FORK_BEGIN()
         {
             HRN_FORK_CHILD_BEGIN()
@@ -757,7 +757,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("coverage for restore lock");
 
-        // Execute while a backup lock is held
+        // Execute while a restore lock is held
         HRN_FORK_BEGIN()
         {
             HRN_FORK_CHILD_BEGIN()
