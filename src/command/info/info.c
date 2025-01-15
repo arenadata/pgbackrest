@@ -1695,7 +1695,7 @@ infoRender(void)
                     }
                     else
                     {
-                        // Change displayed status if backup lock is found
+                        // Change displayed status if backup/restore lock is found
                         if (backupLockHeld)
                         {
                             strCatFmt(
