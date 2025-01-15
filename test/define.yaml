@@ -946,6 +946,8 @@ unit:
       - name: restore
         total: 15
 
+        harness: restore
+
         coverage:
           - command/restore/blockChecksum
           - command/restore/blockDelta
