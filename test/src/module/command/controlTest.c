@@ -253,7 +253,7 @@ testRun(void)
         {
             HRN_FORK_CHILD_BEGIN()
             {
-                lockInit(STRDEF(HRN_PATH "/lock"), cfgOptionStr(cfgOptExecId), cfgOptionStr(cfgOptStanza), lockTypeArchive);
+                lockInit(STRDEF(HRN_PATH "/lock"), cfgOptionStr(cfgOptExecId), cfgOptionStr(cfgOptStanza), lockTypeRestore);
                 TEST_RESULT_BOOL(lockAcquireP(.timeout = 30000), true, "child process acquires lock");
 
                 // Notify parent that lock has been acquired
