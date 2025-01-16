@@ -3,6 +3,7 @@ Test Restore Command
 ***********************************************************************************************************************************/
 #include "command/backup/backup.h"
 #include "command/backup/blockIncr.h"
+#include "command/backup/file.h"
 #include "command/backup/protocol.h"
 #include "command/stanza/create.h"
 #include "common/compress/helper.h"
@@ -2196,6 +2197,51 @@ testRun(void)
             .comment = "recovery.signal exists, standby.signal missing");
 
         TEST_RESULT_LOG("P00   INFO: write updated " TEST_PATH "/pg/postgresql.auto.conf");
+    }
+
+    // *****************************************************************************************************************************
+    if (testBegin("restoreJobResult()"))
+    {
+        // Set log level to detail
+        harnessLogLevelSet(logLevelDetail);
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("report host/100% progress on noop result");
+
+        // Create job that skips file
+        ProtocolParallelJob *job = protocolParallelJobNew(VARSTRDEF("pg_data/test"), protocolCommandNew(strIdFromZ("x")));
+
+        PackWrite *const resultPack = protocolPackNew();
+        pckWriteStrP(resultPack, STRDEF("pg_data/test"));
+        pckWriteU32P(resultPack, backupCopyResultNoOp);
+        // No more fields need to be written since noop will ignore them anyway
+        pckWriteEndP(resultPack);
+
+        protocolParallelJobResultSet(job, pckReadNew(pckWriteResult(resultPack)));
+
+        // Create manifest with file
+        Manifest *manifest = NULL;
+
+        OBJ_NEW_BASE_BEGIN(Manifest, .childQty = MEM_CONTEXT_QTY_MAX)
+        {
+            manifest = manifestNewInternal();
+
+            HRN_MANIFEST_TARGET_ADD(manifest, .name = MANIFEST_TARGET_PGDATA, .path = "pg_data");
+            HRN_MANIFEST_FILE_ADD(manifest, .name = "pg_data/test");
+        }
+        OBJ_NEW_END();
+
+        unsigned int currentPercentComplete = 4567;
+
+        lockInit(TEST_PATH_STR, cfgOptionStr(cfgOptExecId), cfgOptionStr(cfgOptStanza), lockTypeRestore);
+        TEST_RESULT_VOID(lockAcquireP(), "acquire restore lock");
+
+        TEST_RESULT_UINT(
+            restoreJobResult(manifest, job, NULL, 0, 0,
+                &currentPercentComplete), 0, "log noop result");
+        TEST_RESULT_VOID(lockRelease(true), "release restore lock");
+
+        TEST_RESULT_LOG("P00 DETAIL: restore file pg_data/test (0B, 100.00%)");
     }
 
     // *****************************************************************************************************************************
