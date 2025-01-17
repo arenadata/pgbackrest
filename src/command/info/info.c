@@ -129,17 +129,29 @@ typedef struct InfoRepoData
 #define FUNCTION_LOG_INFO_REPO_DATA_FORMAT(value, buffer, bufferSize)                                                              \
     objNameToLog(value, "InfoRepoData", buffer, bufferSize)
 
+// Information for a lockfile of a stanza
+typedef struct InfoStanzaLock
+{
+    bool lockChecked;                                               // Has the check for a lock already been performed?
+    bool lockHeld;                                                  // Is lock held on the system where info command is run?
+    const Variant *percentComplete;                                 // Percentage of backup/restore complete * 100 (when not NULL)
+    const Variant *sizeComplete;                                    // Completed size of the backup/restore in bytes
+    const Variant *size;                                            // Total size of the backup/restore in bytes
+} InfoStanzaLock;
+
+#define FUNCTION_LOG_INFO_STANZA_LOCK_TYPE                                                                                         \
+    InfoStanzaLock *
+#define FUNCTION_LOG_INFO_STANZA_LOCK_FORMAT(value, buffer, bufferSize)                                                            \
+    objNameToLog(value, "InfoStanzaLock", buffer, bufferSize)
+
 // Stanza with repository list of information for each repository
 typedef struct InfoStanzaRepo
 {
     const String *name;                                             // Name of the stanza
     uint64_t currentPgSystemId;                                     // Current postgres system id for the stanza
     unsigned int currentPgVersion;                                  // Current postgres version for the stanza
-    bool lockChecked;                                               // Has the check for a lock already been performed?
-    LockType lockType;                                              // Type of the lock that is held  on the system where info cmmand is run
-    const Variant *percentComplete;                                 // Percentage of backup/restore complete * 100 (when not NULL)
-    const Variant *sizeComplete;                                    // Completed size of the backup/restore in bytes
-    const Variant *size;                                            // Total size of the backup/restore in bytes
+    InfoStanzaLock backupLock;                                      // Info for backup lock
+    InfoStanzaLock restoreLock;                                     // Info for restore lock
     InfoRepoData *repoList;                                         // List of configured repositories
 } InfoStanzaRepo;
 
@@ -239,25 +251,29 @@ stanzaStatus(const int code, const InfoStanzaRepo *const stanzaData, const Varia
 
     // Construct a specific lock part
     KeyValue *const lockKv = kvPutKv(statusKv, STATUS_KEY_LOCK_VAR);
-    bool backupLockHeld = stanzaData->lockType == lockTypeBackup;
-    bool restoreLockHeld = stanzaData->lockType == lockTypeRestore;
     KeyValue *const backupLockKv = kvPutKv(lockKv, STATUS_KEY_LOCK_BACKUP_VAR);
-    kvPut(backupLockKv, STATUS_KEY_LOCK_HELD_VAR, VARBOOL(backupLockHeld));
+    kvPut(backupLockKv, STATUS_KEY_LOCK_HELD_VAR, VARBOOL(stanzaData->backupLock.lockHeld));
+
+    if (stanzaData->backupLock.percentComplete != NULL && cfgOptionStrId(cfgOptOutput) != CFGOPTVAL_OUTPUT_JSON)
+        kvPut(backupLockKv, STATUS_KEY_LOCK_PERCENT_COMPLETE_VAR, stanzaData->backupLock.percentComplete);
+
+    if (stanzaData->backupLock.sizeComplete != NULL)
+        kvPut(backupLockKv, STATUS_KEY_LOCK_SIZE_COMPLETE_VAR, stanzaData->backupLock.sizeComplete);
+
+    if (stanzaData->backupLock.size != NULL)
+        kvPut(backupLockKv, STATUS_KEY_LOCK_SIZE_VAR, stanzaData->backupLock.size);
+
     KeyValue *const restoreLockKv = kvPutKv(lockKv, STATUS_KEY_LOCK_RESTORE_VAR);
-    kvPut(restoreLockKv, STATUS_KEY_LOCK_HELD_VAR, VARBOOL(restoreLockHeld));
+    kvPut(restoreLockKv, STATUS_KEY_LOCK_HELD_VAR, VARBOOL(stanzaData->restoreLock.lockHeld));
 
-    if (backupLockHeld || restoreLockHeld)
-    {
-        KeyValue *const currentLockKv = backupLockHeld ? backupLockKv : restoreLockKv;
-        if (stanzaData->percentComplete != NULL && cfgOptionStrId(cfgOptOutput) != CFGOPTVAL_OUTPUT_JSON)
-            kvPut(currentLockKv, STATUS_KEY_LOCK_PERCENT_COMPLETE_VAR, stanzaData->percentComplete);
+    if (stanzaData->restoreLock.percentComplete != NULL && cfgOptionStrId(cfgOptOutput) != CFGOPTVAL_OUTPUT_JSON)
+        kvPut(restoreLockKv, STATUS_KEY_LOCK_PERCENT_COMPLETE_VAR, stanzaData->restoreLock.percentComplete);
 
-        if (stanzaData->sizeComplete != NULL)
-            kvPut(currentLockKv, STATUS_KEY_LOCK_SIZE_COMPLETE_VAR, stanzaData->sizeComplete);
+    if (stanzaData->restoreLock.sizeComplete != NULL)
+        kvPut(restoreLockKv, STATUS_KEY_LOCK_SIZE_COMPLETE_VAR, stanzaData->restoreLock.sizeComplete);
 
-        if (stanzaData->size != NULL)
-            kvPut(currentLockKv, STATUS_KEY_LOCK_SIZE_VAR, stanzaData->size);
-    }
+    if (stanzaData->restoreLock.size != NULL)
+        kvPut(restoreLockKv, STATUS_KEY_LOCK_SIZE_VAR, stanzaData->restoreLock.size);
 
     FUNCTION_TEST_RETURN_VOID();
 }
@@ -1237,6 +1253,43 @@ formatTextDb(
 }
 
 /***********************************************************************************************************************************
+Get the lock info of the specified lock type for the stanza
+***********************************************************************************************************************************/
+static void
+infoUpdateStanzaLock(InfoStanzaLock *const stanzaLock, const String *const stanzaName, const LockType lockType)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(INFO_STANZA_LOCK, stanzaLock);
+        FUNCTION_TEST_PARAM(STRING, stanzaName);
+        FUNCTION_TEST_PARAM(ENUM, lockType);
+    FUNCTION_TEST_END();
+
+    FUNCTION_AUDIT_HELPER();
+
+    ASSERT(stanzaLock != NULL);
+    ASSERT(stanzaName != NULL);
+
+    // If a backup lock check has not already been performed, then do so
+    if (!stanzaLock->lockChecked)
+    {
+        // If there is a valid lock for this stanza then backup/expire/restore must be running
+        stanzaLock->lockHeld = lockRead(
+            cfgOptionStr(cfgOptLockPath), stanzaName, lockType).status == lockReadStatusValid;
+        stanzaLock->lockChecked = true;
+
+        if (stanzaLock->lockHeld)
+        {
+            const LockData lockData = lockRead(cfgOptionStr(cfgOptLockPath), stanzaName, lockType).data;
+            stanzaLock->percentComplete = lockData.percentComplete;
+            stanzaLock->sizeComplete = lockData.sizeComplete;
+            stanzaLock->size = lockData.size;
+        }
+    }
+
+    FUNCTION_TEST_RETURN_VOID();
+}
+
+/***********************************************************************************************************************************
 Get the backup and archive info files on the specified repo for the stanza
 ***********************************************************************************************************************************/
 static void
@@ -1305,32 +1358,8 @@ infoUpdateStanza(
                         infoPgCipherPass(infoBackupPg(stanzaRepo->repoList[repoIdx].backupInfo)));
                 }
 
-                // If a lock check has not already been performed, then do so
-                if (!stanzaRepo->lockChecked)
-                {
-                    bool backupLockHeld = lockRead(
-                        cfgOptionStr(cfgOptLockPath), stanzaRepo->name, lockTypeBackup).status == lockReadStatusValid;
-                    bool restoreLockHeld = lockRead(
-                        cfgOptionStr(cfgOptLockPath), stanzaRepo->name, lockTypeRestore).status == lockReadStatusValid;
-                    // There shouldn't be both locks held at the same time for the same stanza
-                    if (backupLockHeld && restoreLockHeld)
-                    {
-                        LOG_DETAIL("Both backup and restore locks shouldn't be present at the same time for the same stanza");
-                    }
-
-                    // If there is a valid backup lock for this stanza then backup/expire or restore must be running
-                    stanzaRepo->lockChecked = true;
-                    stanzaRepo->lockType = backupLockHeld ? lockTypeBackup :
-                                           restoreLockHeld ? lockTypeRestore : lockTypeNone;
-
-                    if (stanzaRepo->lockType != lockTypeNone)
-                    {
-                        const LockData lockData = lockRead(cfgOptionStr(cfgOptLockPath), stanzaRepo->name, stanzaRepo->lockType).data;
-                        stanzaRepo->percentComplete = lockData.percentComplete;
-                        stanzaRepo->sizeComplete = lockData.sizeComplete;
-                        stanzaRepo->size = lockData.size;
-                    }
-                }
+                infoUpdateStanzaLock(&stanzaRepo->backupLock, stanzaRepo->name, lockTypeBackup);
+                infoUpdateStanzaLock(&stanzaRepo->restoreLock, stanzaRepo->name, lockTypeRestore);
             }
 
             stanzaRepo->repoList[repoIdx].stanzaStatus = stanzaStatus;
@@ -1579,16 +1608,22 @@ infoRender(void)
                     const KeyValue *const stanzaStatus = varKv(kvGet(stanzaInfo, STANZA_KEY_STATUS_VAR));
                     const int statusCode = varInt(kvGet(stanzaStatus, STATUS_KEY_CODE_VAR));
 
-                    // Get the lock info
+                    // Get the backup lock info
                     const KeyValue *const lockKv = varKv(kvGet(stanzaStatus, STATUS_KEY_LOCK_VAR));
                     const KeyValue *const backupLockKv = varKv(kvGet(lockKv, STATUS_KEY_LOCK_BACKUP_VAR));
                     const bool backupLockHeld = varBool(kvGet(backupLockKv, STATUS_KEY_LOCK_HELD_VAR));
+                    const Variant *const backupPercentComplete = kvGet(backupLockKv, STATUS_KEY_LOCK_PERCENT_COMPLETE_VAR);
+                    const String *const backupPercentCompleteStr =
+                        backupPercentComplete != NULL ?
+                            strNewFmt(" - %u.%02u%% complete", varUInt(backupPercentComplete) / 100, varUInt(backupPercentComplete) % 100) :
+                            EMPTY_STR;
+                    // Get the restore lock info
                     const KeyValue *const restoreLockKv = varKv(kvGet(lockKv, STATUS_KEY_LOCK_RESTORE_VAR));
                     const bool restoreLockHeld = varBool(kvGet(restoreLockKv, STATUS_KEY_LOCK_HELD_VAR));
-                    const Variant *const percentComplete = kvGet(backupLockHeld ? backupLockKv : restoreLockKv, STATUS_KEY_LOCK_PERCENT_COMPLETE_VAR);
-                    const String *const percentCompleteStr =
-                        percentComplete != NULL ?
-                            strNewFmt(" - %u.%02u%% complete", varUInt(percentComplete) / 100, varUInt(percentComplete) % 100) :
+                    const Variant *const restorePercentComplete = kvGet(restoreLockKv, STATUS_KEY_LOCK_PERCENT_COMPLETE_VAR);
+                    const String *const restorePercentCompleteStr =
+                        restorePercentComplete != NULL ?
+                            strNewFmt(" - %u.%02u%% complete", varUInt(restorePercentComplete) / 100, varUInt(restorePercentComplete) % 100) :
                             EMPTY_STR;
 
                     if (statusCode != INFO_STANZA_STATUS_CODE_OK)
@@ -1606,9 +1641,9 @@ infoRender(void)
                                         INFO_STANZA_STATUS_ERROR " (%s)",
                                         strZ(varStr(kvGet(stanzaStatus, STATUS_KEY_MESSAGE_VAR)))),
                                 backupLockHeld == true ?
-                                    zNewFmt(" (" INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP "%s)", strZ(percentCompleteStr)) : "",
+                                    zNewFmt(" (" INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP "%s)", strZ(backupPercentCompleteStr)) : "",
                                 restoreLockHeld == true ?
-                                    zNewFmt(" (" INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE "%s)", strZ(percentCompleteStr)) : "");
+                                    zNewFmt(" (" INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE "%s)", strZ(restorePercentCompleteStr)) : "");
 
                             // Output the status per repo
                             const VariantList *const repoSection = kvGetList(stanzaInfo, STANZA_KEY_REPO_VAR);
@@ -1653,20 +1688,25 @@ infoRender(void)
                                 resultStr, "%s (%s%s%s\n", INFO_STANZA_STATUS_ERROR,
                                 strZ(varStr(kvGet(stanzaStatus, STATUS_KEY_MESSAGE_VAR))),
                                 backupLockHeld == true ?
-                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP "%s", strZ(percentCompleteStr)) : "",
+                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP "%s", strZ(backupPercentCompleteStr)) : "",
                                 restoreLockHeld == true ?
-                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE "%s)", strZ(percentCompleteStr)) : ")");
+                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE "%s)", strZ(restorePercentCompleteStr)) : ")");
                         }
                     }
                     else
                     {
                         // Change displayed status if backup/restore lock is found
-                        if (backupLockHeld || restoreLockHeld)
+                        if (backupLockHeld)
                         {
                             strCatFmt(
-                                resultStr, "%s (%s%s)\n", INFO_STANZA_STATUS_OK,
-                                backupLockHeld ? INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP : INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE,
-                                strZ(percentCompleteStr));
+                                resultStr, "%s (%s%s)\n", INFO_STANZA_STATUS_OK, INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP,
+                                strZ(backupPercentCompleteStr));
+                        }
+                        else if (restoreLockHeld)
+                        {
+                            strCatFmt(
+                                resultStr, "%s (%s%s)\n", INFO_STANZA_STATUS_OK, INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE,
+                                strZ(restorePercentCompleteStr));
                         }
                         else
                             strCatFmt(resultStr, "%s\n", INFO_STANZA_STATUS_OK);
