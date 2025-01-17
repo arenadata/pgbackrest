@@ -136,8 +136,7 @@ typedef struct InfoStanzaRepo
     uint64_t currentPgSystemId;                                     // Current postgres system id for the stanza
     unsigned int currentPgVersion;                                  // Current postgres version for the stanza
     bool lockChecked;                                               // Has the check for a lock already been performed?
-    bool lockHeld;                                                  // Is lock held on the system where info cmmand is run?
-    LockType lockType;                                              // Type of the lock that is held
+    LockType lockType;                                              // Type of the lock that is held  on the system where info cmmand is run
     const Variant *percentComplete;                                 // Percentage of backup/restore complete * 100 (when not NULL)
     const Variant *sizeComplete;                                    // Completed size of the backup/restore in bytes
     const Variant *size;                                            // Total size of the backup/restore in bytes
@@ -240,8 +239,8 @@ stanzaStatus(const int code, const InfoStanzaRepo *const stanzaData, const Varia
 
     // Construct a specific lock part
     KeyValue *const lockKv = kvPutKv(statusKv, STATUS_KEY_LOCK_VAR);
-    bool backupLockHeld = stanzaData->lockHeld && stanzaData->lockType == lockTypeBackup;
-    bool restoreLockHeld = stanzaData->lockHeld && stanzaData->lockType == lockTypeRestore;
+    bool backupLockHeld = stanzaData->lockType == lockTypeBackup;
+    bool restoreLockHeld = stanzaData->lockType == lockTypeRestore;
     KeyValue *const backupLockKv = kvPutKv(lockKv, STATUS_KEY_LOCK_BACKUP_VAR);
     kvPut(backupLockKv, STATUS_KEY_LOCK_HELD_VAR, VARBOOL(backupLockHeld));
     KeyValue *const restoreLockKv = kvPutKv(lockKv, STATUS_KEY_LOCK_RESTORE_VAR);
@@ -1313,14 +1312,19 @@ infoUpdateStanza(
                         cfgOptionStr(cfgOptLockPath), stanzaRepo->name, lockTypeBackup).status == lockReadStatusValid;
                     bool restoreLockHeld = lockRead(
                         cfgOptionStr(cfgOptLockPath), stanzaRepo->name, lockTypeRestore).status == lockReadStatusValid;
-                    // If there is a valid backup lock for this stanza then backup/expire or restore must be running
-                    stanzaRepo->lockHeld = backupLockHeld || restoreLockHeld;
-                    stanzaRepo->lockChecked = true;
-                    stanzaRepo->lockType = lockTypeNone;
-
-                    if (stanzaRepo->lockHeld)
+                    // There shouldn't be both locks held at the same time for the same stanza
+                    if (backupLockHeld && restoreLockHeld)
                     {
-                        stanzaRepo->lockType = backupLockHeld ? lockTypeBackup : lockTypeRestore;
+                        LOG_DETAIL("Both backup and restore locks shouldn't be present at the same time for the same stanza");
+                    }
+
+                    // If there is a valid backup lock for this stanza then backup/expire or restore must be running
+                    stanzaRepo->lockChecked = true;
+                    stanzaRepo->lockType = backupLockHeld ? lockTypeBackup :
+                                           restoreLockHeld ? lockTypeRestore : lockTypeNone;
+
+                    if (stanzaRepo->lockType != lockTypeNone)
+                    {
                         const LockData lockData = lockRead(cfgOptionStr(cfgOptLockPath), stanzaRepo->name, stanzaRepo->lockType).data;
                         stanzaRepo->percentComplete = lockData.percentComplete;
                         stanzaRepo->sizeComplete = lockData.sizeComplete;
