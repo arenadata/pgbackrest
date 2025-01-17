@@ -1649,9 +1649,9 @@ infoRender(void)
                                 resultStr, "%s (%s%s%s\n", INFO_STANZA_STATUS_ERROR,
                                 strZ(varStr(kvGet(stanzaStatus, STATUS_KEY_MESSAGE_VAR))),
                                 backupLockHeld == true ?
-                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP "%s", strZ(backupLockHeld)) : "",
+                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP "%s", strZ(percentCompleteStr)) : "",
                                 restoreLockHeld == true ?
-                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE "%s)", strZ(restoreLockHeld)) : ")");
+                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE "%s)", strZ(percentCompleteStr)) : ")");
                         }
                     }
                     else
