@@ -1272,14 +1272,14 @@ infoUpdateStanzaLock(InfoStanzaLock *const stanzaLock, const String *const stanz
     // If a backup lock check has not already been performed, then do so
     if (!stanzaLock->lockChecked)
     {
+        const LockReadResult result = lockRead(cfgOptionStr(cfgOptLockPath), stanzaName, lockType);
         // If there is a valid lock for this stanza then backup/expire/restore must be running
-        stanzaLock->lockHeld = lockRead(
-            cfgOptionStr(cfgOptLockPath), stanzaName, lockType).status == lockReadStatusValid;
+        stanzaLock->lockHeld = result.status == lockReadStatusValid;
         stanzaLock->lockChecked = true;
 
         if (stanzaLock->lockHeld)
         {
-            const LockData lockData = lockRead(cfgOptionStr(cfgOptLockPath), stanzaName, lockType).data;
+            const LockData lockData = result.data;
             stanzaLock->percentComplete = lockData.percentComplete;
             stanzaLock->sizeComplete = lockData.sizeComplete;
             stanzaLock->size = lockData.size;
