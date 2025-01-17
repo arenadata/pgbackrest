@@ -1699,11 +1699,12 @@ infoRender(void)
                         if (backupLockHeld || restoreLockHeld)
                         {
                             strCatFmt(
-                                resultStr, "%s (%s%s\n", INFO_STANZA_STATUS_OK,
+                                resultStr, "%s (%s%s%s\n", INFO_STANZA_STATUS_OK,
                                 backupLockHeld == true ?
                                     zNewFmt(INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP "%s", strZ(backupPercentCompleteStr)) : "",
+                                backupLockHeld && restoreLockHeld ? ", " : "",
                                 restoreLockHeld == true ?
-                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE "%s)", strZ(restorePercentCompleteStr)) : ")");
+                                    zNewFmt(INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE "%s)", strZ(restorePercentCompleteStr)) : ")");
                         }
                         else
                             strCatFmt(resultStr, "%s\n", INFO_STANZA_STATUS_OK);
