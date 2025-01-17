@@ -1701,7 +1701,7 @@ infoRender(void)
                             strCatFmt(
                                 resultStr, "%s (%s%s\n", INFO_STANZA_STATUS_OK,
                                 backupLockHeld == true ?
-                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP "%s", strZ(backupPercentCompleteStr)) : "",
+                                    zNewFmt(INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP "%s", strZ(backupPercentCompleteStr)) : "",
                                 restoreLockHeld == true ?
                                     zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE "%s)", strZ(restorePercentCompleteStr)) : ")");
                         }
