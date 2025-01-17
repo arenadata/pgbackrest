@@ -1696,17 +1696,14 @@ infoRender(void)
                     else
                     {
                         // Change displayed status if backup/restore lock is found
-                        if (backupLockHeld)
+                        if (backupLockHeld || restoreLockHeld)
                         {
                             strCatFmt(
-                                resultStr, "%s (%s%s)\n", INFO_STANZA_STATUS_OK, INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP,
-                                strZ(backupPercentCompleteStr));
-                        }
-                        else if (restoreLockHeld)
-                        {
-                            strCatFmt(
-                                resultStr, "%s (%s%s)\n", INFO_STANZA_STATUS_OK, INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE,
-                                strZ(restorePercentCompleteStr));
+                                resultStr, "%s (%s%s\n", INFO_STANZA_STATUS_OK,
+                                backupLockHeld == true ?
+                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP "%s", strZ(backupPercentCompleteStr)) : "",
+                                restoreLockHeld == true ?
+                                    zNewFmt(", " INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE "%s)", strZ(restorePercentCompleteStr)) : ")");
                         }
                         else
                             strCatFmt(resultStr, "%s\n", INFO_STANZA_STATUS_OK);
