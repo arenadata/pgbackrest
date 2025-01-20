@@ -1279,10 +1279,9 @@ infoUpdateStanzaLock(InfoStanzaLock *const stanzaLock, const String *const stanz
 
         if (stanzaLock->lockHeld)
         {
-            const LockData lockData = result.data;
-            stanzaLock->percentComplete = lockData.percentComplete;
-            stanzaLock->sizeComplete = lockData.sizeComplete;
-            stanzaLock->size = lockData.size;
+            stanzaLock->percentComplete = result.data.percentComplete;
+            stanzaLock->sizeComplete = result.data.sizeComplete;
+            stanzaLock->size = result.data.size;
         }
     }
 
