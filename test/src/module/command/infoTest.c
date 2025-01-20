@@ -1424,8 +1424,11 @@ testRun(void)
             {
                 lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("999-ffffffff"), STRDEF("stanza4"), lockTypeRestore);
                 TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
-                TEST_RESULT_VOID(lockWriteDataP(lockTypeRestore, .percentComplete = VARUINT(1234), .sizeComplete = VARUINT64(389820),
-                                                .size = VARUINT64(3159000)), "write lock data");
+                TEST_RESULT_VOID(
+                    lockWriteDataP(
+                        lockTypeRestore, .percentComplete = VARUINT(1234), .sizeComplete = VARUINT64(389820),
+                        .size = VARUINT64(3159000)),
+                    "write lock data");
 
                 // Notify parent that lock has been acquired
                 HRN_FORK_CHILD_NOTIFY_PUT();
@@ -1441,6 +1444,7 @@ testRun(void)
             {
                 // Wait for child to acquire lock
                 HRN_FORK_PARENT_NOTIFY_GET(0);
+                HRN_FORK_PARENT_NOTIFY_GET(1);
 
                 HRN_CFG_LOAD(cfgCmdInfo, argListMultiRepoJson);
                 TEST_RESULT_STR_Z(
@@ -1912,6 +1916,7 @@ testRun(void)
 
                 // Notify child to release lock
                 HRN_FORK_PARENT_NOTIFY_PUT(0);
+                HRN_FORK_PARENT_NOTIFY_PUT(1);
             }
             HRN_FORK_PARENT_END();
         }
