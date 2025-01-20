@@ -1425,7 +1425,7 @@ testRun(void)
                 lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("999-ffffffff"), STRDEF("stanza4"), lockTypeRestore);
                 TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
                 TEST_RESULT_VOID(lockWriteDataP(lockTypeRestore, .percentComplete = VARUINT(1234), .sizeComplete = VARUINT64(389820),
-                        .size = VARUINT64(3159000)), "write lock data");
+                                                .size = VARUINT64(3159000)), "write lock data");
 
                 // Notify parent that lock has been acquired
                 HRN_FORK_CHILD_NOTIFY_PUT();
@@ -1900,7 +1900,7 @@ testRun(void)
                             "\"status\":{"
                                 "\"code\":4,"
                                 "\"lock\":{"
-                                    "\"backup\":{\"held\":false}"
+                                    "\"backup\":{\"held\":false},"
                                     "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":389820}"
                                 "},"
                                 "\"message\":\"different across repos\""
