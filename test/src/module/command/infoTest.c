@@ -3177,12 +3177,12 @@ testRun(void)
         TEST_TITLE("multi-repo, stanza requested does not exist, but other stanzas do");
 
         argList2 = strLstDup(argListMultiRepo);
-        hrnCfgArgRawZ(argList2, cfgOptStanza, "stanza4");
+        hrnCfgArgRawZ(argList2, cfgOptStanza, "stanza5");
         HRN_CFG_LOAD(cfgCmdInfo, argList2);
 
         TEST_RESULT_STR_Z(
             infoRender(),
-            "stanza: stanza4\n"
+            "stanza: stanza5\n"
             "    status: error (missing stanza path)\n",
             "multi-repo, stanza requested does not exist, but other stanzas do");
 
