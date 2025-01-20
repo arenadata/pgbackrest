@@ -2065,6 +2065,10 @@ testRun(void)
         }
         HRN_FORK_END();
 
+        // Cleanup
+        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza4", .recurse = true);
+        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_BACKUP "/stanza4", .recurse = true);
+
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("multi-repo: stanza exists but requested backup does not");
 
@@ -3177,12 +3181,12 @@ testRun(void)
         TEST_TITLE("multi-repo, stanza requested does not exist, but other stanzas do");
 
         argList2 = strLstDup(argListMultiRepo);
-        hrnCfgArgRawZ(argList2, cfgOptStanza, "stanza5");
+        hrnCfgArgRawZ(argList2, cfgOptStanza, "stanza4");
         HRN_CFG_LOAD(cfgCmdInfo, argList2);
 
         TEST_RESULT_STR_Z(
             infoRender(),
-            "stanza: stanza5\n"
+            "stanza: stanza4\n"
             "    status: error (missing stanza path)\n",
             "multi-repo, stanza requested does not exist, but other stanzas do");
 
