@@ -1200,6 +1200,30 @@ testRun(void)
             ",\"db-version\":\"9.4\"}\n",
             .comment = "put backup info to file - stanza2, repo1");
 
+        HRN_INFO_PUT(
+            storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza4/" INFO_ARCHIVE_FILE,
+            "[db]\n"
+            "db-id=1\n"
+            "db-system-id=6625633699176220261\n"
+            "db-version=\"9.4\"\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-id\":6625633699176220261,\"db-version\":\"9.4\"}\n",
+            .comment = "put archive info to file - stanza4, repo1");
+        HRN_INFO_PUT(
+            storageTest, TEST_PATH "/repo/" STORAGE_PATH_BACKUP "/stanza4/" INFO_BACKUP_FILE,
+            "[db]\n"
+            "db-catalog-version=201409291\n"
+            "db-control-version=942\n"
+            "db-id=1\n"
+            "db-system-id=6625633699176220261\n"
+            "db-version=\"9.4\"\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-catalog-version\":201409291,\"db-control-version\":942,\"db-system-id\":6625633699176220261"
+            ",\"db-version\":\"9.4\"}\n",
+            .comment = "put backup info to file - stanza4, repo1");
+
         // Write encrypted info files to encrypted repo2
         HRN_INFO_PUT(
             storageTest, TEST_PATH "/repo2/" STORAGE_PATH_ARCHIVE "/stanza1/" INFO_ARCHIVE_FILE,
@@ -1385,6 +1409,23 @@ testRun(void)
                         lockTypeBackup, .percentComplete = VARUINT(4545), .sizeComplete = VARUINT64(1435765),
                         .size = VARUINT64(3159000)),
                     "write lock data");
+
+                // Notify parent that lock has been acquired
+                HRN_FORK_CHILD_NOTIFY_PUT();
+
+                // Wait for parent to allow release lock
+                HRN_FORK_CHILD_NOTIFY_GET();
+
+                lockRelease(true);
+            }
+            HRN_FORK_CHILD_END();
+
+            HRN_FORK_CHILD_BEGIN()
+            {
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("999-ffffffff"), STRDEF("stanza4"), lockTypeRestore);
+                TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
+                TEST_RESULT_VOID(lockWriteDataP(lockTypeRestore, .percentComplete = VARUINT(1234), .sizeComplete = VARUINT64(389820),
+                        .size = VARUINT64(3159000)), "write lock data");
 
                 // Notify parent that lock has been acquired
                 HRN_FORK_CHILD_NOTIFY_PUT();
@@ -1814,6 +1855,56 @@ testRun(void)
                                 "},"
                                 "\"message\":\"different across repos\""
                             "}"
+                        "},"
+                        "{"
+                             "\"archive\":["
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":1,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.4-1\","
+                                    "\"max\":null,"
+                                    "\"min\":null"
+                                "}"
+                            "],"
+                             "\"backup\":[],"
+                             "\"cipher\":\"mixed\","
+                             "\"db\":["
+                                "{"
+                                    "\"id\":1,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6625633699176220261,"
+                                    "\"version\":\"9.4\""
+                                "}"
+                            "],"
+                            "\"name\":\"stanza4\","
+                            "\"repo\":["
+                                "{"
+                                    "\"cipher\":\"none\","
+                                    "\"key\":1,"
+                                    "\"status\":{"
+                                        "\"code\":2,"
+                                        "\"message\":\"no valid backups\""
+                                    "}"
+                                "},"
+                                "{"
+                                    "\"cipher\":\"aes-256-cbc\","
+                                    "\"key\":2,"
+                                    "\"status\":{"
+                                        "\"code\":1,"
+                                        "\"message\":\"missing stanza path\""
+                                    "}"
+                                "}"
+                            "],"
+                            "\"status\":{"
+                                "\"code\":4,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false}"
+                                    "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":389820}"
+                                "},"
+                                "\"message\":\"different across repos\""
+                            "}"
                         "}"
                     "]",
                     // {uncrustify_on}
@@ -1846,7 +1937,7 @@ testRun(void)
 
             HRN_FORK_CHILD_BEGIN()
             {
-                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("999-ffffffff"), STRDEF("stanza3"), lockTypeRestore);
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("999-ffffffff"), STRDEF("stanza4"), lockTypeRestore);
                 TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
                 TEST_RESULT_VOID(lockWriteDataP(lockTypeRestore, .percentComplete = VARUINT(1234)), "write lock data");
 
@@ -1933,7 +2024,7 @@ testRun(void)
                     "        wal archive min/max (9.4): none present\n"
                     "\n"
                     "stanza: stanza3\n"
-                    "    status: mixed (restore running - 12.34% complete)\n"
+                    "    status: mixed\n"
                     "        repo1: error (missing stanza path)\n"
                     "        repo2: ok\n"
                     "    cipher: mixed\n"
@@ -1947,7 +2038,18 @@ testRun(void)
                     "            timestamp start/stop: 2020-11-10 10:00:00+00 / 2020-11-10 10:00:02+00\n"
                     "            wal start/stop: 000000010000000000000001 / 000000010000000000000002\n"
                     "            database size: 25.7MB, database backup size: 25.7MB\n"
-                    "            repo2: backup set size: 3MB, backup size: 3KB\n",
+                    "            repo2: backup set size: 3MB, backup size: 3KB\n"
+                    "stanza: stanza4\n"
+                    "    status: mixed (restore running - 12.34% complete)\n"
+                    "        repo1: error (no valid backups)\n"
+                    "        repo2: error (missing stanza path)\n"
+                    "    cipher: mixed\n"
+                    "        repo1: none\n"
+                    "        repo2: aes-256-cbc\n"
+                    "\n"
+                    "    db (current)\n"
+                    "        wal archive min/max (9.4): none present\n"
+                    "\n",
                     "text - multiple stanzas, multi-repo with valid backups, backup lock held on one stanza");
 
                 // Notify child to release lock
