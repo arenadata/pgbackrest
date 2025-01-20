@@ -634,9 +634,26 @@ testRun(void)
         lstAdd(archiveIdResultList, &archiveIdResult);
 
         TEST_RESULT_STR_Z(
-            verifyRender(archiveIdResultList, backupResultList, cfgOptionBool(cfgOptVerbose)),
+            verifyRender(archiveIdResultList, backupResultList, cfgOptionBool(cfgOptVerbose), false),
             "\n"
             "  archiveId: 9.6-1, total WAL checked: 1, total valid WAL: 0", "archive: no invalid file list");
+
+        TEST_RESULT_STR_Z(
+            verifyRender(archiveIdResultList, backupResultList, cfgOptionBool(cfgOptVerbose), true),
+            "  \"archives\": [\n"
+            "    {\n"
+            "      \"archiveId\": \"9.6-1\",\n"
+            "      \"checked\": 1,\n"
+            "      \"valid\": 0,\n"
+            "      \"missing\": 0,\n"
+            "      \"checksumInvalid\": 0,\n"
+            "      \"sizeInvalid\": 0,\n"
+            "      \"other\": 0\n"
+            "    }\n"
+            "  ],\n"
+            "  \"backups\": [\n"
+            "  ]",
+            "archive: no invalid file list");
 
         VerifyInvalidFile invalidFile =
         {
@@ -656,12 +673,39 @@ testRun(void)
         lstAdd(backupResultList, &backupResult);
 
         TEST_RESULT_STR_Z(
-            verifyRender(archiveIdResultList, backupResultList, cfgOptionBool(cfgOptVerbose)),
+            verifyRender(archiveIdResultList, backupResultList, cfgOptionBool(cfgOptVerbose), false),
             "\n"
             "  archiveId: 9.6-1, total WAL checked: 1, total valid WAL: 0\n"
             "    missing: 1\n"
             "  backup: test-backup-label, status: invalid, total files checked: 1, total valid files: 0\n"
             "    missing: 1", "archive file missing, backup file missing, no text, no verbose");
+
+        TEST_RESULT_STR_Z(
+            verifyRender(archiveIdResultList, backupResultList, cfgOptionBool(cfgOptVerbose), true),            
+                        "  \"archives\": [\n"
+                        "    {\n"
+                        "      \"archiveId\": \"9.6-1\",\n"
+                        "      \"checked\": 1,\n"
+                        "      \"valid\": 0,\n"
+                        "      \"missing\": 1,\n"
+                        "      \"checksumInvalid\": 0,\n"
+                        "      \"sizeInvalid\": 0,\n"
+                        "      \"other\": 0\n"
+                        "    }\n"
+                        "  ],\n"
+                        "  \"backups\": [\n"
+                        "    {\n"
+                        "      \"label\": \"test-backup-label\",\n"
+                        "      \"status\": \"invalid\",\n"
+                        "      \"checked\": 1,\n"
+                        "      \"valid\": 0,\n"
+                        "      \"missing\": 1,\n"
+                        "      \"checksumInvalid\": 0,\n"
+                        "      \"sizeInvalid\": 0,\n"
+                        "      \"other\": 0\n"
+                        "    }\n"
+                        "  ]",
+            "archive file missing, backup file missing, no text, no verbose, json output");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("verifyAddInvalidWalFile() - file missing (coverage test)");
