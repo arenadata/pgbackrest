@@ -2044,6 +2044,7 @@ testRun(void)
                     "            wal start/stop: 000000010000000000000001 / 000000010000000000000002\n"
                     "            database size: 25.7MB, database backup size: 25.7MB\n"
                     "            repo2: backup set size: 3MB, backup size: 3KB\n"
+                    "\n"
                     "stanza: stanza4\n"
                     "    status: mixed (restore running - 12.34% complete)\n"
                     "        repo1: error (no valid backups)\n"
@@ -2053,8 +2054,7 @@ testRun(void)
                     "        repo2: aes-256-cbc\n"
                     "\n"
                     "    db (current)\n"
-                    "        wal archive min/max (9.4): none present\n"
-                    "\n",
+                    "        wal archive min/max (9.4): none present\n",
                     "text - multiple stanzas, multi-repo with valid backups, backup lock held on one stanza");
 
                 // Notify child to release lock
