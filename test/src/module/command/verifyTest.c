@@ -400,7 +400,7 @@ testRun(void)
         List *archiveIdResultList = lstNewP(sizeof(VerifyArchiveResult), .comparator = archiveIdComparator);
         lstAdd(archiveIdResultList, &archiveResult);
         VerifyArchiveResult *archiveIdResult = lstGetLast(archiveIdResultList);
-        List *backupList = lstNewP(sizeof(VerifyBackupResult))
+        List *backupList = lstNewP(sizeof(VerifyBackupResult));
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("Single WAL");
