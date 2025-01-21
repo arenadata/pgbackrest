@@ -1350,23 +1350,21 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
     }
     else
     {
+        bool archiveFound = false;
         for (unsigned int archiveIdx = 0; archiveIdx < lstSize(archiveIdResultList); archiveIdx++)
         {
             const VerifyArchiveResult *const archiveIdResult = lstGet(archiveIdResultList, archiveIdx);
-
-            if (json)
-            {
-                strCatFmt(result, "%s\n    {", archiveIdx == 0 ? "" : ",");
-            }
 
             if (verboseText || archiveIdResult->totalWalFile - archiveIdResult->totalValidWal != 0)
             {
                 if (json)
                 {
                     strCatFmt(
-                        result, "\n      \"archiveId\": \"%s\",\n      \"checked\": %u,\n      \"valid\": %u,\n", 
+                        result, "%s\n    {\n      \"archiveId\": \"%s\",\n      \"checked\": %u,\n      \"valid\": %u,\n", 
+                        archiveFound ? "," : "",
                         strZ(archiveIdResult->archiveId),
-                        archiveIdResult->totalWalFile, archiveIdResult->totalValidWal);                    
+                        archiveIdResult->totalWalFile, archiveIdResult->totalValidWal);
+                    archiveFound = true;
                 }
                 else
                     strCatFmt(
@@ -1413,7 +1411,7 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                 {
                     strCatFmt(
                         result, 
-                        "      \"missing\": %u,\n      \"checksumInvalid\": %u,\n      \"sizeInvalid\": %u,\n      \"other\": %u\n", 
+                        "      \"missing\": %u,\n      \"checksumInvalid\": %u,\n      \"sizeInvalid\": %u,\n      \"other\": %u\n    }", 
                         errMissing, errChecksum, errSize, errOther);
                 }
                 else if (verboseText || errMissing + errChecksum + errSize + errOther > 0)
@@ -1421,10 +1419,6 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                     const String *errorStr = verifyCreateFileErrorsStr(errMissing, errChecksum, errSize, errOther, verboseText);
                     strCat(result, errorStr);
                 }
-            }
-            if (json)
-            {
-                strCatFmt(result, "    }");
             }
         }
     }
@@ -1561,10 +1555,6 @@ verifyProcess(const bool verboseText)
 
         // Get a usable backup info file
         const InfoBackup *const backupInfo = verifyBackupInfoFile();
-
-        if (json) {
-            strCatZ(resultStr, "{\n");
-        }
 
         // If a usable backup.info file is not found, then report an error in the log
         if (backupInfo == NULL)
@@ -1810,20 +1800,25 @@ verifyProcess(const bool verboseText)
 
         if (json)
         {
-            strCatFmt(
-                result, "{\n  \"stanza\": \"%s\",\n  \"status\": \"%s\",\n%s", strZ(cfgOptionStr(cfgOptStanza)),
-                errorTotal > 0 ? VERIFY_STATUS_ERROR : VERIFY_STATUS_OK, strZ(resultStr));
+            strCatFmt(result, "{\n  \"stanza\": \"%s\",\n  \"status\": \"%s\"", 
+                strZ(cfgOptionStr(cfgOptStanza)),
+                errorTotal > 0 ? VERIFY_STATUS_ERROR : VERIFY_STATUS_OK);
 
-            if (errorTotal > 0)
+            if (strSize(resultStr) > 0) {
+                strCatFmt(result, ",\n%s", strZ(resultStr));
+            }                
+
+            if (strLstSize(errorList) > 0)
             {
-                strCatZ(result, ",\n  [");
+                strCatZ(result, ",\n  \"errors\": [");
                 for (unsigned int errIdx = 0; errIdx < strLstSize(errorList); errIdx++)
                 {
                     const String *const err = strLstGet(errorList, errIdx);
-                    strCatFmt(result, "%s\n    \"%s\"", strZ(err), errIdx > 0 ? "," : "");
+                    strCatFmt(result, "%s\n    \"%s\"", errIdx > 0 ? "," : "", strZ(err));
                 }
                 strCatZ(result, "\n  ]");
             }
+            strCatZ(result, "\n}\n");
         } 
         // If verbose output or errors then output results
         else if (verboseText || errorTotal > 0)

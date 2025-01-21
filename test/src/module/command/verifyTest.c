@@ -888,6 +888,178 @@ testRun(void)
     }
 
     // *****************************************************************************************************************************
+    if (testBegin("cmdVerify() - info files JSON output")) {
+        // Load Parameters
+        StringList *argList = strLstDup(argListBase);
+        hrnCfgArgRawZ(argList, cfgOptOutput, "json");
+        HRN_CFG_LOAD(cfgCmdVerify, argList);
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("backup.info invalid checksum, neither backup copy nor archive infos exist");
+
+        HRN_STORAGE_PUT_Z(storageRepoWrite(), INFO_BACKUP_PATH_FILE, TEST_INVALID_BACKREST_INFO, .comment = "invalid backup.info");
+
+        harnessLogLevelSet(logLevelDetail);
+
+        // Check output of verify command 
+
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "{\n"
+            "  \"stanza\": \"db\",\n"
+            "  \"status\": \"error\",\n"
+            "  \"errors\": [\n"
+            "    \"No usable backup.info file\",\n"
+            "    \"No usable archive.info file\"\n"
+            "  ]\n"
+            "}\n", 
+            "verifyProcess() no text, no verbose");    
+
+        TEST_RESULT_LOG(
+            "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS'"
+            " <REPO:BACKUP>/backup.info\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info' for read\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read");
+
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("backup.info invalid checksum, backup.info.copy valid, archive.info not exist, archive copy checksum invalid");
+
+        HRN_STORAGE_PUT_Z(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, TEST_INVALID_BACKREST_INFO,
+            .comment = "invalid archive.info.copy");
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_BACKUP_PATH_FILE INFO_COPY_EXT,
+            "[backup:current]\n"
+            TEST_BACKUP_DB1_CURRENT_FULL1
+            "\n"
+            "[db]\n"
+            TEST_BACKUP_DB1_94
+            "\n"
+            "[db:history]\n"
+            TEST_BACKUP_DB1_HISTORY,
+            .comment = "valid backup.info.copy");
+
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "{\n"
+            "  \"stanza\": \"db\",\n"
+            "  \"status\": \"error\",\n"
+            "  \"errors\": [\n"
+            "    \"No usable archive.info file\"\n"
+            "  ]\n"
+            "}\n", 
+            "verifyProcess() no text, no verbose");    
+
+        /* Consume log */
+        TEST_RESULT_LOG(
+            "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS'"
+            " <REPO:BACKUP>/backup.info\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info' for read\n"
+            "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS'"
+            " <REPO:ARCHIVE>/archive.info.copy");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("backup.info and copy valid but checksum mismatch, archive.info checksum invalid, archive.info copy valid");
+
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_BACKUP_PATH_FILE, TEST_BACKUP_INFO_MULTI_HISTORY_BASE, .comment = "valid backup.info");
+        HRN_STORAGE_PUT_Z(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE, TEST_INVALID_BACKREST_INFO, .comment = "invalid archive.info");
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, TEST_ARCHIVE_INFO_BASE, .comment = "valid archive.info.copy");
+
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "{\n"
+            "  \"stanza\": \"db\",\n"
+            "  \"status\": \"error\",\n"
+            "  \"errors\": [\n"
+            "    \"backup info file and archive info file do not match\n"
+            "archive: id = 1, version = 9.4, system-id = 10000000000000090400\n"
+            "backup : id = 2, version = 11, system-id = 10000000000000110000\n"
+            "HINT: this may be a symptom of repository corruption!\"\n"
+            "  ]\n"
+            "}\n", 
+            "verifyProcess() no text, no verbose");    
+
+        /* Consume log */
+        TEST_RESULT_LOG(
+            "P00 DETAIL: backup.info.copy does not match backup.info\n"
+            "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:ARCHIVE>/archive.info");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("backup.info and copy valid and checksums match, archive.info and copy valid, but checksum mismatch");
+
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_BACKUP_PATH_FILE INFO_COPY_EXT, TEST_BACKUP_INFO_MULTI_HISTORY_BASE,
+            .comment = "valid backup.info.copy");
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE, TEST_ARCHIVE_INFO_MULTI_HISTORY_BASE, .comment = "valid archive.info");
+
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "{\n"
+            "  \"stanza\": \"db\",\n"
+            "  \"status\": \"ok\"\n"
+            "}\n", 
+            "verifyProcess() no text, no verbose");    
+
+        /* Consume log */
+        TEST_RESULT_LOG(
+            "P00 DETAIL: archive.info.copy does not match archive.info");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("backup.info valid, copy invalid, archive.info valid, copy invalid");
+
+        HRN_STORAGE_REMOVE(storageRepoWrite(), INFO_BACKUP_PATH_FILE INFO_COPY_EXT, .comment = "remove backup.info.copy");
+        HRN_STORAGE_REMOVE(storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, .comment = "remove archive.info.copy");
+
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "{\n"
+            "  \"stanza\": \"db\",\n"
+            "  \"status\": \"ok\"\n"
+            "}\n", 
+            "verifyProcess() no text, no verbose");    
+
+        /* Consume log */
+        TEST_RESULT_LOG(
+            "P00 DETAIL: unable to open missing file '/home/denis/arena/test/test-0/repo/backup/db/backup.info.copy' for read\n"
+            "P00 DETAIL: unable to open missing file '/home/denis/arena/test/test-0/repo/archive/db/archive.info.copy' for read");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("backup.info and copy missing, archive.info and copy valid");
+
+        hrnCfgArgRawZ(argList, cfgOptVerbose, "y");
+        HRN_CFG_LOAD(cfgCmdVerify, argList);
+
+        HRN_STORAGE_REMOVE(storageRepoWrite(), INFO_BACKUP_PATH_FILE);
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, TEST_ARCHIVE_INFO_MULTI_HISTORY_BASE,
+            .comment = "valid and matching archive.info.copy");
+
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "{\n"
+            "  \"stanza\": \"db\",\n"
+            "  \"status\": \"error\",\n"
+            "  \"errors\": [\n"
+            "    \"No usable backup.info file\"\n"
+            "  ]\n"
+            "}\n", 
+            "verifyProcess() no text, no verbose");    
+
+        /* Consume log */
+        TEST_RESULT_LOG(
+            "P00 DETAIL: unable to open missing file '/home/denis/arena/test/test-0/repo/backup/db/backup.info' for read\n"
+            "P00 DETAIL: unable to open missing file '/home/denis/arena/test/test-0/repo/backup/db/backup.info.copy' for read");
+
+        harnessLogLevelReset();    
+    }
+
+    // *****************************************************************************************************************************
     if (testBegin("verifyFile()"))
     {
         // Load Parameters
@@ -1055,6 +1227,40 @@ testRun(void)
             "P00 DETAIL: archiveId: 11-2, wal start: 000000020000000700000FFD, wal stop: 000000020000000800000000");
 
         harnessLogLevelReset();
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("JSON output");
+
+        StringList *argListJSON = strLstDup(argListBase);
+        hrnCfgArgRawZ(argListJSON, cfgOptOutput, "json");
+        HRN_CFG_LOAD(cfgCmdVerify, argListJSON);
+
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "{\n"
+            "  \"stanza\": \"db\",\n"
+            "  \"status\": \"error\",\n"
+            "  \"archives\": [\n"
+            "    {\n"
+            "      \"archiveId\": \"11-2\",\n"
+            "      \"checked\": 4,\n"
+            "      \"valid\": 2,\n"
+            "      \"missing\": 0,\n"
+            "      \"checksumInvalid\": 1,\n"
+            "      \"sizeInvalid\": 1,\n"
+            "      \"other\": 0\n"
+            "    }\n"
+            "  ],\n"
+            "  \"backups\": [\n"
+            "  ]\n"
+            "}\n", 
+            "verifyProcess() no text, no verbose");    
+
+        TEST_RESULT_LOG(
+            "P01   INFO: invalid checksum"
+            " '11-2/0000000200000007/000000020000000700000FFD-a6e1a64f0813352bc2e97f116a1800377e17d2e4.gz'\n"
+            "P01   INFO: invalid size"
+            " '11-2/0000000200000007/000000020000000700000FFF-ee161f898c9012dd0c28b3fd1e7140b9cf411306'");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("no text output, verbose, with verify failures");
