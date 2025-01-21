@@ -1026,7 +1026,7 @@ testRun(void)
             "status: error\n"
             "  archiveId: 9.4-1, total WAL checked: 0, total valid WAL: 0\n"
             "  archiveId: 11-2, total WAL checked: 4, total valid WAL: 2\n"
-            "    missing: 0, checksum invalid: 1, size invalid: 1, other: 0\n"
+            "    missing: 0, checksum invalid: 1, size invalid: 1, wal invalid: 0, other: 0\n"
             "  backup: none found",
             "verbose, with failures");
         TEST_RESULT_LOG(
@@ -1048,7 +1048,7 @@ testRun(void)
             "status: error\n"
             "  archiveId: 9.4-1, total WAL checked: 0, total valid WAL: 0\n"
             "  archiveId: 11-2, total WAL checked: 4, total valid WAL: 2\n"
-            "    missing: 0, checksum invalid: 1, size invalid: 1, other: 0\n"
+            "    missing: 0, checksum invalid: 1, size invalid: 1, wal invalid: 0, other: 0\n"
             "  backup: none found", "verify text output, verbose, with verify failures");
         TEST_RESULT_LOG(
             "P01   INFO: invalid checksum"
@@ -1737,8 +1737,8 @@ testRun(void)
             "status: error\n"
             "  archiveId: none found\n"
             "  backup: 20181119-152900F, status: invalid, total files checked: 2, total valid files: 0\n"
-            "    missing: 0, checksum invalid: 2, size invalid: 0, other: 0\n"
-            "  backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 2, total valid files: 1\n"
+            "    missing: 0, checksum invalid: 2, size invalid: 0, wal invalid: 0, other: 0\n"
+            "  backup: 20181119-152900F_20181119-152909D, status:, wal invalid: 0 invalid, total files checked: 2, total valid files: 1\n"
             "    missing: 0, checksum invalid: 1, size invalid: 0, other: 0\n", .remove = true);
         TEST_RESULT_LOG(
             "P01   INFO: invalid checksum '20181119-152900F/pg_data/PG_VERSION'\n"
@@ -1747,10 +1747,10 @@ testRun(void)
             "            status: error\n"
             "              archiveId: none found\n"
             "              backup: 20181119-152900F, status: invalid, total files checked: 2, total valid files: 0\n"
-            "                missing: 0, checksum invalid: 2, size invalid: 0, other: 0\n"
+            "                missing: 0, checksum invalid: 2, size invalid: 0, wal invalid: 0, other: 0\n"
             "              backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 2,"
             " total valid files: 1\n"
-            "                missing: 0, checksum invalid: 1, size invalid: 0, other: 0");
+            "                missing: 0, checksum invalid: 1, size invalid: 0, wal invalid: 0, other: 0");
     }
 
     // *****************************************************************************************************************************
@@ -1840,7 +1840,7 @@ testRun(void)
             "stanza: db\n"
             "status: ok\n"
             "  archiveId: 11-2, total WAL checked: 2, total valid WAL: 2\n"
-            "    missing: 0, checksum invalid: 0, size invalid: 0, other: 0\n"
+            "    missing: 0, checksum invalid: 0, size invalid: 0, wal invalid: 0, other: 0\n"
             "  backup: none found",
             "verify none output, verbose, with no failures");
         TEST_RESULT_LOG(
@@ -1956,7 +1956,7 @@ testRun(void)
             "stanza: db\n"
             "status: ok\n"
             "  archiveId: 11-2, total WAL checked: 1, total valid WAL: 1\n"
-            "    missing: 0, checksum invalid: 0, size invalid: 0, other: 0\n"
+            "    missing: 0, checksum invalid: 0, size invalid: 0, wal invalid: 0, other: 0\n"
             "  backup: none found", "verify text output, verbose, with no failures");
         TEST_RESULT_LOG(
             "P00 DETAIL: no backups exist in the repo\n"
