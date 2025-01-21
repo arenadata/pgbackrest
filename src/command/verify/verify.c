@@ -564,6 +564,9 @@ verifyUpdateWalFilesMissing(
         for (unsigned int backupIdx = 0; backupIdx < lstSize(backupList); backupIdx++)
         {
             VerifyBackupResult *backup = lstGet(backupList, backupIdx);
+            if (backup->archiveStart == NULL || backup->archiveStop == NULL)
+                continue;
+
             String *const version = pgVersionToStr(backup->pgVersion);
             String *const archiveId = strNewFmt("%s-%u", strZ(version), backup->pgId);
             if (!strEq(archiveId, archiveIdResult->archiveId))
@@ -619,6 +622,9 @@ verifyUpdateWalInvalid(
         for (unsigned int backupIdx = 0; backupIdx < lstSize(backupList); backupIdx++)
         {
             VerifyBackupResult *backup = lstGet(backupList, backupIdx);
+            if (backup->archiveStart == NULL || backup->archiveStop == NULL)
+                continue;
+
             String *const version = pgVersionToStr(backup->pgVersion);
             String *const archiveId = strNewFmt("%s-%u", strZ(version), backup->pgId);
             if (!strEq(archiveId, archiveIdResult->archiveId))
