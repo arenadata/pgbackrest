@@ -466,7 +466,6 @@ walSegmentDist(const String *const walSegmentA, const String *const walSegmentB,
     ASSERT(pgVersion >= PG_VERSION_11 || walSegmentSize == pgWalSegmentSizeDefault(pgVersion));
 
     // Extract WAL parts
-    uint32_t timelineA, timelineB;
     uint32_t majorA, majorB;
     uint32_t minorA, minorB;
     int64_t posA, posB;
@@ -474,15 +473,13 @@ walSegmentDist(const String *const walSegmentA, const String *const walSegmentB,
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        timelineA = pgTimelineFromWalSegment(walSegmentA);
         majorA = (uint32_t)strtol(strZ(strSubN(walSegmentA, 8, 8)), NULL, 16);
         minorA = (uint32_t)strtol(strZ(strSubN(walSegmentA, 16, 8)), NULL, 16);
 
-        timelineB = pgTimelineFromWalSegment(walSegmentB);
         majorB = (uint32_t)strtol(strZ(strSubN(walSegmentB, 8, 8)), NULL, 16);
         minorB = (uint32_t)strtol(strZ(strSubN(walSegmentB, 16, 8)), NULL, 16);
 
-        ASSERT(timelineA == timelineB);
+        ASSERT(pgTimelineFromWalSegment(walSegmentA) == pgTimelineFromWalSegment(walSegmentB));
 
         posA = majorA * majorStep + minorA;
         posB = majorB * majorStep + minorB;

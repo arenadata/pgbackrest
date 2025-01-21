@@ -545,10 +545,10 @@ verifyUpdateWalFilesMissing(
     const List *const backupList, const VerifyArchiveResult *const archiveIdResult, const String *const missingStart, const String *const missingStop, unsigned int *const jobErrorTotal)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM_P(LIST, backupList);  // The result set for the archive Id being processed
+        FUNCTION_TEST_PARAM(LIST, backupList);  // The result set for the archive Id being processed
         FUNCTION_TEST_PARAM_P(VERIFY_ARCHIVE_RESULT, archiveIdResult);
-        FUNCTION_TEST_PARAM_P(STRING, missingStart);                  // Sorted (ascending) list of WAL files in a timeline
-        FUNCTION_TEST_PARAM_P(STRING, missingStop);                     // Pointer to the overall job error total
+        FUNCTION_TEST_PARAM(STRING, missingStart);                  // Sorted (ascending) list of WAL files in a timeline
+        FUNCTION_TEST_PARAM(STRING, missingStop);                     // Pointer to the overall job error total
         FUNCTION_TEST_PARAM_P(UINT, jobErrorTotal);                     // Pointer to the overall job error total
     FUNCTION_TEST_END();
 
@@ -603,9 +603,9 @@ verifyUpdateWalInvalid(
     const List *const backupList, const VerifyArchiveResult *const archiveIdResult, const String *const walSegment)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM_P(LIST, backupList);  // The result set for the archive Id being processed
+        FUNCTION_TEST_PARAM(LIST, backupList);  // The result set for the archive Id being processed
         FUNCTION_TEST_PARAM_P(VERIFY_ARCHIVE_RESULT, archiveIdResult);
-        FUNCTION_TEST_PARAM_P(STRING, walSegment);                  // Sorted (ascending) list of WAL files in a timeline
+        FUNCTION_TEST_PARAM(STRING, walSegment);                  // Sorted (ascending) list of WAL files in a timeline
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
@@ -649,7 +649,7 @@ verifyCreateArchiveIdRange(
     const List *const backupList, const VerifyArchiveResult *const archiveIdResult, StringList *const walFileList, unsigned int *const jobErrorTotal)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM_P(LIST, backupList);
+        FUNCTION_TEST_PARAM(LIST, backupList);
         FUNCTION_TEST_PARAM_P(VERIFY_ARCHIVE_RESULT, archiveIdResult);  // The result set for the archive Id being processed
         FUNCTION_TEST_PARAM(STRING_LIST, walFileList);                  // Sorted (ascending) list of WAL files in a timeline
         FUNCTION_TEST_PARAM_P(UINT, jobErrorTotal);                     // Pointer to the overall job error total
