@@ -1317,13 +1317,6 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9",
             walBuffer, .modeFile = 0200, .comment = "WAL - file not readable");
 
-        // Create WAL file with just header info and small WAL size
-        Buffer *walBuffer = bufNew((size_t)(1024 * 1024));
-        bufUsedSet(walBuffer, bufSize(walBuffer));
-        memset(bufPtr(walBuffer), 0, bufSize(walBuffer));
-        HRN_PG_WAL_TO_BUFFER(walBuffer, PG_VERSION_11, .size = 1024 * 1024);
-        const char *walBufferSha1 = strZ(strNewEncode(encodingHex, cryptoHashOne(hashTypeSha1, walBuffer)));
-
         HRN_STORAGE_PUT(
             storageRepoIdxWrite(0),
             zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000100000008/000000010000000800000001-%s", walBufferSha1), walBuffer,
@@ -1351,7 +1344,7 @@ testRun(void)
             .comment = "valid WAL");
 
         // Write manifests for full backup containing unreadable file
-        String *manifestContent = strNewFmt(
+        manifestContent = strNewFmt(
             "[backup]\n"
             "backup-archive-start=\"000000010000000000000002\"\n"
             "backup-archive-stop=\"000000010000000000000004\"\n"
@@ -1381,7 +1374,7 @@ testRun(void)
             strZ(manifestContent), .comment = "valid manifest copy");
 
         // Write manifests for full backup containing only valid WAL files
-        String *manifestContent = strNewFmt(
+        manifestContent = strNewFmt(
             "[backup]\n"
             "backup-archive-start=\"000000010000000000000004\"\n"
             "backup-archive-stop=\"000000010000000000000005\"\n"
@@ -1411,7 +1404,7 @@ testRun(void)
             strZ(manifestContent), .comment = "valid manifest copy");
 
         // Write manifests for full backup containing missing WAL file
-        String *manifestContent = strNewFmt(
+        manifestContent = strNewFmt(
             "[backup]\n"
             "backup-archive-start=\"000000010000000000000006\"\n"
             "backup-archive-stop=\"000000010000000000000007\"\n"
