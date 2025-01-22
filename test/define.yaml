@@ -983,7 +983,7 @@ unit:
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: verify
-        total: 15
+        total: 16
         coverage:
           - command/verify/file
           - command/verify/protocol

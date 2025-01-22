@@ -1644,6 +1644,71 @@ testRun(void)
     }
 
     // *****************************************************************************************************************************
+    if (testBegin("cmdVerify(), verifyProcess() - errors JSON"))
+    {
+        StringList *argList = strLstDup(argListBase);
+        hrnCfgArgRawZ(argList, cfgOptOutput, "json");
+        HRN_CFG_LOAD(cfgCmdVerify, argList);
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("valid info files, WAL files present, no backups");
+
+        // Store valid archive/backup info files
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE, TEST_ARCHIVE_INFO_MULTI_HISTORY_BASE, .comment = "valid archive.info");
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, TEST_ARCHIVE_INFO_MULTI_HISTORY_BASE,
+            .comment = "valid archive.info.copy");
+
+        #define TEST_NO_CURRENT_BACKUP                                                                                             \
+            "[db]\n"                                                                                                               \
+            TEST_BACKUP_DB2_11                                                                                                     \
+            "\n"                                                                                                                   \
+            "[db:history]\n"                                                                                                       \
+            TEST_BACKUP_DB1_HISTORY                                                                                                \
+            "\n"                                                                                                                   \
+            TEST_BACKUP_DB2_HISTORY
+
+        HRN_INFO_PUT(storageRepoWrite(), INFO_BACKUP_PATH_FILE, TEST_NO_CURRENT_BACKUP, .comment = "no current backups");
+
+        HRN_STORAGE_PATH_CREATE(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-152800F", .comment = "prior backup path missing manifests");
+
+        harnessLogLevelSet(logLevelDetail);
+
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "{\n"
+            "  \"stanza\": \"db\",\n"
+            "  \"status\": \"ok\",\n"
+            "  \"archives\": [\n"
+            "  ],\n"
+            "  \"backups\": [\n"
+            "    {\n"
+            "      \"label\": \"20181119-152800F\",\n"
+            "      \"status\": \"in-progress\",\n"
+            "      \"checked\": 0,\n"
+            "      \"valid\": 0,\n"
+            "      \"missing\": 0,\n"
+            "      \"checksumInvalid\": 0,\n"
+            "      \"sizeInvalid\": 0,\n"
+            "      \"other\": 0\n"
+            "    }\n"
+            "  ]\n"
+            "}\n",
+            "verifyProcess() JSON missing no total file verify");
+
+        TEST_RESULT_LOG(
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\n"
+            "P00 DETAIL: no archives exist in the repo\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152800F/backup.manifest' for read\n"
+            "P00   INFO: backup '20181119-152800F' appears to be in progress, skipping"
+            );
+
+        harnessLogLevelReset();
+    }
+
+    // *****************************************************************************************************************************
     if (testBegin("cmdVerify()"))
     {
         // Load Parameters

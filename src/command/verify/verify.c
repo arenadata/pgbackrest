@@ -1519,6 +1519,14 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                     strCat(result, verifyCreateFileErrorsStr(errMissing, errChecksum, errSize, errOther, verboseText));
                 }
             }
+            else
+            {
+                if (json)
+                {
+                    strCatZ(result,
+                            ",\n      \"missing\": 0,\n      \"checksumInvalid\": 0,\n      \"sizeInvalid\": 0,\n      \"other\": 0\n    }");
+                }
+            }
         }
     }
     if (json)
