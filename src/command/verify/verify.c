@@ -1821,11 +1821,13 @@ verifyProcess(const bool verboseText)
                             verifyUpdateWalInvalid(jobData.backupResultList, archiveIdResult, invalidFile->fileName);
                         }
 
-                        verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, range->start, &jobData.jobErrorTotal);
+                        if (range->start != NULL)
+                            verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, range->start, &jobData.jobErrorTotal);
                         gapStart = walSegmentNext(range->stop, (size_t) archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
                     }
 
-                    verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, NULL, &jobData.jobErrorTotal);
+                    if (gapStart != NULL)
+                        verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, NULL, &jobData.jobErrorTotal);
                 }
 
                 // Report results
