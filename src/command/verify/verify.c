@@ -1335,7 +1335,6 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
     ASSERT(backupResultList != NULL);
 
     String *const result = strNew();
-    // const bool json = cfgOptionStrId(cfgOptOutput) == CFGOPTVAL_OUTPUT_JSON;
 
     // Render archive results
 
