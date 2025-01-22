@@ -2066,7 +2066,7 @@ testRun(void)
             "status: error\n"
             "  archiveId: none found\n"
             "  backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 1, total valid files: 0\n"
-            "    missing: 0, checksum invalid: 1, size invalid: 0, other: 0", "--set with a valid backup label\n");
+            "    missing: 0, checksum invalid: 1, size invalid: 0, wal invalid: 0, other: 0", "--set with a valid backup label\n");
         TEST_RESULT_LOG(
             "P00 DETAIL: no archives exist in the repo\n"
             "P01   INFO: invalid checksum '20181119-152900F/pg_data/PG_VERSION'");
