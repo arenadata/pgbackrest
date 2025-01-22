@@ -1832,15 +1832,19 @@ verifyProcess(const bool verboseText)
                         for (unsigned int invalidFileIdx = 0; invalidFileIdx < lstSize(range->invalidFileList); invalidFileIdx++)
                         {
                             const VerifyInvalidFile *const invalidFile = lstGet(range->invalidFileList, invalidFileIdx);
-                            verifyUpdateWalInvalid(jobData.backupResultList, archiveIdResult, invalidFile->fileName);
+                            const StringList *const filePathLst = strLstNewSplit(invalidFile->fileName, FSLASH_STR);
+                            const String *const fileName = strSubN(strLstGet(filePathLst, strLstSize(filePathLst) - 1), 0, WAL_SEGMENT_NAME_SIZE);
+                            verifyUpdateWalInvalid(jobData.backupResultList, archiveIdResult, fileName);
                         }
 
-                        if (range->start != NULL)
+                        if (0)
+                        //if (range->start != NULL)
                             verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, range->start, &jobData.jobErrorTotal);
                         gapStart = walSegmentNext(range->stop, (size_t) archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
                     }
 
-                    if (gapStart != NULL)
+                    if (0)
+                    //if (gapStart != NULL)
                         verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, NULL, &jobData.jobErrorTotal);
                 }
 
