@@ -1025,8 +1025,8 @@ testRun(void)
 
         /* Consume log */
         TEST_RESULT_LOG(
-            "P00 DETAIL: unable to open missing file '/home/denis/arena/test/test-0/repo/backup/db/backup.info.copy' for read\n"
-            "P00 DETAIL: unable to open missing file '/home/denis/arena/test/test-0/repo/archive/db/archive.info.copy' for read");
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("backup.info and copy missing, archive.info and copy valid");
@@ -1052,8 +1052,8 @@ testRun(void)
 
         /* Consume log */
         TEST_RESULT_LOG(
-            "P00 DETAIL: unable to open missing file '/home/denis/arena/test/test-0/repo/backup/db/backup.info' for read\n"
-            "P00 DETAIL: unable to open missing file '/home/denis/arena/test/test-0/repo/backup/db/backup.info.copy' for read");
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info' for read\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read");
 
         harnessLogLevelReset();
     }
