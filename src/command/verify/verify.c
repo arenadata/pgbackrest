@@ -1810,6 +1810,7 @@ verifyProcess(const bool verboseText)
                 // ??? Need to do the final reconciliation - checking backup required WAL against, valid WAL
                 if (0) {
                     verifyUpdateWalInvalid(jobData.backupResultList, NULL, NULL);
+                    verifyUpdateWalFilesMissing(jobData.backupResultList, NULL, NULL, NULL, NULL);
                 }
 
                 // Report results
