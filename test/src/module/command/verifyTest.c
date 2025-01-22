@@ -410,7 +410,7 @@ testRun(void)
 
         strLstAddZ(walFileList, "000000020000000200000000-daa497dba64008db824607940609ba1cd7c6c501.gz");
 
-        TEST_RESULT_VOID(verifyCreateArchiveIdRange(backupList, archiveIdResult, walFileList, &errTotal), "create archiveId WAL range");
+        TEST_RESULT_VOID(verifyCreateArchiveIdRange(archiveIdResult, walFileList, &errTotal), "create archiveId WAL range");
         TEST_RESULT_UINT(errTotal, 0, "no errors");
         TEST_RESULT_UINT(lstSize(((VerifyArchiveResult *)lstGet(archiveIdResultList, 0))->walRangeList), 1, "single range");
         TEST_ASSIGN(
@@ -427,7 +427,7 @@ testRun(void)
         // Add a duplicate
         strLstAddZ(walFileList, "000000020000000200000000");
 
-        TEST_RESULT_VOID(verifyCreateArchiveIdRange(backupList, archiveIdResult, walFileList, &errTotal), "create archiveId WAL range");
+        TEST_RESULT_VOID(verifyCreateArchiveIdRange(archiveIdResult, walFileList, &errTotal), "create archiveId WAL range");
         TEST_RESULT_UINT(errTotal, 1, "duplicate WAL error");
         TEST_RESULT_UINT(strLstSize(walFileList), 0, "all WAL removed from WAL file list");
         TEST_RESULT_UINT(lstSize(archiveIdResult->walRangeList), 0, "no range");
@@ -447,7 +447,7 @@ testRun(void)
         strLstAddZ(walFileList, "000000020000000200000001");
         strLstAddZ(walFileList, "000000020000000200000001");
 
-        TEST_RESULT_VOID(verifyCreateArchiveIdRange(backupList, archiveIdResult, walFileList, &errTotal), "create archiveId WAL range");
+        TEST_RESULT_VOID(verifyCreateArchiveIdRange(archiveIdResult, walFileList, &errTotal), "create archiveId WAL range");
         TEST_RESULT_UINT(errTotal, 2, "triplicate WAL error at beginning, duplicate WAL at end");
         TEST_RESULT_UINT(strLstSize(walFileList), 4, "only duplicate WAL removed from WAL list");
         TEST_RESULT_UINT(lstSize(archiveIdResultList), 1, "single archiveId result");
