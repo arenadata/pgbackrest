@@ -1306,6 +1306,165 @@ testRun(void)
         harnessLogLevelReset();
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("valid info files - WAL file errors");
+
+        // Load Parameters - single default repo
+        argList = strLstDup(argListBase);
+        HRN_CFG_LOAD(cfgCmdVerify, argList);
+
+        HRN_STORAGE_PUT(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9",
+            walBuffer, .modeFile = 0200, .comment = "WAL - file not readable");
+
+        // Create WAL file with just header info and small WAL size
+        Buffer *walBuffer = bufNew((size_t)(1024 * 1024));
+        bufUsedSet(walBuffer, bufSize(walBuffer));
+        memset(bufPtr(walBuffer), 0, bufSize(walBuffer));
+        HRN_PG_WAL_TO_BUFFER(walBuffer, PG_VERSION_11, .size = 1024 * 1024);
+        const char *walBufferSha1 = strZ(strNewEncode(encodingHex, cryptoHashOne(hashTypeSha1, walBuffer)));
+
+        HRN_STORAGE_PUT(
+            storageRepoIdxWrite(0),
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000100000008/000000010000000800000001-%s", walBufferSha1), walBuffer,
+            .comment = "valid WAL in an old timeline");
+        HRN_STORAGE_PUT(
+            storageRepoIdxWrite(0),
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000002-%s", walBufferSha1), walBuffer,
+            .comment = "valid WAL");
+        HRN_STORAGE_PUT(
+            storageRepoIdxWrite(0),
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000004-%s", walBufferSha1), walBuffer,
+            .comment = "valid WAL");
+        HRN_STORAGE_PUT(
+            storageRepoIdxWrite(0),
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000005-%s", walBufferSha1), walBuffer,
+            .comment = "valid WAL");
+        // Skip WAL 000000020000000800000006
+        HRN_STORAGE_PUT(
+            storageRepoIdxWrite(0),
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000007-%s", walBufferSha1), walBuffer,
+            .comment = "valid WAL");
+        HRN_STORAGE_PUT(
+            storageRepoIdxWrite(0),
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000008-%s", walBufferSha1), walBuffer,
+            .comment = "valid WAL");
+
+        // Write manifests for full backup containing unreadable file
+        String *manifestContent = strNewFmt(
+            "[backup]\n"
+            "backup-archive-start=\"000000010000000000000002\"\n"
+            "backup-archive-stop=\"000000010000000000000004\"\n"
+            "backup-label=\"20181119-152900F\"\n"
+            "backup-timestamp-copy-start=0\n"
+            "backup-timestamp-start=0\n"
+            "backup-timestamp-stop=0\n"
+            "backup-type=\"full\"\n"
+            "\n"
+            "[backup:db]\n"
+            TEST_BACKUP_DB2_11
+            TEST_MANIFEST_OPTION_ALL
+            TEST_MANIFEST_TARGET
+            TEST_MANIFEST_DB
+            TEST_MANIFEST_FILE
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT);
+
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-152900F/" BACKUP_MANIFEST_FILE, strZ(manifestContent),
+            .comment = "valid manifest");
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-152900F/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
+            strZ(manifestContent), .comment = "valid manifest copy");
+
+        // Write manifests for full backup containing only valid WAL files
+        String *manifestContent = strNewFmt(
+            "[backup]\n"
+            "backup-archive-start=\"000000010000000000000004\"\n"
+            "backup-archive-stop=\"000000010000000000000005\"\n"
+            "backup-label=\"20181119-153000F\"\n"
+            "backup-timestamp-copy-start=0\n"
+            "backup-timestamp-start=0\n"
+            "backup-timestamp-stop=0\n"
+            "backup-type=\"full\"\n"
+            "\n"
+            "[backup:db]\n"
+            TEST_BACKUP_DB2_11
+            TEST_MANIFEST_OPTION_ALL
+            TEST_MANIFEST_TARGET
+            TEST_MANIFEST_DB
+            TEST_MANIFEST_FILE
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT);
+
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153000F/" BACKUP_MANIFEST_FILE, strZ(manifestContent),
+            .comment = "valid manifest");
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153000F/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
+            strZ(manifestContent), .comment = "valid manifest copy");
+
+        // Write manifests for full backup containing missing WAL file
+        String *manifestContent = strNewFmt(
+            "[backup]\n"
+            "backup-archive-start=\"000000010000000000000006\"\n"
+            "backup-archive-stop=\"000000010000000000000007\"\n"
+            "backup-label=\"20181119-153100F\"\n"
+            "backup-timestamp-copy-start=0\n"
+            "backup-timestamp-start=0\n"
+            "backup-timestamp-stop=0\n"
+            "backup-type=\"full\"\n"
+            "\n"
+            "[backup:db]\n"
+            TEST_BACKUP_DB2_11
+            TEST_MANIFEST_OPTION_ALL
+            TEST_MANIFEST_TARGET
+            TEST_MANIFEST_DB
+            TEST_MANIFEST_FILE
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT);
+
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153100F/" BACKUP_MANIFEST_FILE, strZ(manifestContent),
+            .comment = "valid manifest");
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153100F/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
+            strZ(manifestContent), .comment = "valid manifest copy");
+
+        // Set log level to capture ranges
+        harnessLogLevelSet(logLevelDetail);
+
+        TEST_RESULT_BOOL(cfgOptionBool(cfgOptVerbose), false, "verbose is false");
+        TEST_RESULT_BOOL((cfgOptionStrId(cfgOptOutput) == CFGOPTVAL_OUTPUT_TEXT), false, "text is false");
+
+        // Redirect stdout to a file
+        stdoutSave = dup(STDOUT_FILENO);
+        stdoutFile = STRDEF(TEST_PATH "/stdout.info");
+
+        THROW_ON_SYS_ERROR(freopen(strZ(stdoutFile), "w", stdout) == NULL, FileWriteError, "unable to reopen stdout");
+
+        // Not in a test wrapper to avoid writing to stdout
+        cmdVerify();
+
+        // Restore normal stdout
+        dup2(stdoutSave, STDOUT_FILENO);
+
+        // Check output of verify command stored in file
+        TEST_STORAGE_GET(storageTest, strZ(stdoutFile), "", .remove = true);
+        TEST_RESULT_LOG("");
+
+        harnessLogLevelReset();
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("text output, not verbose, with verify failures");
 
         hrnCfgArgRawZ(argList, cfgOptOutput, "text");
