@@ -122,7 +122,7 @@ typedef struct VerifyJobData
     unsigned int manifestFileIdx;                                   // Index of the file within the manifest file list to process
     String *currentBackup;                                          // In progress backup, if any
     const InfoPg *pgHistory;                                        // Database history list
-    bool archiveProcessing;                                         // Are we processing WAL or are we processing backups
+    bool backupProcessing;                                          // Are we processing WAL or are we processing backups
     const String *manifestCipherPass;                               // Cipher pass for reading backup manifests
     const String *walCipherPass;                                    // Cipher pass for reading WAL files
     const String *backupCipherPass;                                 // Cipher pass for reading backup files referenced in a manifest
@@ -652,10 +652,9 @@ Populate the WAL ranges from the provided, sorted, WAL files list for a given ar
 ***********************************************************************************************************************************/
 static void
 verifyCreateArchiveIdRange(
-    const List *const backupList, const VerifyArchiveResult *const archiveIdResult, StringList *const walFileList, unsigned int *const jobErrorTotal)
+    const VerifyArchiveResult *const archiveIdResult, StringList *const walFileList, unsigned int *const jobErrorTotal)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(LIST, backupList);
         FUNCTION_TEST_PARAM_P(VERIFY_ARCHIVE_RESULT, archiveIdResult);  // The result set for the archive Id being processed
         FUNCTION_TEST_PARAM(STRING_LIST, walFileList);                  // Sorted (ascending) list of WAL files in a timeline
         FUNCTION_TEST_PARAM_P(UINT, jobErrorTotal);                     // Pointer to the overall job error total
@@ -716,8 +715,6 @@ verifyCreateArchiveIdRange(
             // Add the initialized wal range to the range list
             MEM_CONTEXT_BEGIN(lstMemContext(archiveIdResult->walRangeList))
             {
-                verifyUpdateWalFilesMissing(backupList, archiveIdResult, nextSegment, walSegment, jobErrorTotal);
-
                 const VerifyWalRange walRangeNew =
                 {
                     .start = strDup(walSegment),
@@ -746,12 +743,6 @@ verifyCreateArchiveIdRange(
         walFileIdx++;
     }
     while (walFileIdx < strLstSize(walFileList));
-
-    if (walRange)
-    {
-        const String *const nextSegment = walSegmentNext(walRange->stop, (size_t)archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
-        verifyUpdateWalFilesMissing(backupList, archiveIdResult, nextSegment, NULL, jobErrorTotal);
-    }
 
     FUNCTION_TEST_RETURN_VOID();
 }
@@ -857,7 +848,7 @@ verifyArchive(VerifyJobData *const jobData)
                             // log
                             archiveResult->totalWalFile += strLstSize(jobData->walFileList);
 
-                            verifyCreateArchiveIdRange(jobData->backupResultList, archiveResult, jobData->walFileList, &jobData->jobErrorTotal);
+                            verifyCreateArchiveIdRange(archiveResult, jobData->walFileList, &jobData->jobErrorTotal);
                         }
                     }
 
@@ -1209,19 +1200,19 @@ verifyJobCallback(void *const data, const unsigned int clientIdx)
     ProtocolParallelJob *result = NULL;
     VerifyJobData *const jobData = data;
 
-    if (!jobData->archiveProcessing)
+    if (!jobData->backupProcessing)
     {
-        result = verifyBackup(jobData);
+        result = verifyArchive(jobData);
 
-        // Reset the archiveProcessing flag if the backup processing is finished so backup processing can begin immediately after
-        jobData->archiveProcessing = strLstEmpty(jobData->backupList);
+        // Set the backupProcessing flag if the archive processing is finished so backup processing can begin immediately after
+        jobData->backupProcessing = strLstEmpty(jobData->archiveIdList);
     }
 
-    if (jobData->archiveProcessing)
+    if (jobData->backupProcessing)
     {
-        // Only begin archive verification if the last backup result was processed
+        // Only begin backup verification if the last archive result was processed
         if (result == NULL)
-            result = verifyArchive(jobData);
+            result = verifyBackup(jobData);
     }
 
     FUNCTION_TEST_RETURN(PROTOCOL_PARALLEL_JOB, result);
@@ -1680,7 +1671,7 @@ verifyProcess(const bool verboseText)
 
                 // If there are no archives to process, then set the processing flag to skip to processing the backups
                 if (strLstEmpty(jobData.archiveIdList))
-                    jobData.archiveProcessing = true;
+                    jobData.backupProcessing = true;
 
                 // Set current backup if there is one and verify the archive history on disk is in the database history
                 jobData.currentBackup = verifySetBackupCheckArchive(
@@ -1753,11 +1744,10 @@ verifyProcess(const bool verboseText)
                                             fileType, verifyResult, processId, filePathName);
 
                                         // Add invalid file to the WAL range
-                                        const String *const walSegment = strSubN(
-                                            strLstGet(filePathLst, strLstSize(filePathLst) - 1), 0, WAL_SEGMENT_NAME_SIZE);
                                         verifyAddInvalidWalFile(
-                                            archiveIdResult->walRangeList, verifyResult, filePathName, walSegment);
-                                        verifyUpdateWalInvalid(jobData.backupResultList, archiveIdResult, walSegment);
+                                            archiveIdResult->walRangeList, verifyResult, filePathName,
+                                            strSubN(
+                                                strLstGet(filePathLst, strLstSize(filePathLst) - 1), 0, WAL_SEGMENT_NAME_SIZE));
                                     }
                                 }
                                 else
