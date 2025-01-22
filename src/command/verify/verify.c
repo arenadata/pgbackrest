@@ -1808,6 +1808,9 @@ verifyProcess(const bool verboseText)
                 MEM_CONTEXT_TEMP_END();
 
                 // ??? Need to do the final reconciliation - checking backup required WAL against, valid WAL
+                if (0) {
+                    verifyUpdateWalInvalid(jobData.backupResultList, NULL, NULL);
+                }
 
                 // Report results
                 resultStr = verifyRender(jobData.archiveIdResultList, jobData.backupResultList, verboseText);
