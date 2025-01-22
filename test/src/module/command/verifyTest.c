@@ -1538,7 +1538,24 @@ testRun(void)
 
         // Check output of verify command stored in file
         TEST_STORAGE_GET(storageTest, strZ(stdoutFile), "", .remove = true);
-        TEST_RESULT_LOG("");
+        TEST_RESULT_LOG(
+            "P00 DETAIL: archive path '9.4-1' is empty\n"
+            "P01   INFO: invalid result"
+            " 11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9: [41] raised from "
+            "local-1 shim protocol: unable to open file '" TEST_PATH "/repo/archive/db"
+            "/11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9' for read:"
+            " [13] Permission denied\n"
+            "P00 DETAIL: archiveId: 11-2, wal start: 000000010000000800000001, wal stop: 000000010000000800000001\n"
+            "P00 DETAIL: archiveId: 11-2, wal start: 000000020000000800000002, wal stop: 000000020000000800000005\n"
+            "P00 DETAIL: archiveId: 11-2, wal start: 000000020000000800000007, wal stop: 000000020000000800000008\n"
+            "P00   INFO: stanza: db\n"
+            "            status: error\n"
+            "              archiveId: 11-2, total WAL checked: 7, total valid WAL: 6\n"
+            "                other: 1\n"
+            "              backup: 20181119-152900F, status: invalid, total files checked: 1, total valid files: 1\n"
+            "                wal invalid: 1\n"
+            "              backup: 20181119-153100F, status: invalid, total files checked: 1, total valid files: 1\n"
+            "                wal invalid: 1");
     }
 
     // *****************************************************************************************************************************
