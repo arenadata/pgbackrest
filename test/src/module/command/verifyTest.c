@@ -1312,6 +1312,12 @@ testRun(void)
         argList = strLstDup(argListBase);
         HRN_CFG_LOAD(cfgCmdVerify, argList);
 
+        HRN_STORAGE_PATH_REMOVE(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_ARCHIVE "/11-2/",
+            .recurse = true,
+            .comment = "remove old archives");
+
         HRN_STORAGE_PUT(
             storageRepoIdxWrite(0),
             STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9",
@@ -1343,6 +1349,28 @@ testRun(void)
             zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000008-%s", walBufferSha1), walBuffer,
             .comment = "valid WAL");
 
+        HRN_STORAGE_PATH_REMOVE(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_BACKUP "/20181119-152800F/",
+            .recurse = true,
+            .comment = "remove old backups");
+        HRN_STORAGE_PATH_REMOVE(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_BACKUP "/20181119-152810F/",
+            .recurse = true,
+            .comment = "remove old backups");
+        HRN_STORAGE_PATH_REMOVE(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_BACKUP "/20181119-152900F_20181119-152909D/",
+            .recurse = true,
+            .comment = "remove old backups");
+        HRN_STORAGE_PATH_REMOVE(
+            storageRepoIdxWrite(0),
+            STORAGE_REPO_BACKUP "/UNPROCESSEDBACKUP/",
+            .recurse = true,
+            .comment = "remove old backups");
+            
+
         // Write manifests for full backup containing unreadable file
         manifestContent = strNewFmt(
             "[backup]\n"
@@ -1358,13 +1386,7 @@ testRun(void)
             TEST_BACKUP_DB2_11
             TEST_MANIFEST_OPTION_ALL
             TEST_MANIFEST_TARGET
-            TEST_MANIFEST_DB
-            TEST_MANIFEST_FILE
-            TEST_MANIFEST_FILE_DEFAULT
-            TEST_MANIFEST_LINK
-            TEST_MANIFEST_LINK_DEFAULT
-            TEST_MANIFEST_PATH
-            TEST_MANIFEST_PATH_DEFAULT);
+            TEST_MANIFEST_DB);
 
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-152900F/" BACKUP_MANIFEST_FILE, strZ(manifestContent),
@@ -1388,13 +1410,7 @@ testRun(void)
             TEST_BACKUP_DB2_11
             TEST_MANIFEST_OPTION_ALL
             TEST_MANIFEST_TARGET
-            TEST_MANIFEST_DB
-            TEST_MANIFEST_FILE
-            TEST_MANIFEST_FILE_DEFAULT
-            TEST_MANIFEST_LINK
-            TEST_MANIFEST_LINK_DEFAULT
-            TEST_MANIFEST_PATH
-            TEST_MANIFEST_PATH_DEFAULT);
+            TEST_MANIFEST_DB);
 
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153000F/" BACKUP_MANIFEST_FILE, strZ(manifestContent),
@@ -1418,13 +1434,7 @@ testRun(void)
             TEST_BACKUP_DB2_11
             TEST_MANIFEST_OPTION_ALL
             TEST_MANIFEST_TARGET
-            TEST_MANIFEST_DB
-            TEST_MANIFEST_FILE
-            TEST_MANIFEST_FILE_DEFAULT
-            TEST_MANIFEST_LINK
-            TEST_MANIFEST_LINK_DEFAULT
-            TEST_MANIFEST_PATH
-            TEST_MANIFEST_PATH_DEFAULT);
+            TEST_MANIFEST_DB);
 
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153100F/" BACKUP_MANIFEST_FILE, strZ(manifestContent),
