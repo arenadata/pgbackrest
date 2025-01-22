@@ -1837,14 +1837,12 @@ verifyProcess(const bool verboseText)
                             verifyUpdateWalInvalid(jobData.backupResultList, archiveIdResult, fileName);
                         }
 
-                        if (0)
-                        //if (range->start != NULL)
+                        if (range->start != NULL)
                             verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, range->start, &jobData.jobErrorTotal);
                         gapStart = walSegmentNext(range->stop, (size_t) archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
                     }
 
-                    if (0)
-                    //if (gapStart != NULL)
+                    if (gapStart != NULL)
                         verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, NULL, &jobData.jobErrorTotal);
                 }
 

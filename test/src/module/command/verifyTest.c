@@ -1374,8 +1374,8 @@ testRun(void)
         // Write manifests for full backup containing unreadable file
         manifestContent = strNewFmt(
             "[backup]\n"
-            "backup-archive-start=\"000000010000000000000002\"\n"
-            "backup-archive-stop=\"000000010000000000000004\"\n"
+            "backup-archive-start=\"000000020000000800000002\"\n"
+            "backup-archive-stop=\"000000020000000800000004\"\n"
             "backup-label=\"20181119-152900F\"\n"
             "backup-timestamp-copy-start=0\n"
             "backup-timestamp-start=0\n"
@@ -1398,8 +1398,8 @@ testRun(void)
         // Write manifests for full backup containing only valid WAL files
         manifestContent = strNewFmt(
             "[backup]\n"
-            "backup-archive-start=\"000000010000000000000004\"\n"
-            "backup-archive-stop=\"000000010000000000000005\"\n"
+            "backup-archive-start=\"000000020000000800000004\"\n"
+            "backup-archive-stop=\"000000020000000800000005\"\n"
             "backup-label=\"20181119-153000F\"\n"
             "backup-timestamp-copy-start=0\n"
             "backup-timestamp-start=0\n"
@@ -1422,8 +1422,8 @@ testRun(void)
         // Write manifests for full backup containing missing WAL file
         manifestContent = strNewFmt(
             "[backup]\n"
-            "backup-archive-start=\"000000010000000000000006\"\n"
-            "backup-archive-stop=\"000000010000000000000007\"\n"
+            "backup-archive-start=\"000000020000000800000006\"\n"
+            "backup-archive-stop=\"000000020000000800000007\"\n"
             "backup-label=\"20181119-153100F\"\n"
             "backup-timestamp-copy-start=0\n"
             "backup-timestamp-start=0\n"
