@@ -1737,8 +1737,8 @@ testRun(void)
             "  archiveId: none found\n"
             "  backup: 20181119-152900F, status: invalid, total files checked: 2, total valid files: 0\n"
             "    missing: 0, checksum invalid: 2, size invalid: 0, wal invalid: 0, other: 0\n"
-            "  backup: 20181119-152900F_20181119-152909D, status:, wal invalid: 0 invalid, total files checked: 2, total valid files: 1\n"
-            "    missing: 0, checksum invalid: 1, size invalid: 0, other: 0\n", .remove = true);
+            "  backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 2, total valid files: 1\n"
+            "    missing: 0, checksum invalid: 1, size invalid: 0, wal invalid: 0, other: 0\n", .remove = true);
         TEST_RESULT_LOG(
             "P01   INFO: invalid checksum '20181119-152900F/pg_data/PG_VERSION'\n"
             "P01   INFO: invalid checksum '20181119-152900F/pg_data/biind.pgbi'\n"
