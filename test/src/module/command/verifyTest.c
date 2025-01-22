@@ -1306,6 +1306,45 @@ testRun(void)
         harnessLogLevelReset();
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("text output, not verbose, with verify failures");
+
+        hrnCfgArgRawZ(argList, cfgOptOutput, "text");
+        HRN_CFG_LOAD(cfgCmdVerify, argList);
+
+        // Verify text output, not verbose, with failures
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "stanza: db\n"
+            "status: error\n"
+            "  archiveId: 11-2, total WAL checked: 8, total valid WAL: 5\n"
+            "    checksum invalid: 1, size invalid: 1, other: 1\n"
+            "  backup: 20181119-152800F, status: manifest missing, total files checked: 0, total valid files: 0\n"
+            "  backup: 20181119-152810F, status: invalid, total files checked: 0, total valid files: 0\n"
+            "  backup: 20181119-152900F, status: invalid, total files checked: 3, total valid files: 2\n"
+            "    checksum invalid: 1\n"
+            "  backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 6, total valid files: 3\n"
+            "    missing: 1, checksum invalid: 1, other: 1", "verify text output, not verbose, with verify failures");
+        TEST_RESULT_LOG(
+            "P01   INFO: invalid checksum"
+            " '11-2/0000000200000007/000000020000000700000FFD-a6e1a64f0813352bc2e97f116a1800377e17d2e4.gz'\n"
+            "P01   INFO: invalid size"
+            " '11-2/0000000200000007/000000020000000700000FFF-ee161f898c9012dd0c28b3fd1e7140b9cf411306'\n"
+            "P01   INFO: invalid result"
+            " 11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9: [41] raised from "
+            "local-1 shim protocol: unable to open file '" TEST_PATH "/repo/archive/db"
+            "/11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9' for read:"
+            " [13] Permission denied\n"
+            "P00   INFO: backup '20181119-152810F' manifest does not contain any target files to verify\n"
+            "P01   INFO: invalid checksum '20181119-152900F/pg_data/PG_VERSION'\n"
+            "P01   INFO: file missing '20181119-152900F_20181119-152909D/pg_data/testmissing'\n"
+            "P00   INFO: backup '20181119-153000F' appears to be in progress, skipping\n"
+            "P01   INFO: invalid result UNPROCESSEDBACKUP/pg_data/testother: [41] raised from local-1 shim protocol:"
+            " unable to open file '" TEST_PATH "/repo/backup/db/UNPROCESSEDBACKUP/pg_data/testother' for read: [13]"
+            " Permission denied");
+
+        harnessLogLevelReset();
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("valid info files - WAL file errors");
 
         // Load Parameters - single default repo
@@ -1386,7 +1425,16 @@ testRun(void)
             TEST_BACKUP_DB2_11
             TEST_MANIFEST_OPTION_ALL
             TEST_MANIFEST_TARGET
-            TEST_MANIFEST_DB);
+            TEST_MANIFEST_DB
+            "\n"
+            "[target:file]\n"
+            "pg_data/testvalid={\"checksum\":\"%s\",\"size\":7,\"timestamp\":1565282114}\n"
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT,
+            strZ(strNewEncode(encodingHex, fileChecksum)));
 
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-152900F/" BACKUP_MANIFEST_FILE, strZ(manifestContent),
@@ -1394,6 +1442,9 @@ testRun(void)
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-152900F/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
             strZ(manifestContent), .comment = "valid manifest copy");
+        HRN_STORAGE_PUT_Z(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-152900F/pg_data/testvalid", fileContents,
+            .comment = "put valid file");
 
         // Write manifests for full backup containing only valid WAL files
         manifestContent = strNewFmt(
@@ -1410,7 +1461,16 @@ testRun(void)
             TEST_BACKUP_DB2_11
             TEST_MANIFEST_OPTION_ALL
             TEST_MANIFEST_TARGET
-            TEST_MANIFEST_DB);
+            TEST_MANIFEST_DB
+            "\n"
+            "[target:file]\n"
+            "pg_data/testvalid={\"checksum\":\"%s\",\"size\":7,\"timestamp\":1565282114}\n"
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT,
+            strZ(strNewEncode(encodingHex, fileChecksum)));
 
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153000F/" BACKUP_MANIFEST_FILE, strZ(manifestContent),
@@ -1418,6 +1478,9 @@ testRun(void)
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153000F/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
             strZ(manifestContent), .comment = "valid manifest copy");
+        HRN_STORAGE_PUT_Z(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153000F/pg_data/testvalid", fileContents,
+            .comment = "put valid file");
 
         // Write manifests for full backup containing missing WAL file
         manifestContent = strNewFmt(
@@ -1434,7 +1497,16 @@ testRun(void)
             TEST_BACKUP_DB2_11
             TEST_MANIFEST_OPTION_ALL
             TEST_MANIFEST_TARGET
-            TEST_MANIFEST_DB);
+            TEST_MANIFEST_DB
+            "\n"
+            "[target:file]\n"
+            "pg_data/testvalid={\"checksum\":\"%s\",\"size\":7,\"timestamp\":1565282114}\n"
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT,
+            strZ(strNewEncode(encodingHex, fileChecksum)));
 
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153100F/" BACKUP_MANIFEST_FILE, strZ(manifestContent),
@@ -1442,6 +1514,9 @@ testRun(void)
         HRN_INFO_PUT(
             storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153100F/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
             strZ(manifestContent), .comment = "valid manifest copy");
+        HRN_STORAGE_PUT_Z(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153100F/pg_data/testvalid", fileContents,
+            .comment = "put valid file");
 
         // Set log level to capture ranges
         harnessLogLevelSet(logLevelDetail);
@@ -1464,45 +1539,6 @@ testRun(void)
         // Check output of verify command stored in file
         TEST_STORAGE_GET(storageTest, strZ(stdoutFile), "", .remove = true);
         TEST_RESULT_LOG("");
-
-        harnessLogLevelReset();
-
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("text output, not verbose, with verify failures");
-
-        hrnCfgArgRawZ(argList, cfgOptOutput, "text");
-        HRN_CFG_LOAD(cfgCmdVerify, argList);
-
-        // Verify text output, not verbose, with failures
-        TEST_RESULT_STR_Z(
-            verifyProcess(cfgOptionBool(cfgOptVerbose)),
-            "stanza: db\n"
-            "status: error\n"
-            "  archiveId: 11-2, total WAL checked: 8, total valid WAL: 5\n"
-            "    checksum invalid: 1, size invalid: 1, other: 1\n"
-            "  backup: 20181119-152800F, status: manifest missing, total files checked: 0, total valid files: 0\n"
-            "  backup: 20181119-152810F, status: invalid, total files checked: 0, total valid files: 0\n"
-            "  backup: 20181119-152900F, status: invalid, total files checked: 3, total valid files: 2\n"
-            "    checksum invalid: 1\n"
-            "  backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 6, total valid files: 3\n"
-            "    missing: 1, checksum invalid: 1, other: 1", "verify text output, not verbose, with verify failures");
-        TEST_RESULT_LOG(
-            "P01   INFO: invalid checksum"
-            " '11-2/0000000200000007/000000020000000700000FFD-a6e1a64f0813352bc2e97f116a1800377e17d2e4.gz'\n"
-            "P01   INFO: invalid size"
-            " '11-2/0000000200000007/000000020000000700000FFF-ee161f898c9012dd0c28b3fd1e7140b9cf411306'\n"
-            "P01   INFO: invalid result"
-            " 11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9: [41] raised from "
-            "local-1 shim protocol: unable to open file '" TEST_PATH "/repo/archive/db"
-            "/11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9' for read:"
-            " [13] Permission denied\n"
-            "P00   INFO: backup '20181119-152810F' manifest does not contain any target files to verify\n"
-            "P01   INFO: invalid checksum '20181119-152900F/pg_data/PG_VERSION'\n"
-            "P01   INFO: file missing '20181119-152900F_20181119-152909D/pg_data/testmissing'\n"
-            "P00   INFO: backup '20181119-153000F' appears to be in progress, skipping\n"
-            "P01   INFO: invalid result UNPROCESSEDBACKUP/pg_data/testother: [41] raised from local-1 shim protocol:"
-            " unable to open file '" TEST_PATH "/repo/backup/db/UNPROCESSEDBACKUP/pg_data/testother' for read: [13]"
-            " Permission denied");
     }
 
     // *****************************************************************************************************************************
