@@ -1808,9 +1808,24 @@ verifyProcess(const bool verboseText)
                 MEM_CONTEXT_TEMP_END();
 
                 // ??? Need to do the final reconciliation - checking backup required WAL against, valid WAL
-                if (0) {
-                    verifyUpdateWalInvalid(jobData.backupResultList, NULL, NULL);
-                    verifyUpdateWalFilesMissing(jobData.backupResultList, NULL, NULL, NULL, NULL);
+                for (unsigned int archiveIdx = 0; archiveIdx < lstSize(jobData.archiveIdResultList); archiveIdx++)
+                {
+                    const VerifyArchiveResult *const archiveIdResult = lstGet(jobData.archiveIdResultList, archiveIdx);
+                    const String *gapStart = NULL;
+                    for (unsigned int rangeIdx = 0; rangeIdx < lstSize(archiveIdResult->walRangeList); rangeIdx++)
+                    {
+                        const VerifyWalRange *const range = lstGet(archiveIdResult->walRangeList, rangeIdx);
+                        for (unsigned int invalidFileIdx = 0; invalidFileIdx < lstSize(range->invalidFileList); invalidFileIdx++)
+                        {
+                            const VerifyInvalidFile *const invalidFile = lstGet(range->invalidFileList, invalidFileIdx);
+                            verifyUpdateWalInvalid(jobData.backupResultList, archiveIdResult, invalidFile->fileName);
+                        }
+
+                        verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, range->start, &jobData.jobErrorTotal);
+                        gapStart = walSegmentNext(range->stop, (size_t) archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
+                    }
+
+                    verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, NULL, &jobData.jobErrorTotal);
                 }
 
                 // Report results
