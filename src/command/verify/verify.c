@@ -604,18 +604,18 @@ Update walInvalid counts backups affected by invalid WAL segment
 ***********************************************************************************************************************************/
 static void
 verifyUpdateWalInvalid(
-    const List *const backupList, const VerifyArchiveResult *const archiveIdResult, const String *const walSegment)
+    const List *const backupList, const String *const archiveId, const String *const walSegment)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(LIST, backupList);  // The result set for the archive Id being processed
-        FUNCTION_TEST_PARAM_P(VERIFY_ARCHIVE_RESULT, archiveIdResult);
+        FUNCTION_TEST_PARAM(STRING, archiveId);
         FUNCTION_TEST_PARAM(STRING, walSegment);                  // Sorted (ascending) list of WAL files in a timeline
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
 
     ASSERT(backupList != NULL);
-    ASSERT(archiveIdResult != NULL);
+    ASSERT(archiveId != NULL);
     ASSERT(walSegment != NULL);
 
     MEM_CONTEXT_TEMP_BEGIN()
@@ -627,8 +627,8 @@ verifyUpdateWalInvalid(
                 continue;
 
             String *const version = pgVersionToStr(backup->pgVersion);
-            String *const archiveId = strNewFmt("%s-%u", strZ(version), backup->pgId);
-            if (!strEq(archiveId, archiveIdResult->archiveId))
+            String *const thisArchiveId = strNewFmt("%s-%u", strZ(version), backup->pgId);
+            if (!strEq(thisArchiveId, archiveId))
                 continue;
 
             ASSERT(strCmp(backup->archiveStart, backup->archiveStop) <= 0);
@@ -1833,7 +1833,7 @@ verifyProcess(const bool verboseText)
                             const VerifyInvalidFile *const invalidFile = lstGet(range->invalidFileList, invalidFileIdx);
                             const StringList *const filePathLst = strLstNewSplit(invalidFile->fileName, FSLASH_STR);
                             const String *const fileName = strSubN(strLstGet(filePathLst, strLstSize(filePathLst) - 1), 0, WAL_SEGMENT_NAME_SIZE);
-                            verifyUpdateWalInvalid(jobData.backupResultList, archiveIdResult, fileName);
+                            verifyUpdateWalInvalid(jobData.backupResultList, archiveIdResult->archiveId, fileName);
                         }
 
                         verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, range->start, &jobData.jobErrorTotal);
