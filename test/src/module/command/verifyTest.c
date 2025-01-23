@@ -1342,8 +1342,6 @@ testRun(void)
             " unable to open file '" TEST_PATH "/repo/backup/db/UNPROCESSEDBACKUP/pg_data/testother' for read: [13]"
             " Permission denied");
 
-        harnessLogLevelReset();
-
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("valid info files - WAL file errors");
 
@@ -1557,6 +1555,8 @@ testRun(void)
             "                wal invalid: 1\n"
             "              backup: 20181119-153100F, status: invalid, total files checked: 1, total valid files: 1\n"
             "                wal invalid: 1");
+
+        harnessLogLevelReset();
     }
 
     // *****************************************************************************************************************************
