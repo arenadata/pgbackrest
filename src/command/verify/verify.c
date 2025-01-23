@@ -1327,6 +1327,7 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
         FUNCTION_TEST_PARAM(LIST, archiveIdResultList);             // Result list for all archive Ids in the repo
         FUNCTION_TEST_PARAM(LIST, backupResultList);                // Result list for all backups in the repo
         FUNCTION_TEST_PARAM(BOOL, verboseText);                     // Is verbose output requested?
+        FUNCTION_TEST_PARAM(BOOL, json);                            // Is JSON output requested?
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
