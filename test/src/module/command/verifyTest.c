@@ -1351,41 +1351,35 @@ testRun(void)
         argList = strLstDup(argListBase);
         HRN_CFG_LOAD(cfgCmdVerify, argList);
 
-        HRN_STORAGE_PATH_REMOVE(
-            storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/11-2/",
-            .recurse = true,
-            .comment = "remove old archives");
-
         HRN_STORAGE_PUT(
             storageRepoIdxWrite(0),
-            STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9",
+            STORAGE_REPO_ARCHIVE "/11-2/0000000400000008/000000040000000800000003-656817043007aa2100c44c712bcb456db705dab9",
             walBuffer, .modeFile = 0200, .comment = "WAL - file not readable");
 
         HRN_STORAGE_PUT(
             storageRepoIdxWrite(0),
-            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000100000008/000000010000000800000001-%s", walBufferSha1), walBuffer,
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000300000008/000000030000000800000001-%s", walBufferSha1), walBuffer,
             .comment = "valid WAL in an old timeline");
         HRN_STORAGE_PUT(
             storageRepoIdxWrite(0),
-            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000002-%s", walBufferSha1), walBuffer,
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000400000008/000000040000000800000002-%s", walBufferSha1), walBuffer,
             .comment = "valid WAL");
         HRN_STORAGE_PUT(
             storageRepoIdxWrite(0),
-            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000004-%s", walBufferSha1), walBuffer,
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000400000008/000000040000000800000004-%s", walBufferSha1), walBuffer,
             .comment = "valid WAL");
         HRN_STORAGE_PUT(
             storageRepoIdxWrite(0),
-            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000005-%s", walBufferSha1), walBuffer,
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000400000008/000000040000000800000005-%s", walBufferSha1), walBuffer,
             .comment = "valid WAL");
-        // Skip WAL 000000020000000800000006
+        // Skip WAL 000000040000000800000006
         HRN_STORAGE_PUT(
             storageRepoIdxWrite(0),
-            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000007-%s", walBufferSha1), walBuffer,
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000400000008/000000040000000800000007-%s", walBufferSha1), walBuffer,
             .comment = "valid WAL");
         HRN_STORAGE_PUT(
             storageRepoIdxWrite(0),
-            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000200000008/000000020000000800000008-%s", walBufferSha1), walBuffer,
+            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000400000008/000000040000000800000008-%s", walBufferSha1), walBuffer,
             .comment = "valid WAL");
 
         HRN_STORAGE_PATH_REMOVE(
@@ -1413,8 +1407,8 @@ testRun(void)
         // Write manifests for full backup containing unreadable file
         manifestContent = strNewFmt(
             "[backup]\n"
-            "backup-archive-start=\"000000020000000800000002\"\n"
-            "backup-archive-stop=\"000000020000000800000004\"\n"
+            "backup-archive-start=\"000000040000000800000002\"\n"
+            "backup-archive-stop=\"000000040000000800000004\"\n"
             "backup-label=\"20181119-152900F\"\n"
             "backup-timestamp-copy-start=0\n"
             "backup-timestamp-start=0\n"
@@ -1449,8 +1443,8 @@ testRun(void)
         // Write manifests for full backup containing only valid WAL files
         manifestContent = strNewFmt(
             "[backup]\n"
-            "backup-archive-start=\"000000020000000800000004\"\n"
-            "backup-archive-stop=\"000000020000000800000005\"\n"
+            "backup-archive-start=\"000000040000000800000004\"\n"
+            "backup-archive-stop=\"000000040000000800000005\"\n"
             "backup-label=\"20181119-153000F\"\n"
             "backup-timestamp-copy-start=0\n"
             "backup-timestamp-start=0\n"
@@ -1485,8 +1479,8 @@ testRun(void)
         // Write manifests for full backup containing missing WAL file
         manifestContent = strNewFmt(
             "[backup]\n"
-            "backup-archive-start=\"000000020000000800000006\"\n"
-            "backup-archive-stop=\"000000020000000800000007\"\n"
+            "backup-archive-start=\"000000040000000800000006\"\n"
+            "backup-archive-stop=\"000000040000000800000007\"\n"
             "backup-label=\"20181119-153100F\"\n"
             "backup-timestamp-copy-start=0\n"
             "backup-timestamp-start=0\n"
@@ -1541,13 +1535,13 @@ testRun(void)
         TEST_RESULT_LOG(
             "P00 DETAIL: archive path '9.4-1' is empty\n"
             "P01   INFO: invalid result"
-            " 11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9: [41] raised from "
+            " 11-2/0000000400000008/000000040000000800000003-656817043007aa2100c44c712bcb456db705dab9: [41] raised from "
             "local-1 shim protocol: unable to open file '" TEST_PATH "/repo/archive/db"
-            "/11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9' for read:"
+            "/11-2/0000000400000008/000000040000000800000003-656817043007aa2100c44c712bcb456db705dab9' for read:"
             " [13] Permission denied\n"
-            "P00 DETAIL: archiveId: 11-2, wal start: 000000010000000800000001, wal stop: 000000010000000800000001\n"
-            "P00 DETAIL: archiveId: 11-2, wal start: 000000020000000800000002, wal stop: 000000020000000800000005\n"
-            "P00 DETAIL: archiveId: 11-2, wal start: 000000020000000800000007, wal stop: 000000020000000800000008\n"
+            "P00 DETAIL: archiveId: 11-2, wal start: 000000030000000800000001, wal stop: 000000030000000800000001\n"
+            "P00 DETAIL: archiveId: 11-2, wal start: 000000040000000800000002, wal stop: 000000040000000800000005\n"
+            "P00 DETAIL: archiveId: 11-2, wal start: 000000040000000800000007, wal stop: 000000040000000800000008\n"
             "P00   INFO: stanza: db\n"
             "            status: error\n"
             "              archiveId: 11-2, total WAL checked: 7, total valid WAL: 6\n"
