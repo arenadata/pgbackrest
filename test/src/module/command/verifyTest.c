@@ -1358,10 +1358,6 @@ testRun(void)
 
         HRN_STORAGE_PUT(
             storageRepoIdxWrite(0),
-            zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000300000008/000000030000000800000001-%s", walBufferSha1), walBuffer,
-            .comment = "valid WAL in an old timeline");
-        HRN_STORAGE_PUT(
-            storageRepoIdxWrite(0),
             zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000400000008/000000040000000800000002-%s", walBufferSha1), walBuffer,
             .comment = "valid WAL");
         HRN_STORAGE_PUT(
@@ -1402,7 +1398,6 @@ testRun(void)
             STORAGE_REPO_BACKUP "/UNPROCESSEDBACKUP/",
             .recurse = true,
             .comment = "remove old backups");
-            
 
         // Write manifests for full backup containing unreadable file
         manifestContent = strNewFmt(
@@ -1534,18 +1529,30 @@ testRun(void)
         TEST_STORAGE_GET(storageTest, strZ(stdoutFile), "", .remove = true);
         TEST_RESULT_LOG(
             "P00 DETAIL: archive path '9.4-1' is empty\n"
+            "P00 DETAIL: path '11-2/0000000100000000' does not contain any valid WAL to be processed\n"
+            "P01   INFO: invalid checksum"
+            " '11-2/0000000200000007/000000020000000700000FFD-a6e1a64f0813352bc2e97f116a1800377e17d2e4.gz'\n"
+            "P01   INFO: invalid size"
+            " '11-2/0000000200000007/000000020000000700000FFF-ee161f898c9012dd0c28b3fd1e7140b9cf411306'\n"
+            "P01   INFO: invalid result"
+            " 11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9: [41] raised from "
+            "local-1 shim protocol: unable to open file '" TEST_PATH "/repo/archive/db"
+            "/11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9' for read:"
+            " [13] Permission denied\n"
             "P01   INFO: invalid result"
             " 11-2/0000000400000008/000000040000000800000003-656817043007aa2100c44c712bcb456db705dab9: [41] raised from "
             "local-1 shim protocol: unable to open file '" TEST_PATH "/repo/archive/db"
             "/11-2/0000000400000008/000000040000000800000003-656817043007aa2100c44c712bcb456db705dab9' for read:"
             " [13] Permission denied\n"
-            "P00 DETAIL: archiveId: 11-2, wal start: 000000030000000800000001, wal stop: 000000030000000800000001\n"
+            "P00 DETAIL: archiveId: 11-2, wal start: 000000020000000700000FFD, wal stop: 000000020000000800000000\n"
+            "P00 DETAIL: archiveId: 11-2, wal start: 000000020000000800000002, wal stop: 000000020000000800000003\n"
+            "P00 DETAIL: archiveId: 11-2, wal start: 000000030000000000000000, wal stop: 000000030000000000000001\n"
             "P00 DETAIL: archiveId: 11-2, wal start: 000000040000000800000002, wal stop: 000000040000000800000005\n"
             "P00 DETAIL: archiveId: 11-2, wal start: 000000040000000800000007, wal stop: 000000040000000800000008\n"
             "P00   INFO: stanza: db\n"
             "            status: error\n"
-            "              archiveId: 11-2, total WAL checked: 7, total valid WAL: 6\n"
-            "                other: 1\n"
+            "              archiveId: 11-2, total WAL checked: 14, total valid WAL: 10\n"
+            "                checksum invalid: 1, size invalid: 1, other: 2\n"
             "              backup: 20181119-152900F, status: invalid, total files checked: 1, total valid files: 1\n"
             "                wal invalid: 1\n"
             "              backup: 20181119-153100F, status: invalid, total files checked: 1, total valid files: 1\n"
