@@ -3,7 +3,6 @@ Test Restore Command
 ***********************************************************************************************************************************/
 #include "command/backup/backup.h"
 #include "command/backup/blockIncr.h"
-#include "command/backup/file.h"
 #include "command/backup/protocol.h"
 #include "command/stanza/create.h"
 #include "common/compress/helper.h"
