@@ -1566,6 +1566,7 @@ testRun(void)
             "local-1 shim protocol: unable to open file '" TEST_PATH "/repo/archive/db"
             "/11-2/0000000400000008/000000040000000800000003-656817043007aa2100c44c712bcb456db705dab9' for read:"
             " [13] Permission denied\n"
+            "P00   INFO: backup '20181119-153200F' manifest does not contain any target files to verify\n"
             "P00 DETAIL: archiveId: 11-2, wal start: 000000020000000700000FFD, wal stop: 000000020000000800000000\n"
             "P00 DETAIL: archiveId: 11-2, wal start: 000000020000000800000002, wal stop: 000000020000000800000003\n"
             "P00 DETAIL: archiveId: 11-2, wal start: 000000030000000000000000, wal stop: 000000030000000000000001\n"
