@@ -505,8 +505,7 @@ testRun(void)
         backupResult = lstGet(backupList, 4);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 0, "not counted WAL");
 
-        archiveId = strNewZ("9.4-1");
-
+        archiveId = strNewZ("9.4-2");
         TEST_RESULT_VOID(verifyUpdateWalInvalid(backupList, archiveId, walSegment), "mark WAL as invalid");
         backupResult = lstGet(backupList, 0);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 2, "not counted WAL");
