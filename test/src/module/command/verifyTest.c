@@ -408,7 +408,7 @@ testRun(void)
         const String *walSegment = strNewZ("000000020000000200000002");
 
         TEST_RESULT_VOID(verifyUpdateWalInvalid(backupList, archiveId, walSegment), "mark WAL as invalid");
-        const VerifyBackupResult *const backupResult = lstGet(backupList, 0);
+        VerifyBackupResult *backupResult = lstGet(backupList, 0);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 1, "counted WAL");
 
         // -------------------------------------------------------------------------------------------------------------------------
