@@ -1874,7 +1874,8 @@ cmdVerify(void)
             LOG_INFO_FMT("%s", strZ(result));
 
             // Output to console when requested
-            if (cfgOptionStrId(cfgOptOutput) == CFGOPTVAL_OUTPUT_TEXT)
+            if (cfgOptionStrId(cfgOptOutput) == CFGOPTVAL_OUTPUT_TEXT
+                || cfgOptionStrId(cfgOptOutput) == CFGOPTVAL_OUTPUT_JSON)
             {
                 ioFdWriteOneStr(STDOUT_FILENO, result);
                 ioFdWriteOneStr(STDOUT_FILENO, LF_STR);

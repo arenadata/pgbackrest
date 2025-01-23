@@ -901,26 +901,45 @@ testRun(void)
 
         harnessLogLevelSet(logLevelDetail);
 
-        // Check output of verify command
+        // Redirect stdout to a file
+        int stdoutSave = dup(STDOUT_FILENO);
+        const String *stdoutFile = STRDEF(TEST_PATH "/stdout.info");
 
-        TEST_RESULT_STR_Z(
-            verifyProcess(cfgOptionBool(cfgOptVerbose)),
-            "{\n"
-            "  \"stanza\": \"db\",\n"
-            "  \"status\": \"error\",\n"
-            "  \"errors\": [\n"
-            "    \"No usable backup.info file\",\n"
-            "    \"No usable archive.info file\"\n"
-            "  ]\n"
-            "}\n",
-            "verifyProcess() json, no verbose");
+        THROW_ON_SYS_ERROR(freopen(strZ(stdoutFile), "w", stdout) == NULL, FileWriteError, "unable to reopen stdout");
+
+        // Not in a test wrapper to compare stdout
+        cmdVerify();
+
+        // Restore normal stdout
+        dup2(stdoutSave, STDOUT_FILENO);
+
+        // Check output of verify command stored in file
+        TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
+                         "{\n"
+                         "  \"stanza\": \"db\",\n"
+                         "  \"status\": \"error\",\n"
+                         "  \"errors\": [\n"
+                         "    \"No usable backup.info file\",\n"
+                         "    \"No usable archive.info file\"\n"
+                         "  ]\n"
+                         "}\n"
+                         "\n",
+                         .remove = true);
 
         TEST_RESULT_LOG(
             "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS'"
             " <REPO:BACKUP>/backup.info\n"
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\n"
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info' for read\n"
-            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read");
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read\n"
+            "P00   INFO: {\n"
+            "              \"stanza\": \"db\",\n"
+            "              \"status\": \"error\",\n"
+            "              \"errors\": [\n"
+            "                \"No usable backup.info file\",\n"
+            "                \"No usable archive.info file\"\n"
+            "              ]\n"
+            "            }\n            ");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("backup.info invalid checksum, backup.info.copy valid, archive.info not exist, archive copy checksum invalid");
@@ -940,16 +959,27 @@ testRun(void)
             TEST_BACKUP_DB1_HISTORY,
             .comment = "valid backup.info.copy");
 
-        TEST_RESULT_STR_Z(
-            verifyProcess(cfgOptionBool(cfgOptVerbose)),
-            "{\n"
-            "  \"stanza\": \"db\",\n"
-            "  \"status\": \"error\",\n"
-            "  \"errors\": [\n"
-            "    \"No usable archive.info file\"\n"
-            "  ]\n"
-            "}\n",
-            "verifyProcess() json, no verbose");
+        // Redirect stdout to a file
+        stdoutSave = dup(STDOUT_FILENO);
+        THROW_ON_SYS_ERROR(freopen(strZ(stdoutFile), "w", stdout) == NULL, FileWriteError, "unable to reopen stdout");
+
+        // Not in a test wrapper to compare stdout
+        cmdVerify();
+
+        // Restore normal stdout
+        dup2(stdoutSave, STDOUT_FILENO);
+
+        // Check output of verify command stored in file
+        TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
+                         "{\n"
+                         "  \"stanza\": \"db\",\n"
+                         "  \"status\": \"error\",\n"
+                         "  \"errors\": [\n"
+                         "    \"No usable archive.info file\"\n"
+                         "  ]\n"
+                         "}\n"
+                         "\n",
+                         .remove = true);
 
         /* Consume log */
         TEST_RESULT_LOG(
@@ -957,7 +987,14 @@ testRun(void)
             " <REPO:BACKUP>/backup.info\n"
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info' for read\n"
             "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS'"
-            " <REPO:ARCHIVE>/archive.info.copy");
+            " <REPO:ARCHIVE>/archive.info.copy\n"
+            "P00   INFO: {\n"
+            "              \"stanza\": \"db\",\n"
+            "              \"status\": \"error\",\n"
+            "              \"errors\": [\n"
+            "                \"No usable archive.info file\"\n"
+            "              ]\n"
+            "            }\n            ");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("backup.info and copy valid but checksum mismatch, archive.info checksum invalid, archive.info copy valid");
@@ -969,24 +1006,45 @@ testRun(void)
         HRN_INFO_PUT(
             storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, TEST_ARCHIVE_INFO_BASE, .comment = "valid archive.info.copy");
 
-        TEST_RESULT_STR_Z(
-            verifyProcess(cfgOptionBool(cfgOptVerbose)),
-            "{\n"
-            "  \"stanza\": \"db\",\n"
-            "  \"status\": \"error\",\n"
-            "  \"errors\": [\n"
-            "    \"backup info file and archive info file do not match\n"
-            "archive: id = 1, version = 9.4, system-id = 10000000000000090400\n"
-            "backup : id = 2, version = 11, system-id = 10000000000000110000\n"
-            "HINT: this may be a symptom of repository corruption!\"\n"
-            "  ]\n"
-            "}\n",
-            "verifyProcess() json, no verbose");
+        // Redirect stdout to a file
+        stdoutSave = dup(STDOUT_FILENO);
+        THROW_ON_SYS_ERROR(freopen(strZ(stdoutFile), "w", stdout) == NULL, FileWriteError, "unable to reopen stdout");
+
+        // Not in a test wrapper to compare stdout
+        cmdVerify();
+
+        // Restore normal stdout
+        dup2(stdoutSave, STDOUT_FILENO);
+
+        // Check output of verify command stored in file
+        TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
+                         "{\n"
+                         "  \"stanza\": \"db\",\n"
+                         "  \"status\": \"error\",\n"
+                         "  \"errors\": [\n"
+                         "    \"backup info file and archive info file do not match\n"
+                         "archive: id = 1, version = 9.4, system-id = 10000000000000090400\n"
+                         "backup : id = 2, version = 11, system-id = 10000000000000110000\n"
+                         "HINT: this may be a symptom of repository corruption!\"\n"
+                         "  ]\n"
+                         "}\n\n",
+                         .remove = true);
 
         /* Consume log */
         TEST_RESULT_LOG(
             "P00 DETAIL: backup.info.copy does not match backup.info\n"
-            "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:ARCHIVE>/archive.info");
+            "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:ARCHIVE>/archive.info\n"
+            "P00   INFO: {\n"
+            "              \"stanza\": \"db\",\n"
+            "              \"status\": \"error\",\n"
+            "              \"errors\": [\n"
+            "                \"backup info file and archive info file do not match\n"
+            "            archive: id = 1, version = 9.4, system-id = 10000000000000090400\n"
+            "            backup : id = 2, version = 11, system-id = 10000000000000110000\n"
+            "            HINT: this may be a symptom of repository corruption!\"\n"
+            "              ]\n"
+            "            }\n            "
+            );
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("backup.info and copy valid and checksums match, archive.info and copy valid, but checksum mismatch");
@@ -997,17 +1055,30 @@ testRun(void)
         HRN_INFO_PUT(
             storageRepoWrite(), INFO_ARCHIVE_PATH_FILE, TEST_ARCHIVE_INFO_MULTI_HISTORY_BASE, .comment = "valid archive.info");
 
-        TEST_RESULT_STR_Z(
-            verifyProcess(cfgOptionBool(cfgOptVerbose)),
-            "{\n"
-            "  \"stanza\": \"db\",\n"
-            "  \"status\": \"ok\"\n"
-            "}\n",
-            "verifyProcess() json, no verbose");
+        // Redirect stdout to a file
+        stdoutSave = dup(STDOUT_FILENO);
+        THROW_ON_SYS_ERROR(freopen(strZ(stdoutFile), "w", stdout) == NULL, FileWriteError, "unable to reopen stdout");
+
+        // Not in a test wrapper to compare stdout
+        cmdVerify();
+
+        // Restore normal stdout
+        dup2(stdoutSave, STDOUT_FILENO);
+
+        TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
+                         "{\n"
+                         "  \"stanza\": \"db\",\n"
+                         "  \"status\": \"ok\"\n"
+                         "}\n\n",
+                         .remove = true);
 
         /* Consume log */
         TEST_RESULT_LOG(
-            "P00 DETAIL: archive.info.copy does not match archive.info");
+            "P00 DETAIL: archive.info.copy does not match archive.info\n"
+            "P00   INFO: {\n"
+            "              \"stanza\": \"db\",\n"
+            "              \"status\": \"ok\"\n"
+            "            }\n            ");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("backup.info valid, copy invalid, archive.info valid, copy invalid");
@@ -1015,18 +1086,31 @@ testRun(void)
         HRN_STORAGE_REMOVE(storageRepoWrite(), INFO_BACKUP_PATH_FILE INFO_COPY_EXT, .comment = "remove backup.info.copy");
         HRN_STORAGE_REMOVE(storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, .comment = "remove archive.info.copy");
 
-        TEST_RESULT_STR_Z(
-            verifyProcess(cfgOptionBool(cfgOptVerbose)),
-            "{\n"
-            "  \"stanza\": \"db\",\n"
-            "  \"status\": \"ok\"\n"
-            "}\n",
-            "verifyProcess() json, no verbose");
+        // Redirect stdout to a file
+        stdoutSave = dup(STDOUT_FILENO);
+        THROW_ON_SYS_ERROR(freopen(strZ(stdoutFile), "w", stdout) == NULL, FileWriteError, "unable to reopen stdout");
+
+        // Not in a test wrapper to compare stdout
+        cmdVerify();
+
+        // Restore normal stdout
+        dup2(stdoutSave, STDOUT_FILENO);
+
+        TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
+                         "{\n"
+                         "  \"stanza\": \"db\",\n"
+                         "  \"status\": \"ok\"\n"
+                         "}\n\n",
+                         .remove = true);
 
         /* Consume log */
         TEST_RESULT_LOG(
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\n"
-            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read");
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read\n"
+            "P00   INFO: {\n"
+            "              \"stanza\": \"db\",\n"
+            "              \"status\": \"ok\"\n"
+            "            }\n            ");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("backup.info and copy missing, archive.info and copy valid");
@@ -1039,21 +1123,37 @@ testRun(void)
             storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, TEST_ARCHIVE_INFO_MULTI_HISTORY_BASE,
             .comment = "valid and matching archive.info.copy");
 
-        TEST_RESULT_STR_Z(
-            verifyProcess(cfgOptionBool(cfgOptVerbose)),
-            "{\n"
-            "  \"stanza\": \"db\",\n"
-            "  \"status\": \"error\",\n"
-            "  \"errors\": [\n"
-            "    \"No usable backup.info file\"\n"
-            "  ]\n"
-            "}\n",
-            "verifyProcess() json, no verbose");
+        // Redirect stdout to a file
+        stdoutSave = dup(STDOUT_FILENO);
+        THROW_ON_SYS_ERROR(freopen(strZ(stdoutFile), "w", stdout) == NULL, FileWriteError, "unable to reopen stdout");
+
+        // Not in a test wrapper to compare stdout
+        cmdVerify();
+
+        // Restore normal stdout
+        dup2(stdoutSave, STDOUT_FILENO);
+
+        TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
+                         "{\n"
+                         "  \"stanza\": \"db\",\n"
+                         "  \"status\": \"error\",\n"
+                         "  \"errors\": [\n"
+                         "    \"No usable backup.info file\"\n"
+                         "  ]\n"
+                         "}\n\n",
+                         .remove = true);
 
         /* Consume log */
         TEST_RESULT_LOG(
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info' for read\n"
-            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read");
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\n"
+            "P00   INFO: {\n"
+            "              \"stanza\": \"db\",\n"
+            "              \"status\": \"error\",\n"
+            "              \"errors\": [\n"
+            "                \"No usable backup.info file\"\n"
+            "              ]\n"
+            "            }\n            ");
 
         harnessLogLevelReset();
     }
