@@ -399,7 +399,7 @@ testRun(void)
             .pgId = 1,
             .pgVersion = PG_VERSION_94,
             .archiveStart = strNewZ("000000020000000200000001"),
-            .archiveEnd = strNewZ("000000020000000200000003"),
+            .archiveStop = strNewZ("000000020000000200000003"),
             .walInvalidCount = 0,
         };
         lstAdd(backupList, &backup);
@@ -420,7 +420,7 @@ testRun(void)
             .pgId = 1,
             .pgVersion = PG_VERSION_94,
             .archiveStart = strNewZ("000000020000000200000004"),
-            .archiveEnd = strNewZ("000000020000000200000005"),
+            .archiveStop = strNewZ("000000020000000200000005"),
             .walInvalidCount = 0,
         };
         lstAdd(backupList, &backup);
@@ -488,7 +488,7 @@ testRun(void)
             .pgId = 2,
             .pgVersion = PG_VERSION_94,
             .archiveStart = strNewZ("000000020000000200000004"),
-            .archiveEnd = strNewZ("000000020000000200000005"),
+            .archiveStop = strNewZ("000000020000000200000005"),
             .walInvalidCount = 0,
         };
         lstAdd(backupList, &backup);
