@@ -1505,6 +1505,30 @@ testRun(void)
             storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153100F/pg_data/testvalid", fileContents,
             .comment = "put valid file");
 
+        // Write manifests for full backup containing missing WAL file and no files
+        manifestContent = strNewFmt(
+            "[backup]\n"
+            "backup-archive-start=\"000000040000000800000006\"\n"
+            "backup-archive-stop=\"000000040000000800000007\"\n"
+            "backup-label=\"20181119-153200F\"\n"
+            "backup-timestamp-copy-start=0\n"
+            "backup-timestamp-start=0\n"
+            "backup-timestamp-stop=0\n"
+            "backup-type=\"full\"\n"
+            "\n"
+            "[backup:db]\n"
+            TEST_BACKUP_DB2_11
+            TEST_MANIFEST_OPTION_ALL
+            TEST_MANIFEST_TARGET
+            TEST_MANIFEST_DB);
+
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153200F/" BACKUP_MANIFEST_FILE, strZ(manifestContent),
+            .comment = "valid manifest");
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(0), STORAGE_REPO_BACKUP "/20181119-153200F/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
+            strZ(manifestContent), .comment = "valid manifest copy");
+
         // Set log level to capture ranges
         harnessLogLevelSet(logLevelDetail);
 
@@ -1554,6 +1578,8 @@ testRun(void)
             "              backup: 20181119-152900F, status: invalid, total files checked: 1, total valid files: 1\n"
             "                wal invalid: 1\n"
             "              backup: 20181119-153100F, status: invalid, total files checked: 1, total valid files: 1\n"
+            "                wal invalid: 1\n"
+            "              backup: 20181119-153200F, status: invalid, total files checked: 0, total valid files: 0\n"
             "                wal invalid: 1");
 
         harnessLogLevelReset();
