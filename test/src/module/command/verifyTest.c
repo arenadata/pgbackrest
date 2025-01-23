@@ -1584,6 +1584,42 @@ testRun(void)
             "                wal invalid: 1");
 
         harnessLogLevelReset();
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("text output, not verbose, with WAL file errors");
+
+        hrnCfgArgRawZ(argList, cfgOptOutput, "text");
+        HRN_CFG_LOAD(cfgCmdVerify, argList);
+
+        // Verify text output, not verbose, with WAL file errors
+        TEST_RESULT_STR_Z(
+            verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            "stanza: db\n"
+            "status: error\n"
+            "  archiveId: 11-2, total WAL checked: 14, total valid WAL: 10\n"
+            "    checksum invalid: 1, size invalid: 1, other: 2\n"
+            "  backup: 20181119-152900F, status: invalid, total files checked: 1, total valid files: 1\n"
+            "    wal invalid: 1\n"
+            "  backup: 20181119-153100F, status: invalid, total files checked: 1, total valid files: 1\n"
+            "    wal invalid: 1\n"
+            "  backup: 20181119-153200F, status: invalid, total files checked: 0, total valid files: 0\n"
+            "    wal invalid: 1", "verify text output, not verbose, with WAL file errors");
+        TEST_RESULT_LOG(
+            "P01   INFO: invalid checksum"
+            " '11-2/0000000200000007/000000020000000700000FFD-a6e1a64f0813352bc2e97f116a1800377e17d2e4.gz'\n"
+            "P01   INFO: invalid size"
+            " '11-2/0000000200000007/000000020000000700000FFF-ee161f898c9012dd0c28b3fd1e7140b9cf411306'\n"
+            "P01   INFO: invalid result"
+            " 11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9: [41] raised from "
+            "local-1 shim protocol: unable to open file '" TEST_PATH "/repo/archive/db"
+            "/11-2/0000000200000008/000000020000000800000003-656817043007aa2100c44c712bcb456db705dab9' for read:"
+            " [13] Permission denied\n"
+            "P01   INFO: invalid result"
+            " 11-2/0000000400000008/000000040000000800000003-656817043007aa2100c44c712bcb456db705dab9: [41] raised from "
+            "local-1 shim protocol: unable to open file '" TEST_PATH "/repo/archive/db"
+            "/11-2/0000000400000008/000000040000000800000003-656817043007aa2100c44c712bcb456db705dab9' for read:"
+            " [13] Permission denied\n"
+            "P00   INFO: backup '20181119-153200F' manifest does not contain any target files to verify");
     }
 
     // *****************************************************************************************************************************
