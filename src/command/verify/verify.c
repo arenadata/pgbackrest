@@ -633,10 +633,9 @@ verifyUpdateWalInvalid(
 
             ASSERT(strCmp(backup->archiveStart, backup->archiveStop) <= 0);
 
-            bool wrongTimeline = !strEq(strSubN(walSegment, 0, 8), strSubN(backup->archiveStart, 0, 8));
             bool segmentIsBeforeBackup = strCmp(walSegment, backup->archiveStart) < 0;
             bool segmentIsAfterBackup = strCmp(backup->archiveStop, walSegment) < 0;
-            if (wrongTimeline || segmentIsBeforeBackup || segmentIsAfterBackup)
+            if (segmentIsBeforeBackup || segmentIsAfterBackup)
                 continue;
 
             backup->walInvalidCount++;
@@ -1837,8 +1836,7 @@ verifyProcess(const bool verboseText)
                             verifyUpdateWalInvalid(jobData.backupResultList, archiveIdResult, fileName);
                         }
 
-                        if (range->start != NULL)
-                            verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, range->start, &jobData.jobErrorTotal);
+                        verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, range->start, &jobData.jobErrorTotal);
                         gapStart = walSegmentNext(range->stop, (size_t) archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
                     }
 
