@@ -2225,6 +2225,8 @@ testRun(void)
         OBJ_NEW_BASE_BEGIN(Manifest, .childQty = MEM_CONTEXT_QTY_MAX)
         {
             manifest = manifestNewInternal();
+
+            HRN_MANIFEST_TARGET_ADD(manifest, .name = MANIFEST_TARGET_PGDATA, .path = "pg_data");
             HRN_MANIFEST_FILE_ADD(manifest, .name = "pg_data/test");
         }
         OBJ_NEW_END();
