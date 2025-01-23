@@ -2213,7 +2213,7 @@ testRun(void)
 
         PackWrite *const resultPack = protocolPackNew();
         pckWriteStrP(resultPack, STRDEF("pg_data/test"));
-        pckWriteU32P(resultPack, backupCopyResultNoOp);
+        pckWriteU32P(resultPack, restoreResultZero);
         // No more fields need to be written since noop will ignore them anyway
         pckWriteEndP(resultPack);
 
