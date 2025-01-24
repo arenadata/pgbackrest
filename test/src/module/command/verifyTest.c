@@ -443,6 +443,9 @@ testRun(void)
         };
         lstAdd(backupList, &backup);
 
+        missingStart = strNewZ("000000020000000200000002");
+        missingStop = strNewZ("000000020000000200000003");
+
         TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 2, "found error");
         backupResult = lstGet(backupList, 0);
