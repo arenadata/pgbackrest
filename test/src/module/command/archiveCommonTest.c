@@ -404,12 +404,12 @@ testRun(void)
     }
 
     // *****************************************************************************************************************************
-    if (testBegin("walSegmentNext()"))
+    if (testBegin("walSegmentDist()"))
     {
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("common case");
 
-        TEST_RESULT_UINT(
+        TEST_RESULT_INT(
             walSegmentDist(
                 STRDEF("000000010000000100000015"),
                 STRDEF("000000010000000100000028"),
@@ -417,7 +417,7 @@ testRun(void)
             19,
             "get distance");
 
-        TEST_RESULT_UINT(
+        TEST_RESULT_INT(
             walSegmentDist(
                 STRDEF("000000010000000100000028"),
                 STRDEF("000000010000000100000015"),
@@ -425,7 +425,7 @@ testRun(void)
             -19,
             "get distance");
 
-        TEST_RESULT_UINT(
+        TEST_RESULT_INT(
             walSegmentDist(
                 STRDEF("000000010000000100000028"),
                 STRDEF("000000010000000100000028"),
@@ -437,7 +437,7 @@ testRun(void)
         TEST_TITLE("check overflow by version");
 
 
-        TEST_RESULT_UINT(
+        TEST_RESULT_INT(
             walSegmentDist(
                 STRDEF("000000010000000100000015"),
                 STRDEF("000000010000000200000028"),
@@ -445,7 +445,7 @@ testRun(void)
             19 + 256,
             "get distance >= 9.4");
         
-        TEST_RESULT_UINT(
+        TEST_RESULT_INT(
             walSegmentDist(
                 STRDEF("000000010000000100000003"),
                 STRDEF("000000010000000200000001"),
@@ -453,7 +453,7 @@ testRun(void)
             2,
             "get distance >= 11/1GB");
 
-        TEST_RESULT_UINT(
+        TEST_RESULT_INT(
             walSegmentDist(
                 STRDEF("000000010000000100000003"),
                 STRDEF("000000010000000200000001"),
