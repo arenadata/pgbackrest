@@ -453,7 +453,7 @@ testRun(void)
         TEST_RESULT_UINT(backupResult->walInvalidCount, 1, "counted WAL");
 
         missingStart = strNewZ("000000020000000200000002");
-        missingStop = NULL
+        missingStop = NULL;
 
         TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 9, "found error");
