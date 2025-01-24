@@ -436,7 +436,6 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("check overflow by version");
 
-
         TEST_RESULT_INT(
             walSegmentDist(
                 STRDEF("000000010000000100000015"),
@@ -444,7 +443,7 @@ testRun(void)
                 16 * 1024 * 1024, PG_VERSION_94),
             19 + 256,
             "get distance >= 9.4");
-        
+
         TEST_RESULT_INT(
             walSegmentDist(
                 STRDEF("000000010000000100000003"),
