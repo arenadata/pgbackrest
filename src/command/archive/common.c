@@ -469,7 +469,7 @@ walSegmentDist(const String *const walSegmentA, const String *const walSegmentB,
     uint32_t majorA, majorB;
     uint32_t minorA, minorB;
     int64_t posA, posB;
-    int64_t majorStep = (int64_t)UINT32_MAX / (int64_t)walSegmentSize;
+    int64_t majorStep = ((int64_t)UINT32_MAX + 1) / (int64_t)walSegmentSize;
 
     MEM_CONTEXT_TEMP_BEGIN()
     {

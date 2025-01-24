@@ -404,12 +404,20 @@ testRun(void)
         };
         lstAdd(backupList, &backup);
 
-        const String *archiveId = strNewZ("9.4-1");
+        VerifyArchiveResult archiveResult = {
+            .archiveId = strNewZ("9.4-1"),
+            .pgWalInfo = {
+                .version = PG_VERSION_94,
+                .size = 16 * 1024 * 1024,
+            }
+        };
+
+        const String *archiveId = 
         const String *missingStart = strNewZ("000000020000000200000002");
         const String *missingStop = strNewZ("000000020000000200000003");
         unsigned int jobErrorTotal = 0;
 
-        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, archiveId, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
+        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 1, "found error");
         VerifyBackupResult *backupResult = lstGet(backupList, 0);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 1, "counted WAL");
@@ -428,7 +436,7 @@ testRun(void)
         };
         lstAdd(backupList, &backup);
 
-        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, archiveId, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
+        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 2, "found error");
         backupResult = lstGet(backupList, 0);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 2, "counted WAL");
@@ -438,7 +446,7 @@ testRun(void)
         missingStart = strNewZ("000000020000000200000002");
         missingStop = strNewZ("000000020000000200000005");
 
-        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, archiveId, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
+        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 5, "found error");
         backupResult = lstGet(backupList, 0);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 4, "counted WAL");
@@ -448,7 +456,7 @@ testRun(void)
         missingStart = strNewZ("000000020000000200000002");
         missingStop = NULL
 
-        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, archiveId, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
+        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 9, "found error");
         backupResult = lstGet(backupList, 0);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 6, "counted WAL");
@@ -477,7 +485,7 @@ testRun(void)
         };
         lstAdd(backupList, &backup);
 
-        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, archiveId, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
+        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 13, "found error");
         backupResult = lstGet(backupList, 0);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 8, "counted WAL");
@@ -502,7 +510,7 @@ testRun(void)
         };
         lstAdd(backupList, &backup);
 
-        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, archiveId, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
+        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 17, "found error");
         backupResult = lstGet(backupList, 0);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 10, "counted WAL");
@@ -516,7 +524,7 @@ testRun(void)
         TEST_RESULT_UINT(backupResult->walInvalidCount, 0, "not counted WAL");
 
         archiveId = strNewZ("9.4-2");
-        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, archiveId, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
+        TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 19, "found error");
         backupResult = lstGet(backupList, 0);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 10, "not counted WAL");
