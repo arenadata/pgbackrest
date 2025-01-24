@@ -412,7 +412,6 @@ testRun(void)
             }
         };
 
-        const String *archiveId = 
         const String *missingStart = strNewZ("000000020000000200000002");
         const String *missingStop = strNewZ("000000020000000200000003");
         unsigned int jobErrorTotal = 0;
@@ -523,7 +522,7 @@ testRun(void)
         backupResult = lstGet(backupList, 4);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 0, "not counted WAL");
 
-        archiveId = strNewZ("9.4-2");
+        archiveResult.archiveId = strNewZ("9.4-2");
         TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 19, "found error");
         backupResult = lstGet(backupList, 0);
