@@ -426,7 +426,7 @@ testRun(void)
 
         TEST_RESULT_VOID(verifyUpdateWalFilesMissing(backupList, &archiveResult, missingStart, missingStop, &jobErrorTotal), "mark WAL range as missing");
         TEST_RESULT_UINT(jobErrorTotal, 1, "no error");
-        VerifyBackupResult *backupResult = lstGet(backupList, 0);
+        backupResult = lstGet(backupList, 0);
         TEST_RESULT_UINT(backupResult->walInvalidCount, 1, "not counted WAL");
 
         // -------------------------------------------------------------------------------------------------------------------------
