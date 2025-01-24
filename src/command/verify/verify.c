@@ -30,6 +30,7 @@ Verify contents of the repository.
 #include "protocol/helper.h"
 #include "protocol/parallel.h"
 #include "storage/helper.h"
+#include "build/common/string.h"
 
 /***********************************************************************************************************************************
 Constants
@@ -1344,10 +1345,9 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
         strCatZ(result, "  \"archives\": [");
     }
 
-    if (verboseText && lstEmpty(archiveIdResultList))
+    if (!json && verboseText && lstEmpty(archiveIdResultList))
     {
-        if (!json)
-            strCatZ(result, "\n  archiveId: none found");
+        strCatZ(result, "\n  archiveId: none found");
     }
     else
     {
@@ -1412,7 +1412,10 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                 if (json)
                 {
                     strCatFmt(result,
-                              "\n      \"missing\": %u,\n      \"checksumInvalid\": %u,\n      \"sizeInvalid\": %u,\n      \"other\": %u\n    }",
+                              "\n      \"missing\": %u,"
+                              "\n      \"checksumInvalid\": %u,"
+                              "\n      \"sizeInvalid\": %u,"
+                              "\n      \"other\": %u\n    }",
                               errMissing, errChecksum, errSize, errOther);
                 }
                 // Create/append file errors string
@@ -1427,7 +1430,10 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                 if (json)
                 {
                     strCatZ(result,
-                            "\n      \"missing\": 0,\n      \"checksumInvalid\": 0,\n      \"sizeInvalid\": 0,\n      \"other\": 0\n    }");
+                            "\n      \"missing\": 0,"
+                            "\n      \"checksumInvalid\": 0,"
+                            "\n      \"sizeInvalid\": 0,"
+                            "\n      \"other\": 0\n    }");
                 }
             }
         }
@@ -1512,7 +1518,10 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                 {
                     strCatFmt(
                         result,
-                        ",\n      \"missing\": %u,\n      \"checksumInvalid\": %u,\n      \"sizeInvalid\": %u,\n      \"other\": %u\n    }",
+                        ",\n      \"missing\": %u,"
+                        "\n      \"checksumInvalid\": %u,"
+                        "\n      \"sizeInvalid\": %u,"
+                        "\n      \"other\": %u\n    }",
                         errMissing, errChecksum, errSize, errOther);
                 }
                 else if (verboseText || errMissing + errChecksum + errSize + errOther > 0)
@@ -1525,7 +1534,10 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                 if (json)
                 {
                     strCatZ(result,
-                            ",\n      \"missing\": 0,\n      \"checksumInvalid\": 0,\n      \"sizeInvalid\": 0,\n      \"other\": 0\n    }");
+                            ",\n      \"missing\": 0,"
+                            "\n      \"checksumInvalid\": 0,"
+                            "\n      \"sizeInvalid\": 0,"
+                            "\n      \"other\": 0\n    }");
                 }
             }
         }
@@ -1838,7 +1850,8 @@ verifyProcess(const bool verboseText)
                 for (unsigned int errIdx = 0; errIdx < strLstSize(errorList); errIdx++)
                 {
                     const String *const err = strLstGet(errorList, errIdx);
-                    strCatFmt(result, "%s\n    \"%s\"", errIdx > 0 ? "," : "", strZ(err));
+                    const String *const err_escaped = strEscape(err);
+                    strCatFmt(result, "%s\n    \"%s\"", errIdx > 0 ? "," : "", strZ(err_escaped));
                 }
                 strCatZ(result, "\n  ]");
             }
