@@ -548,8 +548,10 @@ verifyUpdateWalFilesMissing(
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(LIST, backupList);                          // List of VerifyBackupResults, to be updated
         FUNCTION_TEST_PARAM_P(VERIFY_ARCHIVE_RESULT, archiveIdResult);  // Current VerifyArchiveResult
-        FUNCTION_TEST_PARAM(STRING, missingStart);                      // Start of the range of missing files, inclusive. NULL means "from the start"
-        FUNCTION_TEST_PARAM(STRING, missingStop);                       // End of the range of missing files, exclusive. NULL means "to the end"
+        FUNCTION_TEST_PARAM(STRING, missingStart);                      // Start of the range of missing files, inclusive. NULL
+                                                                        // means "from the start"
+        FUNCTION_TEST_PARAM(STRING, missingStop);                       // End of the range of missing files, exclusive. NULL means
+                                                                        // "to the end"
         FUNCTION_TEST_PARAM_P(UINT, jobErrorTotal);                     // Pointer to the overall job error total
     FUNCTION_TEST_END();
 
@@ -593,7 +595,7 @@ verifyUpdateWalFilesMissing(
             // Convert inclusive range [start, stop] to exclusive [start, stop+1)
             const String *const backupStopExclusive = walSegmentNext(backup->archiveStop, (size_t)archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
             // Overlap of ranges [A, B) and [C, D) is [max(A, C), min(B, D))
-            // Since NULLs in missing file range corresponds to negative/positive infinity, 
+            // Since NULLs in missing file range corresponds to negative/positive infinity,
             // we can simply choose the other value if NULL is present.
             // Then the size of the overlap is simply min(B, D) - max(A, C)
             const String *const overlapStart = missingStart && strCmp(backup->archiveStart, missingStart) < 0 ? missingStart : backup->archiveStart;
