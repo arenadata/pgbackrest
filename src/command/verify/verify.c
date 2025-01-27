@@ -30,7 +30,6 @@ Verify contents of the repository.
 #include "protocol/helper.h"
 #include "protocol/parallel.h"
 #include "storage/helper.h"
-#include "build/common/string.h"
 
 /***********************************************************************************************************************************
 Constants

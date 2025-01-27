@@ -15,6 +15,4 @@ String *strUpper(String *this);
 // Replace a substring with another string
 String *strReplace(String *this, const String *replace, const String *with);
 
-// Return a new String object with special characters escaped.
-String *strEscape(const String *const this);
 #endif
