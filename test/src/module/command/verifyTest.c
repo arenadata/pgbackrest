@@ -2302,6 +2302,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("text output, not verbose, with WAL file errors");
 
+        argList = strLstDup(argListBase);
         hrnCfgArgRawZ(argList, cfgOptOutput, "text");
         HRN_CFG_LOAD(cfgCmdVerify, argList);
 
@@ -2338,6 +2339,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("json output, not verbose, with WAL file errors");
 
+        argList = strLstDup(argListBase);
         hrnCfgArgRawZ(argList, cfgOptOutput, "json");
         HRN_CFG_LOAD(cfgCmdVerify, argList);
 
