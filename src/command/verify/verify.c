@@ -1547,6 +1547,7 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                               "\n      \"missing\": %u,"
                               "\n      \"checksumInvalid\": %u,"
                               "\n      \"sizeInvalid\": %u,"
+                              "\n      \"walInvalid\": 0,"
                               "\n      \"other\": %u\n    }",
                               errMissing, errChecksum, errSize, errOther);
                 }
@@ -1565,6 +1566,7 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                             "\n      \"missing\": 0,"
                             "\n      \"checksumInvalid\": 0,"
                             "\n      \"sizeInvalid\": 0,"
+                            "\n      \"walInvalid\": 0,"
                             "\n      \"other\": 0\n    }");
                 }
             }
@@ -1654,8 +1656,9 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                         ",\n      \"missing\": %u,"
                         "\n      \"checksumInvalid\": %u,"
                         "\n      \"sizeInvalid\": %u,"
+                        "\n      \"walInvalid\": %u,"
                         "\n      \"other\": %u\n    }",
-                        errMissing, errChecksum, errSize, errOther);
+                        errMissing, errChecksum, errSize, walInvalid, errOther);
                 }
                 else if (verboseText || errMissing + errChecksum + errSize + errOther + walInvalid > 0)
                 {
@@ -1670,6 +1673,7 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                             ",\n      \"missing\": 0,"
                             "\n      \"checksumInvalid\": 0,"
                             "\n      \"sizeInvalid\": 0,"
+                            "\n      \"walInvalid\": 0,"
                             "\n      \"other\": 0\n    }");
                 }
             }
