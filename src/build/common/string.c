@@ -62,4 +62,3 @@ strReplace(String *const this, const String *const replace, const String *const 
 
     FUNCTION_TEST_RETURN(STRING, this);
 }
-
