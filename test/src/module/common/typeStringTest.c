@@ -753,8 +753,8 @@ testRun(void)
     if (testBegin("strEscape()"))
     {
         TEST_RESULT_STR_Z(strEscape(STRDEF("hello world")), "hello world", "non-escaped string");
-        TEST_RESULT_STR_Z(strEscape(STRDEF("h\"e\\l\n\nl\r\to \bw\forld\n")), 
-            "h\\\"e\\\\l\\n\\nl\\r\\to \\bw\\forld\\n", "non-escaped string");
+        TEST_RESULT_STR_Z(strEscape(STRDEF("h\"e\\l\n\nl\r\to \bw\forld\n")),
+                          "h\\\"e\\\\l\\n\\nl\\r\\to \\bw\\forld\\n", "non-escaped string");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();
