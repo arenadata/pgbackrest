@@ -1657,7 +1657,7 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                         "\n      \"other\": %u\n    }",
                         errMissing, errChecksum, errSize, errOther);
                 }
-                else if (verboseText || errMissing + errChecksum + errSize + errOther > 0)
+                else if (verboseText || errMissing + errChecksum + errSize + errOther + walInvalid > 0)
                 {
                     strCat(result, verifyCreateFileErrorsStr(errMissing, errChecksum, errSize, errOther, walInvalid, verboseText));
                 }
