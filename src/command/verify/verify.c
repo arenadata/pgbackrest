@@ -603,10 +603,12 @@ verifyUpdateWalFilesMissing(
             int overlapSize = walSegmentDist(overlapStart, overlapEnd, (size_t)archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
             ASSERT(overlapSize >= 0);
 
-            backup->walInvalidCount += (unsigned int)overlapSize;
-            *jobErrorTotal += (unsigned int)overlapSize;
             if (overlapSize > 0)
+            {
+                backup->walInvalidCount += (unsigned int)overlapSize;
+                *jobErrorTotal += (unsigned int)overlapSize;
                 backup->status = backupInvalid;
+            }
         }
     }
     MEM_CONTEXT_TEMP_END();
