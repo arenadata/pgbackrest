@@ -543,7 +543,8 @@ Update walInvalidCount in backups affected by a range of missing WAL segments.
 ***********************************************************************************************************************************/
 static void
 verifyUpdateWalFilesMissing(
-    const List *const backupList, const VerifyArchiveResult *const archiveIdResult, const String *const missingStart, const String *const missingStop, unsigned int *const jobErrorTotal)
+    const List *const backupList, const VerifyArchiveResult *const archiveIdResult,
+    const String *const missingStart, const String *const missingStop, unsigned int *const jobErrorTotal)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(LIST, backupList);                          // List of VerifyBackupResults, to be updated
