@@ -584,7 +584,9 @@ verifyUpdateWalFilesMissing(
 
             // We do not process backups from the wrong timeline
             const String *const anyMissing = missingStart ? missingStart : missingStop;
-            bool wrongTimeline = !strEq(strSubN(anyMissing, 0, 8), strSubN(backup->archiveStart, 0, 8));
+            const String *const missingTimeline = strSubN(anyMissing, 0, 8);
+            const String *const backupTimeline = strSubN(backup->archiveStart, 0, 8);
+            bool wrongTimeline = !strEq(missingTimeline, backupTimeline);
             // Backups have inclusive ranges, so [A, B] is placed before [C, D) if B < C (so A <= B < C < D)
             // but [A, B] is placed after [C, D) if D <= A (so C < D <= A <= B).
             // We skip any backups that don't overlap the range with missing files.
