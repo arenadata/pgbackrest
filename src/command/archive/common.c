@@ -462,6 +462,7 @@ walSegmentDist(const String *const walSegmentA, const String *const walSegmentB,
     ASSERT(walSegmentB != NULL);
     ASSERT(strSize(walSegmentA) == 24);
     ASSERT(strSize(walSegmentB) == 24);
+    // Check that walSegmentSize is a power of 2 (a divisor of 2^32)
     ASSERT(UINT32_MAX % walSegmentSize == walSegmentSize - 1);
     ASSERT(pgVersion >= PG_VERSION_11 || walSegmentSize == pgWalSegmentSizeDefault(pgVersion));
 
