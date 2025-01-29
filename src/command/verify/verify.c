@@ -594,14 +594,19 @@ verifyUpdateWalFilesMissing(
                 continue;
 
             // Convert inclusive range [start, stop] to exclusive [start, stop+1)
-            const String *const backupStopExclusive = walSegmentNext(backup->archiveStop, (size_t)archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
+            const String *const backupStopExclusive =
+                walSegmentNext(backup->archiveStop, (size_t)archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
             // Overlap of ranges [A, B) and [C, D) is [max(A, C), min(B, D))
             // Since NULLs in missing file range corresponds to negative/positive infinity,
             // we can simply choose the other value if NULL is present.
             // Then the size of the overlap is simply min(B, D) - max(A, C)
-            const String *const overlapStart = missingStart && strCmp(backup->archiveStart, missingStart) < 0 ? missingStart : backup->archiveStart;
-            const String *const overlapEnd = missingStop && strCmp(backupStopExclusive, missingStop) > 0 ? missingStop : backupStopExclusive;
-            int overlapSize = walSegmentDist(overlapStart, overlapEnd, (size_t)archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
+            const String *const overlapStart = missingStart && strCmp(backup->archiveStart, missingStart) < 0 ?
+                                                   missingStart : backup->archiveStart;
+            const String *const overlapEnd = missingStop && strCmp(backupStopExclusive, missingStop) > 0 ?
+                                                 missingStop : backupStopExclusive;
+            int overlapSize = walSegmentDist(overlapStart, overlapEnd,
+                                             (size_t)archiveIdResult->pgWalInfo.size,
+                                             archiveIdResult->pgWalInfo.version);
             ASSERT(overlapSize >= 0);
 
             if (overlapSize > 0)
@@ -1973,18 +1978,22 @@ verifyProcess(const bool verboseText)
                             // Find the proper WAL segment name to update the backup invalidWalCounts
                             const VerifyInvalidFile *const invalidFile = lstGet(range->invalidFileList, invalidFileIdx);
                             const StringList *const filePathLst = strLstNewSplit(invalidFile->fileName, FSLASH_STR);
-                            const String *const fileName = strSubN(strLstGet(filePathLst, strLstSize(filePathLst) - 1), 0, WAL_SEGMENT_NAME_SIZE);
+                            const String *const fileName =
+                                strSubN(strLstGet(filePathLst, strLstSize(filePathLst) - 1), 0, WAL_SEGMENT_NAME_SIZE);
                             verifyUpdateWalInvalid(jobData.backupResultList, archiveIdResult->archiveId, fileName);
                         }
 
                         // Process the missing files between the WAL ranges
-                        verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, range->start, &jobData.jobErrorTotal);
-                        gapStart = walSegmentNext(range->stop, (size_t) archiveIdResult->pgWalInfo.size, archiveIdResult->pgWalInfo.version);
+                        verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult,
+                                                    gapStart, range->start, &jobData.jobErrorTotal);
+                        gapStart = walSegmentNext(range->stop, (size_t) archiveIdResult->pgWalInfo.size,
+                                                  archiveIdResult->pgWalInfo.version);
                     }
 
                     // If we had at least one WAL range, mark all files after the last range as missing
                     if (gapStart != NULL)
-                        verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult, gapStart, NULL, &jobData.jobErrorTotal);
+                        verifyUpdateWalFilesMissing(jobData.backupResultList, archiveIdResult,
+                                                    gapStart, NULL, &jobData.jobErrorTotal);
                 }
 
                 // Report results
