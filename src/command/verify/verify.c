@@ -1650,8 +1650,22 @@ verifyProcess(const bool verboseText)
             if (backupLabel != NULL)
             {
                 if (!regExpMatchOne(backupRegExpStr, backupLabel))
-                    THROW_FMT(OptionInvalidValueError, "'%s' is not a valid backup label format", strZ(backupLabel));
-                backupRegExpStr = strNewFmt("^%s$", strZ(backupLabel));
+                {
+                    if (json)
+                    {
+                        strLstAddFmt(errorList, "'%s' is not a valid backup label format", strZ(backupLabel));
+                    }
+                    else
+                    {
+                        strCatFmt(resultStr, "\n  '%s' is not a valid backup label format", strZ(backupLabel));
+                    }
+                    errorTotal++;
+                    backupRegExpStr = strNewZ("^$");
+                }
+                else
+                {
+                    backupRegExpStr = strNewFmt("^%s$", strZ(backupLabel));
+                }
             }
 
             // Get a list of backups in the repo sorted ascending
@@ -1662,7 +1676,17 @@ verifyProcess(const bool verboseText)
                 sortOrderAsc);
 
             if (backupLabel != NULL && strLstEmpty(jobData.backupList))
-                THROW_FMT(BackupSetInvalidError, "backup set %s is not valid", strZ(backupLabel));
+            {
+                if (json)
+                {
+                    strLstAddFmt(errorList, "Backup set %s is not valid", strZ(backupLabel));
+                }
+                else
+                {
+                    strCatFmt(resultStr, "\n  Backup set %s is not valid", strZ(backupLabel));
+                }
+                errorTotal++;
+            }
 
             // Get a list of archive Ids in the repo (e.g. 9.4-1, 10-2, etc) sorted ascending by the db-id (number after the dash)
             jobData.archiveIdList = strLstSort(
