@@ -1361,7 +1361,7 @@ infoUpdateStanza(
                 }
                 TRY_END();
 
-                // If backup.info was found, then get the archive.info file, which must exist if the backup.info exists, else the failed
+                // If backup.info was found, then get the archive.info, which must exist if the backup.info exists, else the failed
                 // load will throw an error which will be trapped and recorded
                 if (stanzaRepo->repoList[repoIdx].backupInfo != NULL)
                 {
