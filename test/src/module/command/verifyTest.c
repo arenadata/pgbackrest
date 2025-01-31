@@ -2709,12 +2709,12 @@ testRun(void)
         TEST_RESULT_STR_Z(
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
             "{\n"
-            "  \"stanza\": \"seg0\",\n"
+            "  \"stanza\": \"db\",\n"
             "  \"status\": \"error\",\n"
             "  \"errors\": [\n"
             "    \"Backup set 20181119-152900F_20181119-152910D is not valid\"\n"
             "  ]\n"
-            "}",
+            "}\n",
             "--set with invalid backup label, json");
 
         // -------------------------------------------------------------------------------------------------------------------------
@@ -2742,12 +2742,12 @@ testRun(void)
         TEST_RESULT_STR_Z(
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
             "{\n"
-            "  \"stanza\": \"seg0\",\n"
+            "  \"stanza\": \"db\",\n"
             "  \"status\": \"error\",\n"
             "  \"errors\": [\n"
             "    \"'BOGUS' is not a valid backup label format\"\n"
             "  ]\n"
-            "}",
+            "}\n",
             "--set with backup label of incorrect format, json");
     }
 
