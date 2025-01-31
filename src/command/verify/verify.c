@@ -1647,6 +1647,7 @@ verifyProcess(const bool verboseText)
             // Use backup label if specified via --set.
             const String *backupLabel = cfgOptionStrNull(cfgOptSet);
             const String *backupRegExpStr = backupRegExpP(.full = true, .differential = true, .incremental = true);
+            bool backupLabelInvalid = false;
             if (backupLabel != NULL)
             {
                 if (!regExpMatchOne(backupRegExpStr, backupLabel))
@@ -1660,7 +1661,7 @@ verifyProcess(const bool verboseText)
                         strCatFmt(resultStr, "\n  '%s' is not a valid backup label format", strZ(backupLabel));
                     }
                     errorTotal++;
-                    backupRegExpStr = strNewZ("^$");
+                    backupLabelInvalid = true;
                 }
                 else
                 {
@@ -1675,7 +1676,7 @@ verifyProcess(const bool verboseText)
                     .expression = backupRegExpStr),
                 sortOrderAsc);
 
-            if (backupLabel != NULL && strLstEmpty(jobData.backupList))
+            if (!backupLabelInvalid && backupLabel != NULL && strLstEmpty(jobData.backupList))
             {
                 if (json)
                 {
@@ -1686,6 +1687,7 @@ verifyProcess(const bool verboseText)
                     strCatFmt(resultStr, "\n  Backup set %s is not valid", strZ(backupLabel));
                 }
                 errorTotal++;
+                backupLabelInvalid = true;
             }
 
             // Get a list of archive Ids in the repo (e.g. 9.4-1, 10-2, etc) sorted ascending by the db-id (number after the dash)
@@ -1696,7 +1698,8 @@ verifyProcess(const bool verboseText)
                 sortOrderAsc);
 
             // Only begin processing if there are some archives or backups in the repo
-            if (!strLstEmpty(jobData.archiveIdList) || !strLstEmpty(jobData.backupList))
+            if ((!strLstEmpty(jobData.archiveIdList) || !strLstEmpty(jobData.backupList)) &&
+                !backupLabelInvalid)
             {
                 // Warn if there are no archives or there are no backups in the repo so that the callback need not try to
                 // distinguish between having processed all of the list or if the list was missing in the first place
@@ -1846,7 +1849,7 @@ verifyProcess(const bool verboseText)
                 // Report results
                 resultStr = verifyRender(jobData.archiveIdResultList, jobData.backupResultList, verboseText, json);
             }
-            else
+            else if (!backupLabelInvalid)
             {
                 if (!json)
                 {
