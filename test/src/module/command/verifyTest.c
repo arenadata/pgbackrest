@@ -2697,7 +2697,7 @@ testRun(void)
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
             "stanza: db\n"
             "status: error\n"
-            "  Backup set 20250116-083850F_20250116-085828I is not valid",
+            "  Backup set 20181119-152900F_20181119-152910D is not valid",
             "--set with invalid backup label, text");
 
         argList = strLstDup(argListBase);
@@ -2712,7 +2712,7 @@ testRun(void)
             "  \"stanza\": \"seg0\",\n"
             "  \"status\": \"error\",\n"
             "  \"errors\": [\n"
-            "    \"Backup set 20250116-083850F_20250116-085828I is not valid\"\n"
+            "    \"Backup set 20181119-152900F_20181119-152910D is not valid\"\n"
             "  ]\n"
             "}",
             "--set with invalid backup label, json");
@@ -2732,7 +2732,7 @@ testRun(void)
             "status: error\n"
             "  'BOGUS' is not a valid backup label format",
             "--set with backup label of incorrect format, text");
-        
+
         argList = strLstDup(argListBase);
         hrnCfgArgRawZ(argList, cfgOptOutput, "json");
         hrnCfgArgRawZ(argList, cfgOptVerbose, "y");
