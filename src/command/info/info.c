@@ -1361,7 +1361,7 @@ infoUpdateStanza(
                 }
                 TRY_END();
 
-                // If backup.info was found, then get the archive.info, which must exist if the backup.info exists, else the failed
+                // If backup.info was found, then get the archive.info file, which must exist if the backup.info exists, else the failed
                 // load will throw an error which will be trapped and recorded
                 if (stanzaRepo->repoList[repoIdx].backupInfo != NULL)
                 {
@@ -1738,7 +1738,7 @@ infoRender(void)
                             strCatFmt(resultStr, "%s\n", INFO_STANZA_STATUS_OK);
                     }
 
-                    //  if progressOnly mode is disabled and the stanza is found on at least one repo add cipher type
+                    // If progressOnly mode is disabled and the stanza is found on at least one repo add cipher type
                     if (!progressOnly && statusCode != INFO_STANZA_STATUS_CODE_MISSING_STANZA_PATH)
                     {
                         strCatFmt(resultStr, "    cipher: %s\n", strZ(varStr(kvGet(stanzaInfo, KEY_CIPHER_VAR))));
