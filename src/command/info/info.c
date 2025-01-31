@@ -714,6 +714,7 @@ stanzaInfoList(
         FUNCTION_TEST_PARAM(STRING, backupLabel);
         FUNCTION_TEST_PARAM(UINT, repoIdxMin);
         FUNCTION_TEST_PARAM(UINT, repoIdxMax);
+        FUNCTION_TEST_PARAM(BOOL, progressOnly);
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
