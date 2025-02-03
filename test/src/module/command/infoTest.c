@@ -34,13 +34,25 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptOutput, "json");
         HRN_CFG_LOAD(cfgCmdInfo, argList);
 
+        StringList *argListProgressOnly = strLstDup(argList);
+        hrnCfgArgRawZ(argListProgressOnly, cfgOptProgressOnly, "y");
+
+        StringList *argListTextProgressOnly = strLstDup(argListText);
+        hrnCfgArgRawZ(argListTextProgressOnly, cfgOptProgressOnly, "y");
+
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("no stanzas have been created");
 
         TEST_RESULT_STR_Z(infoRender(), "[]", "json - repo but no stanzas");
 
+        HRN_CFG_LOAD(cfgCmdInfo, argListProgressOnly);
+        TEST_RESULT_STR_Z(infoRender(), "[]", "json (progress only) - repo but no stanzas");
+
         HRN_CFG_LOAD(cfgCmdInfo, argListText);
         TEST_RESULT_STR_Z(infoRender(), "No stanzas exist in the repository.\n", "text - no stanzas");
+
+        HRN_CFG_LOAD(cfgCmdInfo, argListTextProgressOnly);
+        TEST_RESULT_STR_Z(infoRender(), "No stanzas exist in the repository.\n", "text (progress only) - no stanzas");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("repo is still empty but stanza option is specified");
@@ -70,13 +82,38 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":1,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"missing stanza path\""
                     "}"
                 "}"
             "]",
             // {uncrustify_on}
             "json - empty repo, stanza option specified");
+
+        StringList *argListProgressOnlyStanzaOpt = strLstDup(argListProgressOnly);
+        hrnCfgArgRawZ(argListProgressOnlyStanzaOpt, cfgOptStanza, "stanza1");
+        HRN_CFG_LOAD(cfgCmdInfo, argListProgressOnlyStanzaOpt);
+        TEST_RESULT_STR_Z(
+            infoRender(),
+            // {uncrustify_off - indentation}
+            "["
+                "{"
+                    "\"name\":\"stanza1\","
+                    "\"status\":{"
+                        "\"code\":1,"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
+                        "\"message\":\"missing stanza path\""
+                    "}"
+                "}"
+            "]",
+            // {uncrustify_on}
+            "json (progress only) - empty repo, stanza option specified");
 
         StringList *argListTextStanzaOpt = strLstDup(argListText);
         hrnCfgArgRawZ(argListTextStanzaOpt, cfgOptStanza, "stanza1");
@@ -87,12 +124,22 @@ testRun(void)
             "    status: error (missing stanza path)\n",
             "text - empty repo, stanza option specified");
 
+        StringList *argListTextProgressOnlyStanzaOpt = strLstDup(argListTextProgressOnly);
+        hrnCfgArgRawZ(argListTextProgressOnlyStanzaOpt, cfgOptStanza, "stanza1");
+        HRN_CFG_LOAD(cfgCmdInfo, argListTextProgressOnlyStanzaOpt);
+        TEST_RESULT_STR_Z(
+            infoRender(),
+            "stanza: stanza1\n"
+            "    status: error (missing stanza path)\n",
+            "text (progress only) - empty repo, stanza option specified");
+
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("stanza path exists but is empty");
 
         HRN_STORAGE_PATH_CREATE(storageRepoWrite(), STORAGE_REPO_ARCHIVE, .comment = "create repo stanza archive path");
         HRN_STORAGE_PATH_CREATE(storageRepoWrite(), STORAGE_REPO_BACKUP, .comment = "create repo stanza backup path");
 
+        HRN_CFG_LOAD(cfgCmdInfo, argListTextStanzaOpt);
         TEST_RESULT_STR_Z(
             infoRender(),
             "stanza: stanza1\n"
@@ -100,7 +147,16 @@ testRun(void)
             "    cipher: none\n",
             "text - missing stanza data");
 
-        HRN_CFG_LOAD(cfgCmdInfo, argList);
+        // In progress-only mode, the info command skips additional checks,
+        // verifying only the availability of the stanza. The status will be `ok`.
+        HRN_CFG_LOAD(cfgCmdInfo, argListTextProgressOnlyStanzaOpt);
+        TEST_RESULT_STR_Z(
+            infoRender(),
+            "stanza: stanza1\n"
+            "    status: ok\n",
+            "text (progress only) - missing stanza data");
+
+        HRN_CFG_LOAD(cfgCmdInfo, argListStanzaOpt);
         TEST_RESULT_STR_Z(
             infoRender(),
             // {uncrustify_off - indentation}
@@ -123,13 +179,38 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":3,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"missing stanza data\""
                     "}"
                 "}"
             "]",
             // {uncrustify_on}
             "json - missing stanza data");
+
+        // In progress-only mode, the info command skips additional checks,
+        // verifying only the availability of the stanza. The status will be `ok`.
+        HRN_CFG_LOAD(cfgCmdInfo, argListProgressOnlyStanzaOpt);
+        TEST_RESULT_STR_Z(
+            infoRender(),
+            // {uncrustify_off - indentation}
+            "["
+                "{"
+                    "\"name\":\"stanza1\","
+                    "\"status\":{"
+                        "\"code\":0,"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
+                        "\"message\":\"ok\""
+                    "}"
+                "}"
+            "]",
+            // {uncrustify_on}
+            "json (progress only) - missing stanza data");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("backup.info file exists, but archive.info does not");
@@ -150,6 +231,7 @@ testRun(void)
             "2={\"db-catalog-version\":201608131,\"db-control-version\":960,\"db-system-id\":6569239123849665679"
             ",\"db-version\":\"9.6\"}\n");
 
+        HRN_CFG_LOAD(cfgCmdInfo, argListStanzaOpt);
         TEST_RESULT_STR_Z(
             infoRender(),
             // {uncrustify_off - indentation}
@@ -183,7 +265,10 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":99,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"other\""
                     "}"
                 "}"
@@ -300,7 +385,10 @@ testRun(void)
                             "],"
                             "\"status\":{"
                                 "\"code\":2,"
-                                "\"lock\":{\"backup\":{\"held\":true}},"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":true},"
+                                    "\"restore\":{\"held\":false}"
+                                "},"
                                 "\"message\":\"no valid backups\""
                             "}"
                         "}"
@@ -327,6 +415,126 @@ testRun(void)
         HRN_FORK_END();
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("info files exist with mismatched db-ids and no current backups - restore lock detected");
+
+        // Only the current db information from the db:history will be processed.
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE,
+            "[db]\n"
+            "db-id=3\n"
+            "db-system-id=6569239123849665679\n"
+            "db-version=\"9.6\"\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-id\":6569239123849665679,\"db-version\":\"9.6\"}\n"
+            "2={\"db-id\":6569239123849665666,\"db-version\":\"9.5\"}\n"
+            "3={\"db-id\":6569239123849665679,\"db-version\":\"9.6\"}\n");
+
+        // Create a WAL directory in 9.5-2 but since there are no WAL files or backups it will not show
+        HRN_STORAGE_PATH_CREATE(
+            storageRepoWrite(), STORAGE_REPO_ARCHIVE "/9.5-2/0000000100000000",
+            .comment = "create empty db2 archive WAL1 directory");
+
+        // archive section will cross reference backup db-id 2 to archive db-id 3 but db section will only use the db-ids from
+        // backup.info. Execute while a restore lock is held.
+        HRN_FORK_BEGIN()
+        {
+            HRN_FORK_CHILD_BEGIN()
+            {
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("999-ffffffff"), STRDEF("stanza1"), lockTypeRestore);
+                TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
+
+                // Notify parent that lock has been acquired
+                HRN_FORK_CHILD_NOTIFY_PUT();
+
+                // Wait for parent to allow release lock
+                HRN_FORK_CHILD_NOTIFY_GET();
+
+                lockRelease(true);
+            }
+            HRN_FORK_CHILD_END();
+
+            HRN_FORK_PARENT_BEGIN()
+            {
+                // Wait for child to acquire lock
+                HRN_FORK_PARENT_NOTIFY_GET(0);
+
+                HRN_CFG_LOAD(cfgCmdInfo, argList);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    // {uncrustify_off - indentation}
+                    "["
+                        "{"
+                            "\"archive\":["
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":2,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.6-3\","
+                                    "\"max\":null,"
+                                    "\"min\":null"
+                                "}"
+                            "],"
+                             "\"backup\":[],"
+                             "\"cipher\":\"none\","
+                             "\"db\":["
+                                "{"
+                                    "\"id\":1,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665666,"
+                                    "\"version\":\"9.5\""
+                                "},"
+                                "{"
+                                    "\"id\":2,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665679,"
+                                    "\"version\":\"9.6\""
+                                "}"
+                            "],"
+                            "\"name\":\"stanza1\","
+                            "\"repo\":["
+                                "{"
+                                    "\"cipher\":\"none\","
+                                    "\"key\":1,"
+                                    "\"status\":{"
+                                        "\"code\":2,"
+                                        "\"message\":\"no valid backups\""
+                                    "}"
+                                "}"
+                            "],"
+                            "\"status\":{"
+                                "\"code\":2,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":true}"
+                                "},"
+                                "\"message\":\"no valid backups\""
+                            "}"
+                        "}"
+                    "]",
+                    // {uncrustify_on}
+                    "json - single stanza, no valid backups, restore lock detected");
+
+                HRN_CFG_LOAD(cfgCmdInfo, argListText);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    "stanza: stanza1\n"
+                    "    status: error (no valid backups, restore running)\n"
+                    "    cipher: none\n"
+                    "\n"
+                    "    db (current)\n"
+                    "        wal archive min/max (9.6): none present\n",
+                    "text - single stanza, no valid backups, restore lock detected");
+
+                // Notify child to release lock
+                HRN_FORK_PARENT_NOTIFY_PUT(0);
+            }
+            HRN_FORK_PARENT_END();
+        }
+        HRN_FORK_END();
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("multi-repo - stanza missing on specified repo");
 
         StringList *argList2 = strLstDup(argListTextStanzaOpt);
@@ -339,6 +547,16 @@ testRun(void)
             "stanza: stanza1\n"
             "    status: error (missing stanza path)\n",
             "text - multi-repo, requested stanza missing on selected repo");
+
+        StringList *argList2ProgressOnly = strLstDup(argList2);
+        hrnCfgArgRawZ(argList2ProgressOnly, cfgOptProgressOnly, "y");
+        HRN_CFG_LOAD(cfgCmdInfo, argList2ProgressOnly);
+
+        TEST_RESULT_STR_Z(
+            infoRender(),
+            "stanza: stanza1\n"
+            "    status: error (missing stanza path)\n",
+            "text (progress only) - multi-repo, requested stanza missing on selected repo");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("multi-repo - WAL segment on repo1");
@@ -363,6 +581,17 @@ testRun(void)
             "    db (current)\n"
             "        wal archive min/max (9.6): 000000030000000000000001/000000030000000000000001\n",
             "text - multi-repo, single stanza, one wal segment");
+
+        argList2ProgressOnly = strLstDup(argList2);
+        hrnCfgArgRawZ(argList2ProgressOnly, cfgOptProgressOnly, "y");
+        HRN_CFG_LOAD(cfgCmdInfo, argList2ProgressOnly);
+        // In progress-only mode, the info command skips additional checks,
+        // verifying only the availability of the stanza. The status will be `ok`.
+        TEST_RESULT_STR_Z(
+            infoRender(),
+            "stanza: stanza1\n"
+            "    status: ok\n",
+            "text (progress only) - multi-repo, single stanza, one wal segment");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("coverage for stanzaStatus branches && percent complete null");
@@ -578,13 +807,36 @@ testRun(void)
                             "],"
                             "\"status\":{"
                                 "\"code\":0,"
-                                "\"lock\":{\"backup\":{\"held\":true}},"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":true},"
+                                    "\"restore\":{\"held\":false}"
+                                "},"
                                 "\"message\":\"ok\""
                             "}"
                         "}"
                     "]",
                     // {uncrustify_on}
                     "json - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+
+                HRN_CFG_LOAD(cfgCmdInfo, argListProgressOnly);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    // {uncrustify_off - indentation}
+                    "["
+                        "{"
+                            "\"name\":\"stanza1\","
+                            "\"status\":{"
+                                "\"code\":0,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":true},"
+                                    "\"restore\":{\"held\":false}"
+                                "},"
+                                "\"message\":\"ok\""
+                            "}"
+                        "}"
+                    "]",
+                    // {uncrustify_on}
+                    "json (progress only) - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
 
                 HRN_CFG_LOAD(cfgCmdInfo, argListText);
                 TEST_RESULT_STR_Z(
@@ -611,6 +863,246 @@ testRun(void)
                     "            database size: 25.7MB, database backup size: 25.7MB\n"
                     "            repo1: backup set size: 3MB, backup size: 3KB\n",
                     "text - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+
+                HRN_CFG_LOAD(cfgCmdInfo, argListTextProgressOnly);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    "stanza: stanza1\n"
+                    "    status: ok (backup/expire running)\n",
+                    "text (progress only) - single stanza, valid backup, no priors, no archives in latest DB, backup/expire lock detected");
+
+                // Notify child to release lock
+                HRN_FORK_PARENT_NOTIFY_PUT(0);
+            }
+            HRN_FORK_PARENT_END();
+        }
+        HRN_FORK_END();
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("coverage for restore lock");
+
+        // Execute while a restore lock is held
+        HRN_FORK_BEGIN()
+        {
+            HRN_FORK_CHILD_BEGIN()
+            {
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("777-afafafaf"), STRDEF("stanza1"), lockTypeRestore);
+                TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
+                TEST_RESULT_VOID(
+                    lockWriteDataP(
+                        lockTypeRestore, .percentComplete = VARUINT(4545), .sizeComplete = VARUINT64(1435765),
+                        .size = VARUINT64(3159000)),
+                    "write lock data");
+
+                // Notify parent that lock has been acquired
+                HRN_FORK_CHILD_NOTIFY_PUT();
+
+                // Wait for parent to allow release lock
+                HRN_FORK_CHILD_NOTIFY_GET();
+
+                lockRelease(true);
+            }
+            HRN_FORK_CHILD_END();
+
+            HRN_FORK_PARENT_BEGIN()
+            {
+                // Wait for child to acquire lock
+                HRN_FORK_PARENT_NOTIFY_GET(0);
+
+                HRN_CFG_LOAD(cfgCmdInfo, argList);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    // {uncrustify_off - indentation}
+                    "["
+                        "{"
+                             "\"archive\":["
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":1,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.6-1\","
+                                    "\"max\":\"000000020000000000000003\","
+                                    "\"min\":\"000000010000000000000002\""
+                                "},"
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":2,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.5-2\","
+                                    "\"max\":\"000000010000000000000001\","
+                                    "\"min\":\"000000010000000000000001\""
+                                "},"
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":3,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.6-3\","
+                                    "\"max\":\"000000030000000000000001\","
+                                    "\"min\":\"000000030000000000000001\""
+                                "}"
+                            "],"
+                             "\"backup\":["
+                                "{"
+                                    "\"archive\":{"
+                                        "\"start\":null,"
+                                        "\"stop\":null"
+                                    "},"
+                                    "\"backrest\":{"
+                                        "\"format\":5,"
+                                        "\"version\":\"2.04\""
+                                    "},"
+                                    "\"database\":{"
+                                        "\"id\":1,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"info\":{"
+                                        "\"delta\":26897030,"
+                                        "\"repository\":{"
+                                            "\"delta\":3159,"
+                                            "\"size\":3159776"
+                                        "},"
+                                        "\"size\":26897030"
+                                    "},"
+                                    "\"label\":\"20181116-154756F\","
+                                    "\"prior\":null,"
+                                    "\"reference\":null,"
+                                    "\"timestamp\":{"
+                                        "\"start\":1542383276,"
+                                        "\"stop\":1542383289"
+                                    "},"
+                                    "\"type\":\"full\""
+                                "},"
+                                "{"
+                                    "\"archive\":{"
+                                        "\"start\":\"000000030000000000000001\","
+                                        "\"stop\":\"000000030000000000000001\""
+                                    "},"
+                                    "\"backrest\":{"
+                                        "\"format\":5,"
+                                        "\"version\":\"2.30\""
+                                    "},"
+                                    "\"database\":{"
+                                        "\"id\":3,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"info\":{"
+                                        "\"delta\":26897033,"
+                                        "\"repository\":{"
+                                            "\"delta\":3159,"
+                                            "\"size\":3159776"
+                                        "},"
+                                        "\"size\":26897033"
+                                    "},"
+                                    "\"label\":\"20201116-154900F\","
+                                    "\"prior\":null,"
+                                    "\"reference\":null,"
+                                    "\"timestamp\":{"
+                                        "\"start\":1605541676,"
+                                        "\"stop\":1605541680"
+                                    "},"
+                                    "\"type\":\"full\""
+                                "}"
+                            "],"
+                             "\"cipher\":\"none\","
+                             "\"db\":["
+                                "{"
+                                    "\"id\":1,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665679,"
+                                    "\"version\":\"9.6\""
+                                "},"
+                                "{"
+                                    "\"id\":2,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665666,"
+                                    "\"version\":\"9.5\""
+                                "},"
+                                "{"
+                                    "\"id\":3,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6569239123849665679,"
+                                    "\"version\":\"9.6\""
+                                "}"
+                            "],"
+                            "\"name\":\"stanza1\","
+                            "\"repo\":["
+                                "{"
+                                    "\"cipher\":\"none\","
+                                    "\"key\":1,"
+                                    "\"status\":{"
+                                        "\"code\":0,"
+                                        "\"message\":\"ok\""
+                                    "}"
+                                "}"
+                            "],"
+                            "\"status\":{"
+                                "\"code\":0,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":1435765}"
+                                "},"
+                                "\"message\":\"ok\""
+                            "}"
+                        "}"
+                    "]",
+                    // {uncrustify_on}
+                    "json - single stanza, valid backup, no priors, no archives in latest DB, restore lock detected");
+
+                HRN_CFG_LOAD(cfgCmdInfo, argListProgressOnly);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    // {uncrustify_off - indentation}
+                    "["
+                        "{"
+                            "\"name\":\"stanza1\","
+                            "\"status\":{"
+                                "\"code\":0,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":1435765}"
+                                "},"
+                                "\"message\":\"ok\""
+                            "}"
+                        "}"
+                    "]",
+                    // {uncrustify_on}
+                    "json (progress only) - single stanza, valid backup, no priors, no archives in latest DB, restore lock detected");
+
+                HRN_CFG_LOAD(cfgCmdInfo, argListText);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    "stanza: stanza1\n"
+                    "    status: ok (restore running - 45.45% complete)\n"
+                    "    cipher: none\n"
+                    "\n"
+                    "    db (prior)\n"
+                    "        wal archive min/max (9.5): 000000010000000000000001/000000010000000000000001\n"
+                    "\n"
+                    "    db (current)\n"
+                    "        wal archive min/max (9.6): 000000010000000000000002/000000030000000000000001\n"
+                    "\n"
+                    "        full backup: 20181116-154756F\n"
+                    "            timestamp start/stop: 2018-11-16 15:47:56+00 / 2018-11-16 15:48:09+00\n"
+                    "            wal start/stop: n/a\n"
+                    "            database size: 25.7MB, database backup size: 25.7MB\n"
+                    "            repo1: backup set size: 3MB, backup size: 3KB\n"
+                    "\n"
+                    "        full backup: 20201116-154900F\n"
+                    "            timestamp start/stop: 2020-11-16 15:47:56+00 / 2020-11-16 15:48:00+00\n"
+                    "            wal start/stop: 000000030000000000000001 / 000000030000000000000001\n"
+                    "            database size: 25.7MB, database backup size: 25.7MB\n"
+                    "            repo1: backup set size: 3MB, backup size: 3KB\n",
+                    "text - single stanza, valid backup, no priors, no archives in latest DB, restore lock detected");
+
+                HRN_CFG_LOAD(cfgCmdInfo, argListTextProgressOnly);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    "stanza: stanza1\n"
+                    "    status: ok (restore running - 45.45% complete)\n",
+                    "text (progress only) - single stanza, valid backup, no priors, no archives in latest DB, restore lock detected");
 
                 // Notify child to release lock
                 HRN_FORK_PARENT_NOTIFY_PUT(0);
@@ -859,6 +1351,30 @@ testRun(void)
             ",\"db-version\":\"9.4\"}\n",
             .comment = "put backup info to file - stanza2, repo1");
 
+        HRN_INFO_PUT(
+            storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza4/" INFO_ARCHIVE_FILE,
+            "[db]\n"
+            "db-id=1\n"
+            "db-system-id=6625633699176220261\n"
+            "db-version=\"9.4\"\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-id\":6625633699176220261,\"db-version\":\"9.4\"}\n",
+            .comment = "put archive info to file - stanza4, repo1");
+        HRN_INFO_PUT(
+            storageTest, TEST_PATH "/repo/" STORAGE_PATH_BACKUP "/stanza4/" INFO_BACKUP_FILE,
+            "[db]\n"
+            "db-catalog-version=201409291\n"
+            "db-control-version=942\n"
+            "db-id=1\n"
+            "db-system-id=6625633699176220261\n"
+            "db-version=\"9.4\"\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-catalog-version\":201409291,\"db-control-version\":942,\"db-system-id\":6625633699176220261"
+            ",\"db-version\":\"9.4\"}\n",
+            .comment = "put backup info to file - stanza4, repo1");
+
         // Write encrypted info files to encrypted repo2
         HRN_INFO_PUT(
             storageTest, TEST_PATH "/repo2/" STORAGE_PATH_ARCHIVE "/stanza1/" INFO_ARCHIVE_FILE,
@@ -1033,6 +1549,12 @@ testRun(void)
         StringList *argListMultiRepoJson = strLstDup(argListMultiRepo);
         hrnCfgArgRawZ(argListMultiRepoJson, cfgOptOutput, "json");
 
+        StringList *argListMultiRepoProgressOnly = strLstDup(argListMultiRepo);
+        hrnCfgArgRawZ(argListMultiRepoProgressOnly, cfgOptProgressOnly, "y");
+
+        StringList *argListMultiRepoJsonProgressOnly = strLstDup(argListMultiRepoJson);
+        hrnCfgArgRawZ(argListMultiRepoJsonProgressOnly, cfgOptProgressOnly, "y");
+
         HRN_FORK_BEGIN()
         {
             HRN_FORK_CHILD_BEGIN()
@@ -1055,10 +1577,31 @@ testRun(void)
             }
             HRN_FORK_CHILD_END();
 
+            HRN_FORK_CHILD_BEGIN()
+            {
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("999-ffffffff"), STRDEF("stanza4"), lockTypeRestore);
+                TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
+                TEST_RESULT_VOID(
+                    lockWriteDataP(
+                        lockTypeRestore, .percentComplete = VARUINT(1234), .sizeComplete = VARUINT64(389820),
+                        .size = VARUINT64(3159000)),
+                    "write lock data");
+
+                // Notify parent that lock has been acquired
+                HRN_FORK_CHILD_NOTIFY_PUT();
+
+                // Wait for parent to allow release lock
+                HRN_FORK_CHILD_NOTIFY_GET();
+
+                lockRelease(true);
+            }
+            HRN_FORK_CHILD_END();
+
             HRN_FORK_PARENT_BEGIN()
             {
                 // Wait for child to acquire lock
                 HRN_FORK_PARENT_NOTIFY_GET(0);
+                HRN_FORK_PARENT_NOTIFY_GET(1);
 
                 HRN_CFG_LOAD(cfgCmdInfo, argListMultiRepoJson);
                 TEST_RESULT_STR_Z(
@@ -1336,7 +1879,10 @@ testRun(void)
                             "],"
                             "\"status\":{"
                                 "\"code\":0,"
-                                "\"lock\":{\"backup\":{\"held\":false}},"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":false}"
+                                "},"
                                 "\"message\":\"ok\""
                             "}"
                         "},"
@@ -1383,7 +1929,10 @@ testRun(void)
                             "],"
                             "\"status\":{"
                                 "\"code\":4,"
-                                "\"lock\":{\"backup\":{\"held\":true,\"size\":3159000,\"size-cplt\":1435765}},"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":true,\"size\":3159000,\"size-cplt\":1435765},"
+                                    "\"restore\":{\"held\":false}"
+                                "},"
                                 "\"message\":\"different across repos\""
                             "}"
                         "},"
@@ -1461,7 +2010,60 @@ testRun(void)
                             "],"
                             "\"status\":{"
                                 "\"code\":4,"
-                                "\"lock\":{\"backup\":{\"held\":false}},"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":false}"
+                                "},"
+                                "\"message\":\"different across repos\""
+                            "}"
+                        "},"
+                        "{"
+                             "\"archive\":["
+                                "{"
+                                    "\"database\":{"
+                                        "\"id\":1,"
+                                        "\"repo-key\":1"
+                                    "},"
+                                    "\"id\":\"9.4-1\","
+                                    "\"max\":null,"
+                                    "\"min\":null"
+                                "}"
+                            "],"
+                             "\"backup\":[],"
+                             "\"cipher\":\"mixed\","
+                             "\"db\":["
+                                "{"
+                                    "\"id\":1,"
+                                    "\"repo-key\":1,"
+                                    "\"system-id\":6625633699176220261,"
+                                    "\"version\":\"9.4\""
+                                "}"
+                            "],"
+                            "\"name\":\"stanza4\","
+                            "\"repo\":["
+                                "{"
+                                    "\"cipher\":\"none\","
+                                    "\"key\":1,"
+                                    "\"status\":{"
+                                        "\"code\":2,"
+                                        "\"message\":\"no valid backups\""
+                                    "}"
+                                "},"
+                                "{"
+                                    "\"cipher\":\"aes-256-cbc\","
+                                    "\"key\":2,"
+                                    "\"status\":{"
+                                        "\"code\":1,"
+                                        "\"message\":\"missing stanza path\""
+                                    "}"
+                                "}"
+                            "],"
+                            "\"status\":{"
+                                "\"code\":4,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":389820}"
+                                "},"
                                 "\"message\":\"different across repos\""
                             "}"
                         "}"
@@ -1469,8 +2071,62 @@ testRun(void)
                     // {uncrustify_on}
                     "json - multiple stanzas, some with valid backups, archives in latest DB, backup lock held on one stanza");
 
+                HRN_CFG_LOAD(cfgCmdInfo, argListMultiRepoJsonProgressOnly);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    // {uncrustify_off - indentation}
+                    "["
+                        "{"
+                            "\"name\":\"stanza1\","
+                            "\"status\":{"
+                                "\"code\":0,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":false}"
+                                "},"
+                                "\"message\":\"ok\""
+                            "}"
+                        "},"
+                        "{"
+                            "\"name\":\"stanza2\","
+                            "\"status\":{"
+                                "\"code\":0,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":true,\"size\":3159000,\"size-cplt\":1435765},"
+                                    "\"restore\":{\"held\":false}"
+                                "},"
+                                "\"message\":\"ok\""
+                            "}"
+                        "},"
+                        "{"
+                            "\"name\":\"stanza3\","
+                            "\"status\":{"
+                                "\"code\":0,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":false}"
+                                "},"
+                                "\"message\":\"ok\""
+                            "}"
+                        "},"
+                        "{"
+                            "\"name\":\"stanza4\","
+                            "\"status\":{"
+                                "\"code\":0,"
+                                "\"lock\":{"
+                                    "\"backup\":{\"held\":false},"
+                                    "\"restore\":{\"held\":true,\"size\":3159000,\"size-cplt\":389820}"
+                                "},"
+                                "\"message\":\"ok\""
+                            "}"
+                        "}"
+                    "]",
+                    // {uncrustify_on}
+                    "json (progress only) - multiple stanzas, some with valid backups, archives in latest DB, backup lock held on one stanza");
+
                 // Notify child to release lock
                 HRN_FORK_PARENT_NOTIFY_PUT(0);
+                HRN_FORK_PARENT_NOTIFY_PUT(1);
             }
             HRN_FORK_PARENT_END();
         }
@@ -1494,10 +2150,27 @@ testRun(void)
             }
             HRN_FORK_CHILD_END();
 
+            HRN_FORK_CHILD_BEGIN()
+            {
+                lockInit(cfgOptionStr(cfgOptLockPath), STRDEF("999-ffffffff"), STRDEF("stanza4"), lockTypeRestore);
+                TEST_RESULT_INT_NE(lockAcquireP(), -1, "create restore lock");
+                TEST_RESULT_VOID(lockWriteDataP(lockTypeRestore, .percentComplete = VARUINT(1234)), "write lock data");
+
+                // Notify parent that lock has been acquired
+                HRN_FORK_CHILD_NOTIFY_PUT();
+
+                // Wait for parent to allow release lock
+                HRN_FORK_CHILD_NOTIFY_GET();
+
+                lockRelease(true);
+            }
+            HRN_FORK_CHILD_END();
+
             HRN_FORK_PARENT_BEGIN()
             {
                 // Wait for child to acquire lock
                 HRN_FORK_PARENT_NOTIFY_GET(0);
+                HRN_FORK_PARENT_NOTIFY_GET(1);
 
                 HRN_CFG_LOAD(cfgCmdInfo, argListMultiRepo);
                 TEST_RESULT_STR_Z(
@@ -1580,15 +2253,47 @@ testRun(void)
                     "            timestamp start/stop: 2020-11-10 10:00:00+00 / 2020-11-10 10:00:02+00\n"
                     "            wal start/stop: 000000010000000000000001 / 000000010000000000000002\n"
                     "            database size: 25.7MB, database backup size: 25.7MB\n"
-                    "            repo2: backup set size: 3MB, backup size: 3KB\n",
+                    "            repo2: backup set size: 3MB, backup size: 3KB\n"
+                    "\n"
+                    "stanza: stanza4\n"
+                    "    status: mixed (restore running - 12.34% complete)\n"
+                    "        repo1: error (no valid backups)\n"
+                    "        repo2: error (missing stanza path)\n"
+                    "    cipher: mixed\n"
+                    "        repo1: none\n"
+                    "        repo2: aes-256-cbc\n"
+                    "\n"
+                    "    db (current)\n"
+                    "        wal archive min/max (9.4): none present\n",
                     "text - multiple stanzas, multi-repo with valid backups, backup lock held on one stanza");
+
+                HRN_CFG_LOAD(cfgCmdInfo, argListMultiRepoProgressOnly);
+                TEST_RESULT_STR_Z(
+                    infoRender(),
+                    "stanza: stanza1\n"
+                    "    status: ok\n"
+                    "\n"
+                    "stanza: stanza2\n"
+                    "    status: ok (backup/expire running - 55.55% complete)\n"
+                    "\n"
+                    "stanza: stanza3\n"
+                    "    status: ok\n"
+                    "\n"
+                    "stanza: stanza4\n"
+                    "    status: ok (restore running - 12.34% complete)\n",
+                    "text (progress only) - multiple stanzas, multi-repo with valid backups, backup lock held on one stanza");
 
                 // Notify child to release lock
                 HRN_FORK_PARENT_NOTIFY_PUT(0);
+                HRN_FORK_PARENT_NOTIFY_PUT(1);
             }
             HRN_FORK_PARENT_END();
         }
         HRN_FORK_END();
+
+        // Cleanup
+        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza4", .recurse = true);
+        HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo/" STORAGE_PATH_BACKUP "/stanza4", .recurse = true);
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("multi-repo: stanza exists but requested backup does not");
@@ -1640,7 +2345,10 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":6,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"requested backup not found\""
                     "}"
                 "}"
@@ -1792,7 +2500,10 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":0,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"ok\""
                     "}"
                 "}"
@@ -2007,7 +2718,10 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":0,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"ok\""
                     "}"
                 "}"
@@ -2186,7 +2900,10 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":0,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"ok\""
                     "}"
                 "}"
@@ -2359,7 +3076,10 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":0,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"ok\""
                     "}"
                 "}"
@@ -2465,7 +3185,10 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":4,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"different across repos\""
                     "}"
                 "}"
@@ -2968,7 +3691,10 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":5,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"database mismatch across repos\""
                     "}"
                 "}"
@@ -3353,6 +4079,16 @@ testRun(void)
             "    cipher: none\n",
             "text - invalid stanza");
 
+        StringList *argListProgressOnly = strLstDup(argList);
+        hrnCfgArgRawZ(argListProgressOnly, cfgOptProgressOnly, "y");
+        HRN_CFG_LOAD(cfgCmdInfo, argListProgressOnly);
+
+        TEST_RESULT_STR_Z(
+            infoRender(),
+            "stanza: [invalid]\n"
+            "    status: error (other)\n",
+            "text (progress only) - invalid stanza");
+
         hrnCfgArgRawZ(argList, cfgOptOutput, "json");
         HRN_CFG_LOAD(cfgCmdInfo, argList);
 
@@ -3379,13 +4115,38 @@ testRun(void)
                     "],"
                     "\"status\":{"
                         "\"code\":99,"
-                        "\"lock\":{\"backup\":{\"held\":false}},"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
                         "\"message\":\"other\""
                     "}"
                 "}"
             "]",
             // {uncrustify_on}
             "json - invalid stanza");
+
+        hrnCfgArgRawZ(argListProgressOnly, cfgOptOutput, "json");
+        HRN_CFG_LOAD(cfgCmdInfo, argListProgressOnly);
+
+        TEST_RESULT_STR_Z(
+            infoRender(),
+            // {uncrustify_off - indentation}
+            "["
+                "{"
+                    "\"name\":\"[invalid]\","
+                    "\"status\":{"
+                        "\"code\":99,"
+                        "\"lock\":{"
+                            "\"backup\":{\"held\":false},"
+                            "\"restore\":{\"held\":false}"
+                        "},"
+                        "\"message\":\"other\""
+                    "}"
+                "}"
+            "]",
+            // {uncrustify_on}
+            "json (progress only) - invalid stanza");
 
         argList = strLstNew();
         hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/repo2");
@@ -3400,6 +4161,16 @@ testRun(void)
             "    cipher: none\n",
             "text - stanza requested");
 
+        argListProgressOnly = strLstDup(argList);
+        hrnCfgArgRawZ(argListProgressOnly, cfgOptProgressOnly, "y");
+        HRN_CFG_LOAD(cfgCmdInfo, argListProgressOnly);
+
+        TEST_RESULT_STR_Z(
+            infoRender(),
+            "stanza: stanza1\n"
+            "    status: error (other)\n",
+            "text (progress only) - stanza requested");
+
         hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo");
         HRN_CFG_LOAD(cfgCmdInfo, argList);
 
@@ -3413,6 +4184,15 @@ testRun(void)
             "        repo2: error (missing stanza path)\n"
             "    cipher: none\n",
             "text - stanza repo structure exists");
+
+        hrnCfgArgKeyRawZ(argListProgressOnly, cfgOptRepoPath, 2, TEST_PATH "/repo");
+        HRN_CFG_LOAD(cfgCmdInfo, argListProgressOnly);
+
+        TEST_RESULT_STR_Z(
+            infoRender(),
+            "stanza: stanza1\n"
+            "    status: error (different across repos)\n",
+            "text (progress only) - stanza repo structure exists");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();
