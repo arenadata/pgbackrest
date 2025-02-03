@@ -94,13 +94,13 @@ overrideXLogRecordBody(XLogRecordGPDB7 *const record)
     if (record->xl_tot_len - SizeOfXLogRecordGPDB7 <= UINT8_MAX + 2)
     {
         *((uint8_t *) record + SizeOfXLogRecordGPDB7) = XLR_BLOCK_ID_DATA_SHORT;
-        ASSERT(record->xl_tot_len - SizeOfXLogRecordGPDB7 - 2 <= UINT8_MAX);
+        // 1 byte is the size of the block id and another 1 byte is the size of the short main data size.
         *((uint8_t *) record + SizeOfXLogRecordGPDB7 + 1) = (uint8_t) (record->xl_tot_len - SizeOfXLogRecordGPDB7 - 2);
     }
     else
     {
         *((uint8_t *) record + SizeOfXLogRecordGPDB7) = XLR_BLOCK_ID_DATA_LONG;
-        ASSERT(record->xl_tot_len - SizeOfXLogRecordGPDB7 - 5 <= UINT32_MAX);
+        // 1 byte is the size of the block id and another 4 bytes is the size of the long main data size.
         *((uint32_t *) ((uint8_t *) record + SizeOfXLogRecordGPDB7 + 1)) = (uint32_t) (record->xl_tot_len - SizeOfXLogRecordGPDB7 - 5);
     }
 }

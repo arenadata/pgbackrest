@@ -926,7 +926,8 @@ testRun(void)
                 filter, wal, bufSize(wal), bufSize(wal)), ConfigError, "The following RefFileNodes cannot be filtered out because"
             " they are in the same XLogRecord as the RefFileNode that"
             " passes the filter."
-            " [{20000, 20000, 20000}, {30000, 30000, 30000}]");
+            " [{20000, 20000, 20000}, {30000, 30000, 30000}]."
+            "\nHINT: Add these RelFileNodes to your filter.");
         MEM_CONTEXT_TEMP_END();
     }
 
