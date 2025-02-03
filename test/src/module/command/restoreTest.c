@@ -3660,7 +3660,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptFork, "GPDB");
         HRN_CFG_LOAD(cfgCmdRestore, argList);
 
-        TEST_RESULT_VOID(cmdRestore(), "restore");
+        TEST_RESULT_VOID(hrnCmdRestore(), "restore");
 
         // base/1/40044* are filtered out
         // base/2/11976* are restored
