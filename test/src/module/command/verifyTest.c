@@ -3496,7 +3496,7 @@ testRun(void)
             zNewFmt(STORAGE_REPO_ARCHIVE "/11-2/0000000500000009/000000050000000900000006-%s", walBufferSha1), walBuffer,
             .comment = "valid WAL");
 
-        // Write manifests for full backup containing unreadable file
+        // Write manifest for full backup using 2 WAL files
         String *manifestContent = strNewFmt(
             "[backup]\n"
             "backup-archive-start=\"000000050000000800000003\"\n"
@@ -3556,7 +3556,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptSet, "20181119-153400F");
         HRN_CFG_LOAD(cfgCmdVerify, argList);
 
-        // Write invalid manifests for backup
+        // Write invalid manifest for backup
         manifestContent = strNewZ(
             "[backrest]\n"
             "backrest-format=1234\n");

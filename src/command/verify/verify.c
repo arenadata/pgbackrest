@@ -790,8 +790,8 @@ static void
 verifyCollectBackupRange(VerifyJobData *const jobData, const String *const backupLabel)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM_P(VOID, jobData);  // The result set for the archive Id being processed
-        FUNCTION_TEST_PARAM(STRING, backupLabel);                  // Sorted (ascending) list of WAL files in a timeline
+        FUNCTION_TEST_PARAM_P(VOID, jobData);       // Pointer to the job data
+        FUNCTION_TEST_PARAM(STRING, backupLabel);   // Label of a backup to use for WAL filtering
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
@@ -816,6 +816,7 @@ verifyCollectBackupRange(VerifyJobData *const jobData, const String *const backu
         }
         else
         {
+            // If couldn't read the manifest, range is NULL and no archives will be checked.
             jobData->archiveStart = NULL;
             jobData->archiveStop = NULL;
         }
@@ -1928,7 +1929,7 @@ verifyProcess(const bool verboseText)
             else
                 jobData.archiveIdList = strLstNew();
 
-            // If --set option is specified, enable archive filtering
+            // Enable archive filtering if --set option is specified
             if (backupLabel != NULL)
             {
                 verifyCollectBackupRange(&jobData, backupLabel);
