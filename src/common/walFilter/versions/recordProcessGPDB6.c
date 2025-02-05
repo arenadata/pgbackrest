@@ -433,10 +433,8 @@ filterRecordGPDB6(XLogRecordBase *const recordBase, const PgPageSize pageSize)
     XLogRecordGPDB6 *const record = (XLogRecordGPDB6 *const) recordBase;
 
     const RelFileNode *const node = getRelFileNode(record);
-    if (!node)
-        return;
 
-    if (isRelationNeeded(node->dbNode, node->spcNode, node->relNode))
+    if (node == NULL || isRelationNeeded(node->dbNode, node->spcNode, node->relNode))
         return;
 
     record->xl_rmid = RM_XLOG_ID;
