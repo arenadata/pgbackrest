@@ -1930,7 +1930,7 @@ verifyProcess(const bool verboseText)
                 jobData.archiveIdList = strLstNew();
 
             // Enable archive filtering if --set option is specified
-            if (backupLabel != NULL)
+            if (!backupLabelInvalid && backupLabel != NULL)
             {
                 verifyCollectBackupRange(&jobData, backupLabel);
                 jobData.enableArchiveFilter = true;
