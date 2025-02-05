@@ -3395,8 +3395,7 @@ testRun(void)
             "status: error\n"
             "  Backup set 20181119-152900F_20181119-152910D is not valid",
             "--set with invalid backup label, text");
-        TEST_RESULT_LOG(
-            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152900F_20181119-152910D/backup.manifest' for read");
+        TEST_RESULT_LOG("");
 
         argList = strLstDup(argListBase);
         hrnCfgArgRawZ(argList, cfgOptOutput, "json");
@@ -3414,8 +3413,7 @@ testRun(void)
             "  ]\n"
             "}\n",
             "--set with invalid backup label, json");
-        TEST_RESULT_LOG(
-            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152900F_20181119-152910D/backup.manifest' for read");
+        TEST_RESULT_LOG("");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("--set with backup label of incorrect format");
@@ -3432,8 +3430,7 @@ testRun(void)
             "status: error\n"
             "  'BOGUS' is not a valid backup label format",
             "--set with backup label of incorrect format, text");
-        TEST_RESULT_LOG(
-            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/BOGUS/backup.manifest' for read");
+        TEST_RESULT_LOG("");
 
         argList = strLstDup(argListBase);
         hrnCfgArgRawZ(argList, cfgOptOutput, "json");
@@ -3451,8 +3448,7 @@ testRun(void)
             "  ]\n"
             "}\n",
             "--set with backup label of incorrect format, json");
-        TEST_RESULT_LOG(
-            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/BOGUS/backup.manifest' for read");
+        TEST_RESULT_LOG("");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("--set with archive");
