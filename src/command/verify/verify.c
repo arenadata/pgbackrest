@@ -801,7 +801,13 @@ verifyCollectBackupRange(VerifyJobData *const jobData, const String *const backu
         const String *const fileName = strNewFmt(STORAGE_REPO_BACKUP "/%s/" BACKUP_MANIFEST_FILE, strZ(backupLabel));
 
         // Get the main manifest file
-        const VerifyInfoFile verifyManifestInfo = verifyInfoFile(fileName, true, jobData->manifestCipherPass);
+        VerifyInfoFile verifyManifestInfo = verifyInfoFile(fileName, true, jobData->manifestCipherPass);
+        if (verifyManifestInfo.errorCode != 0)
+        {
+            // Attempt to read manifest copy instead
+            verifyManifestInfo = verifyInfoFile(strNewFmt("%s%s", strZ(fileName), INFO_COPY_EXT),
+                                                true, jobData->manifestCipherPass);
+        }
 
         // If the main file did not error, then save WAL range of the backup
         if (verifyManifestInfo.errorCode == 0)
