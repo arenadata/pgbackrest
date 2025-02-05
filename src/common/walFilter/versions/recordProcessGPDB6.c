@@ -435,7 +435,9 @@ filterRecordGPDB6(XLogRecordBase *const recordBase, const PgPageSize pageSize)
     const RelFileNode *const node = getRelFileNode(record);
 
     if (node == NULL || isRelationNeeded(node->dbNode, node->spcNode, node->relNode))
+    {
         return;
+    }
 
     record->xl_rmid = RM_XLOG_ID;
     // Save 4 least significant bits which represent backup blocks flags.
