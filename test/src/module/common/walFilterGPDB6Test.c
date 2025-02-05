@@ -77,7 +77,7 @@ buildWal(Buffer *wal, XRecordInfo *records, size_t count, WalFlags flags, buildW
     if (param.pageSize == 0)
         param.pageSize = DEFAULT_GDPB_XLOG_PAGE_SIZE;
 
-    for (size_t i = 0; i < count; ++i)
+    for (size_t i = 0; i < count; i++)
     {
         XLogRecordBase *record = createXRecord(
             records[i].rmid, records[i].info, .body_size = records[i].body_size, .body = records[i].body);

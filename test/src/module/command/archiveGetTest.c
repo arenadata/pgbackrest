@@ -1225,6 +1225,7 @@ testRun(void)
             storageRepoWrite(), STORAGE_REPO_ARCHIVE "/9.4-1/000000010000000100000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         TEST_TITLE("pass filter option");
+
         TEST_RESULT_VOID(cmdArchiveGet(), "archive-get");
 
         TEST_RESULT_LOG("P00   INFO: found 000000010000000100000001 in the repo1: 9.4-1 archive");

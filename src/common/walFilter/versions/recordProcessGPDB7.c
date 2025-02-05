@@ -5,8 +5,6 @@
 #include "definitionsGPDB7.h"
 #include "recordProcessGPDB7.h"
 
-#define RM_MAX_ID 24
-
 enum
 {
     RM7_SMGR_ID = 2,
@@ -16,7 +14,8 @@ enum
     RM7_GIST_ID = 14,
     RM7_SEQ_ID = 15,
     RM7_BITMAP_ID = 22,
-    RM7_APPEND_ONLY_ID = 24
+    RM7_APPEND_ONLY_ID = 24,
+    RM_MAX_ID = RM7_APPEND_ONLY_ID
 };
 
 /*
@@ -50,9 +49,9 @@ validXLogRecordHeaderGPDB7(const XLogRecordBase *recordBase, __attribute__((unus
 {
     const XLogRecordGPDB7 *const record = (const XLogRecordGPDB7 *const) recordBase;
 
-    if (record->xl_tot_len < SizeOfXLogRecordGPDB7)
+    if (record->xl_tot_len < sizeof(XLogRecordGPDB7))
     {
-        THROW_FMT(FormatError, "invalid record length: wanted %u, got %u", (uint32) SizeOfXLogRecordGPDB7, record->xl_tot_len);
+        THROW_FMT(FormatError, "invalid record length: wanted %u, got %u", (uint32) sizeof(XLogRecordGPDB7), record->xl_tot_len);
     }
     if (record->xl_rmid > RM_MAX_ID)
     {
@@ -74,7 +73,7 @@ validXLogRecordGPDB7(const XLogRecordBase *const recordBase, __attribute__((unus
 FN_EXTERN uint32_t
 xLogRecordHeaderSizeGPDB7(void)
 {
-    return SizeOfXLogRecordGPDB7;
+    return sizeof(XLogRecordGPDB7);
 }
 
 FN_EXTERN uint32_t
@@ -206,12 +205,12 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
         FUNCTION_LOG_PARAM(INT, (int) pageSize);
     FUNCTION_LOG_END();
 
-    uint32_t remaining = record->xl_tot_len - (uint32_t) SizeOfXLogRecordGPDB7;
+    uint32_t remaining = record->xl_tot_len - (uint32_t) sizeof(XLogRecordGPDB7);
     /* Decode the headers */
     uint32_t datatotal = 0;
     int maxBlockId = -1;
     char *ptr = (char *) record;
-    ptr += SizeOfXLogRecordGPDB7;
+    ptr += sizeof(XLogRecordGPDB7);
 
     RelFileNode *relFileNode = NULL;
     List *result = lstNewP(sizeof(RelFileNode));
@@ -388,7 +387,7 @@ filterRecordGPDB7(XLogRecordBase *const recordBase, const PgPageSize pageSize)
     bool hasPassFilter = false;
     bool hasNotPassFilter = false;
     List *notPassFilterList = lstNewP(sizeof(RelFileNode));
-    for (uint32_t i = 0; i < lstSize(nodes); ++i)
+    for (uint32_t i = 0; i < lstSize(nodes); i++)
     {
         const RelFileNode *const relFileNode = lstGet(nodes, i);
         if (isRelationNeeded(relFileNode->dbNode, relFileNode->spcNode, relFileNode->relNode))
@@ -425,9 +424,7 @@ filterRecordGPDB7(XLogRecordBase *const recordBase, const PgPageSize pageSize)
     }
     lstFree(notPassFilterList);
     if (hasPassFilter)
-    {
         goto end;
-    }
     ASSERT(hasNotPassFilter);
 
     overrideXLogRecordBody(record);

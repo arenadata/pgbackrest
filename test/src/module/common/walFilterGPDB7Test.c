@@ -75,7 +75,7 @@ buildWal(Buffer *wal, XRecordInfo *records, size_t count, WalFlags flags, buildW
     if (param.pageSize == 0)
         param.pageSize = DEFAULT_GDPB_XLOG_PAGE_SIZE;
 
-    for (size_t i = 0; i < count; ++i)
+    for (size_t i = 0; i < count; i++)
     {
         XLogRecordBase *record = NULL;
         if (records[i].main_data)
@@ -214,7 +214,7 @@ testRun(void)
             record = createXRecord(
                 RM7_XACT_ID,
                 XLOG_XACT_COMMIT,
-                .main_data_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB7 - 24);
+                .main_data_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - sizeof(XLogRecordGPDB7) - 24);
             insertXRecord(wal1, record, NO_FLAGS);
 
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .main_data_size = 100);
@@ -301,7 +301,7 @@ testRun(void)
         record = createXRecord(
             RM_XLOG_ID,
             XLOG_NOOP,
-            .main_data_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB7 - 1 - 4 - 16);
+            .main_data_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - sizeof(XLogRecordGPDB7) - 1 - 4 - 16);
         insertXRecord(wal2, record, NO_FLAGS);
         record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .main_data_size = 100);
         insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 1);
@@ -1072,7 +1072,7 @@ testRun(void)
             record = createXRecord(
                 RM7_XACT_ID,
                 XLOG_XACT_COMMIT,
-                .main_data_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB7 - 16);
+                .main_data_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - sizeof(XLogRecordGPDB7) - 16);
             insertXRecord(wal1, record, NO_FLAGS);
 
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .backupBlocks = backupBlocks);
@@ -1153,7 +1153,7 @@ testRun(void)
         record = createXRecord(
             RM_XLOG_ID,
             XLOG_NOOP,
-            .main_data_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB7 - 1 - 4 - 24);
+            .main_data_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - sizeof(XLogRecordGPDB7) - 1 - 4 - 24);
         insertXRecord(wal2, record, NO_FLAGS);
         record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .backupBlocks = backupBlocks);
         insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 1);
@@ -1163,7 +1163,7 @@ testRun(void)
         record = createXRecord(
             RM_XLOG_ID,
             XLOG_NOOP,
-            .main_data_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB7 - 1 - 4 - 24);
+            .main_data_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - sizeof(XLogRecordGPDB7) - 1 - 4 - 24);
         insertXRecord(wal2_expected, record, NO_FLAGS);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .backupBlocks = backupBlocks);
         overrideXLogRecordBody((XLogRecordGPDB7 *) record);
