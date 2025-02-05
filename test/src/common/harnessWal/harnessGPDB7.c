@@ -20,7 +20,7 @@
 XLogRecordBase *
 hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
 {
-    uint32_t recordSize = sizeof(XLogRecordGPDB7);
+    size_t recordSize = sizeof(XLogRecordGPDB7);
 
     XLogRecordGPDB7 *record = memNew(recordSize);
     *record = (XLogRecordGPDB7){
@@ -120,7 +120,8 @@ hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
     else
         memcpy((uint8_t *) record + offset, param.main_data, param.main_data_size);
 
-    record->xl_tot_len = recordSize;
+    ASSERT(recordSize <= UINT32_MAX);
+    record->xl_tot_len = (uint32_t) recordSize;
     if (param.xl_crc == 0)
         record->xl_crc = xLogRecordChecksumGPDB7(record);
     else
