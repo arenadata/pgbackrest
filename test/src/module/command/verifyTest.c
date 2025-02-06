@@ -3577,6 +3577,7 @@ testRun(void)
             "--set with broken backup\n");
         TEST_RESULT_LOG(
             "P00 DETAIL: expected format 5 but found 1234\n"
+            "P00 DETAIL: expected format 5 but found 1234\n"
             "P00 DETAIL: path '11-2/0000000500000007' does not contain any valid WAL to be processed\n"
             "P00 DETAIL: path '11-2/0000000500000008' does not contain any valid WAL to be processed\n"
             "P00 DETAIL: path '11-2/0000000500000009' does not contain any valid WAL to be processed\n"
