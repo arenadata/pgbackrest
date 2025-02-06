@@ -75,6 +75,18 @@ _Static_assert(
     offsetof(XLogRecordGPDB7, xl_info) / 8 == offsetof(XLogRecordGPDB7, xl_rmid) / 8,
     "The xl_info and xl_rmid fields are in different 8 byte chunks.");
 
+typedef struct XLogRecordDataHeaderShort
+{
+    uint8 id;                   /* XLR_BLOCK_ID_DATA_SHORT */
+    uint8 data_length;          /* number of payload bytes */
+} __attribute__((packed)) XLogRecordDataHeaderShort;
+
+typedef struct XLogRecordDataHeaderLong
+{
+    uint8 id;                   /* XLR_BLOCK_ID_DATA_LONG */
+    uint32 data_length;         /* number of payload bytes */
+} __attribute__((packed)) XLogRecordDataHeaderLong;
+
 FN_INLINE_ALWAYS pg_crc32
 xLogRecordChecksumGPDB7(const XLogRecordGPDB7 *const record)
 {
@@ -85,25 +97,6 @@ xLogRecordChecksumGPDB7(const XLogRecordGPDB7 *const record)
     /* include the record header last */
     crc = crc32cComp(crc, (unsigned char *) record, offsetof(XLogRecordGPDB7, xl_crc));
     return crc32cFinish(crc);
-}
-
-FN_INLINE_ALWAYS void
-overrideXLogRecordBody(XLogRecordGPDB7 *const record)
-{
-    if (record->xl_tot_len - sizeof(XLogRecordGPDB7) <= UINT8_MAX + 2)
-    {
-        *((uint8_t *) record + sizeof(XLogRecordGPDB7)) = XLR_BLOCK_ID_DATA_SHORT;
-        // 1 byte is the size of the block id and another 1 byte is the size of the short main data size.
-        *((uint8_t *) record + sizeof(XLogRecordGPDB7) + 1) =
-            (uint8_t) (record->xl_tot_len - sizeof(XLogRecordGPDB7) - sizeof(uint8) - sizeof(uint8_t));
-    }
-    else
-    {
-        *((uint8_t *) record + sizeof(XLogRecordGPDB7)) = XLR_BLOCK_ID_DATA_LONG;
-        // 1 byte is the size of the block id and another 4 bytes is the size of the long main data size.
-        *((uint32_t *) ((uint8_t *) record + sizeof(XLogRecordGPDB7) + 1)) =
-            (uint32_t) (record->xl_tot_len - sizeof(XLogRecordGPDB7) - sizeof(uint8_t) - sizeof(uint32_t));
-    }
 }
 
 #endif // PGBACKREST_DEFINITIONSGPDB7_H

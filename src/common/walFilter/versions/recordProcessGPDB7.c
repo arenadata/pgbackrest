@@ -205,9 +205,9 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
         FUNCTION_LOG_PARAM(INT, (int) pageSize);
     FUNCTION_LOG_END();
 
-    uint32_t remaining = record->xl_tot_len - (uint32_t) sizeof(XLogRecordGPDB7);
+    size_t remaining = record->xl_tot_len - sizeof(XLogRecordGPDB7);
     /* Decode the headers */
-    uint32_t datatotal = 0;
+    size_t datatotal = 0;
     int maxBlockId = -1;
     char *ptr = (char *) record;
     ptr += sizeof(XLogRecordGPDB7);
@@ -218,7 +218,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
     while (remaining > datatotal)
     {
         uint8 block_id;
-        COPY_HEADER_FIELD(&block_id, sizeof(uint8));
+        COPY_HEADER_FIELD(&block_id, sizeof(block_id));
 
         if (block_id == XLR_BLOCK_ID_DATA_SHORT)
         {
@@ -228,128 +228,124 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
             break;              /* by convention, the main data fragment is
                                  * always last */
         }
-        else if (block_id == XLR_BLOCK_ID_DATA_LONG)
+        if (block_id == XLR_BLOCK_ID_DATA_LONG)
         {
-            uint32_t size;
-            COPY_HEADER_FIELD(&size, sizeof(size));
-            mainDataSize = size;
+            COPY_HEADER_FIELD(&mainDataSize, sizeof(mainDataSize));
             break;              /* by convention, the main data fragment is
                                  * always last */
         }
-        else if (block_id == XLR_BLOCK_ID_ORIGIN)
+        if (block_id == XLR_BLOCK_ID_ORIGIN)
         {
             ptr += sizeof(RepOriginId);
             remaining -= (uint32_t) sizeof(RepOriginId);
+            continue;
         }
-        else if (block_id <= XLR_MAX_BLOCK_ID)
+        if (block_id > XLR_MAX_BLOCK_ID)
         {
-            /* XLogRecordBlockHeader */
-            uint8 fork_flags;
+            THROW_FMT(FormatError, "invalid block_id %" PRIu8, block_id);
+        }
 
-            if (block_id <= maxBlockId)
+        /* XLogRecordBlockHeader */
+        uint8_t fork_flags;
+
+        if (block_id <= maxBlockId)
+        {
+            THROW_FMT(FormatError, "out-of-order block_id %" PRIu8, block_id);
+        }
+        maxBlockId = block_id;
+
+        COPY_HEADER_FIELD(&fork_flags, sizeof(fork_flags));
+        bool has_image = ((fork_flags & BKPBLOCK_HAS_IMAGE) != 0);
+        bool has_data = ((fork_flags & BKPBLOCK_HAS_DATA) != 0);
+
+        uint16_t data_len;
+
+        COPY_HEADER_FIELD(&data_len, sizeof(data_len));
+        /* cross-check that the HAS_DATA flag is set iff data_length > 0 */
+        if (has_data && data_len == 0)
+        {
+            THROW_FMT(FormatError, "BKPBLOCK_HAS_DATA set, but no data included");
+        }
+        if (!has_data && data_len != 0)
+        {
+            THROW_FMT(FormatError, "BKPBLOCK_HAS_DATA not set, but data length is %" PRIu16, data_len);
+        }
+        datatotal += data_len;
+
+        if (has_image)
+        {
+            uint16_t bimg_len;
+            uint16_t hole_offset;
+            uint8_t bimg_info;
+
+            COPY_HEADER_FIELD(&bimg_len, sizeof(bimg_len));
+            COPY_HEADER_FIELD(&hole_offset, sizeof(hole_offset));
+            COPY_HEADER_FIELD(&bimg_info, sizeof(bimg_info));
+
+            uint16_t hole_length;
+            if (bimg_info & BKPIMAGE_IS_COMPRESSED)
             {
-                THROW_FMT(FormatError, "out-of-order block_id %u", block_id);
-            }
-            maxBlockId = block_id;
-
-            COPY_HEADER_FIELD(&fork_flags, sizeof(uint8));
-            bool has_image = ((fork_flags & BKPBLOCK_HAS_IMAGE) != 0);
-            bool has_data = ((fork_flags & BKPBLOCK_HAS_DATA) != 0);
-
-            uint16_t data_len;
-
-            COPY_HEADER_FIELD(&data_len, sizeof(uint16));
-            /* cross-check that the HAS_DATA flag is set iff data_length > 0 */
-            if (has_data && data_len == 0)
-            {
-                THROW_FMT(FormatError, "BKPBLOCK_HAS_DATA set, but no data included");
-            }
-            if (!has_data && data_len != 0)
-            {
-                THROW_FMT(FormatError, "BKPBLOCK_HAS_DATA not set, but data length is %u", (unsigned int) data_len);
-            }
-            datatotal += data_len;
-
-            if (has_image)
-            {
-                uint16_t bimg_len;
-                uint16_t hole_offset;
-                uint8 bimg_info;
-
-                COPY_HEADER_FIELD(&bimg_len, sizeof(uint16));
-                COPY_HEADER_FIELD(&hole_offset, sizeof(uint16));
-                COPY_HEADER_FIELD(&bimg_info, sizeof(uint8));
-
-                uint16_t hole_length;
-                if (bimg_info & BKPIMAGE_IS_COMPRESSED)
-                {
-                    if (bimg_info & BKPIMAGE_HAS_HOLE)
-                        COPY_HEADER_FIELD(&hole_length, sizeof(uint16));
-                    else
-                        hole_length = 0;
-                }
+                if (bimg_info & BKPIMAGE_HAS_HOLE)
+                    COPY_HEADER_FIELD(&hole_length, sizeof(hole_length));
                 else
-                    hole_length = (uint16_t) (pageSize - bimg_len);
-                datatotal += bimg_len;
-
-                /*
-                 * cross-check that hole_offset > 0, hole_length > 0 and
-                 * bimg_len < BLCKSZ if the HAS_HOLE flag is set.
-                 */
-                if ((bimg_info & BKPIMAGE_HAS_HOLE) &&
-                    (hole_offset == 0 ||
-                     hole_length == 0 ||
-                     bimg_len == pageSize))
-                {
-                    THROW_FMT(FormatError, "BKPIMAGE_HAS_HOLE set, but hole offset %u length %u block image length %u",
-                              (unsigned int) hole_offset,
-                              (unsigned int) hole_length,
-                              (unsigned int) bimg_len);
-                }
-
-                /*
-                 * cross-check that hole_offset == 0 and hole_length == 0 if
-                 * the HAS_HOLE flag is not set.
-                 */
-                if (!(bimg_info & BKPIMAGE_HAS_HOLE) &&
-                    (hole_offset != 0 || hole_length != 0))
-                {
-                    THROW_FMT(FormatError, "BKPIMAGE_HAS_HOLE not set, but hole offset %u length %u",
-                              (unsigned int) hole_offset,
-                              (unsigned int) hole_length);
-                }
-
-                /*
-                 * cross-check that bimg_len < BLCKSZ if the IS_COMPRESSED
-                 * flag is set.
-                 */
-                if ((bimg_info & BKPIMAGE_IS_COMPRESSED) && bimg_len == pageSize)
-                {
-                    THROW_FMT(FormatError, "BKPIMAGE_IS_COMPRESSED set, but block image length %u",
-                              (unsigned int) bimg_len);
-                }
-            }
-            if (!(fork_flags & BKPBLOCK_SAME_REL))
-            {
-                relFileNode = (RelFileNode *) ptr;
-                lstAdd(result, relFileNode);
-                ptr += sizeof(RelFileNode);
-                remaining -= (uint32_t) sizeof(RelFileNode);
+                    hole_length = 0;
             }
             else
+                hole_length = (uint16_t) (pageSize - bimg_len);
+            datatotal += bimg_len;
+
+            /*
+             * cross-check that hole_offset > 0, hole_length > 0 and
+             * bimg_len < BLCKSZ if the HAS_HOLE flag is set.
+             */
+            if ((bimg_info & BKPIMAGE_HAS_HOLE) &&
+                (hole_offset == 0 ||
+                 hole_length == 0 ||
+                 bimg_len == pageSize))
             {
-                if (relFileNode == NULL)
-                {
-                    THROW_FMT(FormatError, "BKPBLOCK_SAME_REL set but no previous rel");
-                }
+                THROW_FMT(FormatError,
+                          "BKPIMAGE_HAS_HOLE set, but hole offset %" PRIu16 " length %" PRIu16 " block image length %" PRIu16,
+                          hole_offset,
+                          hole_length,
+                          bimg_len);
             }
-            ptr += sizeof(BlockNumber);
-            remaining -= (uint32_t) sizeof(BlockNumber);
+
+            /*
+             * cross-check that hole_offset == 0 and hole_length == 0 if
+             * the HAS_HOLE flag is not set.
+             */
+            if (!(bimg_info & BKPIMAGE_HAS_HOLE) &&
+                (hole_offset != 0 || hole_length != 0))
+            {
+                THROW_FMT(FormatError,
+                          "BKPIMAGE_HAS_HOLE not set, but hole offset %" PRIu16 " length %" PRIu16, hole_offset, hole_length);
+            }
+
+            /*
+             * cross-check that bimg_len < BLCKSZ if the IS_COMPRESSED
+             * flag is set.
+             */
+            if ((bimg_info & BKPIMAGE_IS_COMPRESSED) && bimg_len == pageSize)
+            {
+                THROW_FMT(FormatError, "BKPIMAGE_IS_COMPRESSED set, but block image length %" PRIu16, bimg_len);
+            }
+        }
+        if ((fork_flags & BKPBLOCK_SAME_REL) != 0)
+        {
+            if (relFileNode == NULL)
+            {
+                THROW_FMT(FormatError, "BKPBLOCK_SAME_REL set but no previous rel");
+            }
         }
         else
         {
-            THROW_FMT(FormatError, "invalid block_id %u", block_id);
+            relFileNode = (RelFileNode *) ptr;
+            lstAdd(result, relFileNode);
+            ptr += sizeof(RelFileNode);
+            remaining -= (uint32_t) sizeof(RelFileNode);
         }
+        ptr += sizeof(BlockNumber);
+        remaining -= (uint32_t) sizeof(BlockNumber);
     }
 #undef COPY_HEADER_FIELD
 
@@ -364,6 +360,26 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
     }
 
     FUNCTION_LOG_RETURN(LIST, result);
+}
+
+static void
+overrideXLogRecordBody(XLogRecordGPDB7 *const record)
+{
+    uint8_t *recordData = (uint8_t *) record + sizeof(XLogRecordGPDB7);
+    if (record->xl_tot_len - sizeof(XLogRecordGPDB7) - sizeof(XLogRecordDataHeaderShort) <= UINT8_MAX)
+    {
+        *((XLogRecordDataHeaderShort *) recordData) = (XLogRecordDataHeaderShort){
+            XLR_BLOCK_ID_DATA_SHORT,
+            (uint8_t) (record->xl_tot_len - sizeof(XLogRecordGPDB7) - sizeof(XLogRecordDataHeaderShort))
+        };
+    }
+    else
+    {
+        *((XLogRecordDataHeaderLong *) recordData) = (XLogRecordDataHeaderLong){
+            XLR_BLOCK_ID_DATA_LONG,
+            (uint32_t) (record->xl_tot_len - sizeof(XLogRecordGPDB7) - sizeof(XLogRecordDataHeaderLong))
+        };
+    }
 }
 
 FN_EXTERN void
