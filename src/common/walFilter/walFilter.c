@@ -406,7 +406,7 @@ getNearWal (WalFilterState *const this, bool isNext)
     }
 
     uint64 segnoDiff = UINT64_MAX;
-    for (uint32 i = 0; i < strLstSize(segmentList); i++)
+    for (unsigned int i = 0; i < strLstSize(segmentList); i++)
     {
         const String *const file = strSubN(strLstGet(segmentList, i), 0, 24);
         TimeLineID tli;

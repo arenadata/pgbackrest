@@ -366,7 +366,7 @@ validXLogRecordGPDB6(const XLogRecordBase *const recordBase, const PgPageSize he
 
     /* Add in the backup blocks, if any */
     const unsigned char *blk = XLogRecGetData(record) + len;
-    for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
+    for (unsigned int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
     {
         if (!(record->xl_info & XLR_BKP_BLOCK(i)))
             continue;
