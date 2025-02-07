@@ -71,21 +71,10 @@ typedef struct XLogRecordGPDB7
 
     /* XLogRecordBlockHeaders and XLogRecordDataHeader follow, no padding */
 } XLogRecordGPDB7;
+#define XLogRecordData(record) ((uint8_t *) record + sizeof(XLogRecordGPDB7))
 _Static_assert(
     offsetof(XLogRecordGPDB7, xl_info) / 8 == offsetof(XLogRecordGPDB7, xl_rmid) / 8,
     "The xl_info and xl_rmid fields are in different 8 byte chunks.");
-
-typedef struct XLogRecordDataHeaderShort
-{
-    uint8 id;                   /* XLR_BLOCK_ID_DATA_SHORT */
-    uint8 data_length;          /* number of payload bytes */
-} __attribute__((packed)) XLogRecordDataHeaderShort;
-
-typedef struct XLogRecordDataHeaderLong
-{
-    uint8 id;                   /* XLR_BLOCK_ID_DATA_LONG */
-    uint32 data_length;         /* number of payload bytes */
-} __attribute__((packed)) XLogRecordDataHeaderLong;
 
 FN_INLINE_ALWAYS pg_crc32
 xLogRecordChecksumGPDB7(const XLogRecordGPDB7 *const record)

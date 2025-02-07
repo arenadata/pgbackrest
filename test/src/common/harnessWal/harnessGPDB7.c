@@ -9,20 +9,20 @@
 #define PREV_RECPTR_PLACEHOLDER 0xAABB
 #define RECORD_BODY_PLACEHOLDER 0XAB
 
-#define WRITE_FIELD(type, data)                           \
-    do {                                                  \
-        recordSize += sizeof(type);                       \
-        record = memResize(record, recordSize);           \
-        *((type *) ((uint8_t *) record + offset)) = data; \
-        offset += sizeof(type);                           \
+#define WRITE_FIELD_CONST(type, data)                      \
+    do {                                                   \
+        record = memResize(record, offset + sizeof(type)); \
+        *((type *) ((uint8_t *) record + offset)) = data;  \
+        offset += sizeof(type);                            \
     } while (0)
+
+#define WRITE_FIELD(data)                     \
+    WRITE_FIELD_CONST(__typeof__(data), data)
 
 XLogRecordBase *
 hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
 {
-    size_t recordSize = sizeof(XLogRecordGPDB7);
-
-    XLogRecordGPDB7 *record = memNew(recordSize);
+    XLogRecordGPDB7 *record = memNew(sizeof(XLogRecordGPDB7));
     *record = (XLogRecordGPDB7){
         .xl_xid = TRANSACTION_ID_PLACEHOLDER,
         .xl_info = info,
@@ -35,8 +35,8 @@ hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
     if (param.has_origin)
     {
         // block id
-        WRITE_FIELD(uint8_t, XLR_BLOCK_ID_ORIGIN);
-        WRITE_FIELD(uint16_t, 0);
+        WRITE_FIELD_CONST(uint8_t, XLR_BLOCK_ID_ORIGIN);
+        WRITE_FIELD_CONST(uint16_t, 0);
     }
 
     if (param.backupBlocks && !lstEmpty(param.backupBlocks))
@@ -44,27 +44,27 @@ hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
         for (unsigned int i = 0; i < lstSize(param.backupBlocks); i++)
         {
             BackupBlockInfoGPDB7 *block = lstGet(param.backupBlocks, i);
-            WRITE_FIELD(uint8_t, block->block_id);
-            WRITE_FIELD(uint8_t, block->fork_flags);
-            WRITE_FIELD(uint16_t, block->data_length);
+            WRITE_FIELD(block->block_id);
+            WRITE_FIELD(block->fork_flags);
+            WRITE_FIELD(block->data_length);
 
             if (block->fork_flags & BKPBLOCK_HAS_IMAGE)
             {
-                WRITE_FIELD(uint16_t, block->bimg_len);
-                WRITE_FIELD(uint16_t, block->hole_offset);
-                WRITE_FIELD(uint8_t, block->bimg_info);
+                WRITE_FIELD(block->bimg_len);
+                WRITE_FIELD(block->hole_offset);
+                WRITE_FIELD(block->bimg_info);
 
                 if (block->bimg_info & BKPIMAGE_HAS_HOLE)
                 {
-                    WRITE_FIELD(uint16_t, block->hole_length);
+                    WRITE_FIELD(block->hole_length);
                 }
             }
 
             if (!(block->fork_flags & BKPBLOCK_SAME_REL))
             {
-                WRITE_FIELD(RelFileNode, block->relFileNode);
+                WRITE_FIELD(block->relFileNode);
             }
-            WRITE_FIELD(BlockNumber, block->blockNumber);
+            WRITE_FIELD(block->blockNumber);
         }
     }
 
@@ -74,14 +74,14 @@ hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
         {
             uint8_t bodySizeSmall = (uint8_t) param.main_data_size;
             // block id
-            WRITE_FIELD(uint8_t, XLR_BLOCK_ID_DATA_SHORT);
-            WRITE_FIELD(uint8_t, bodySizeSmall);
+            WRITE_FIELD_CONST(uint8_t, XLR_BLOCK_ID_DATA_SHORT);
+            WRITE_FIELD(bodySizeSmall);
         }
         else
         {
             // block id
-            WRITE_FIELD(uint8_t, XLR_BLOCK_ID_DATA_LONG);
-            WRITE_FIELD(uint32_t, param.main_data_size);
+            WRITE_FIELD_CONST(uint8_t, XLR_BLOCK_ID_DATA_LONG);
+            WRITE_FIELD_CONST(uint32_t, param.main_data_size);
         }
     }
 
@@ -91,16 +91,14 @@ hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
         {
             BackupBlockInfoGPDB7 *block = lstGet(param.backupBlocks, i);
 
-            recordSize += block->bimg_len;
-            record = memResize(record, recordSize);
             if (block->fork_flags & BKPBLOCK_HAS_IMAGE)
             {
+                record = memResize(record, offset + block->bimg_len);
                 memset((uint8_t *) record + offset, RECORD_BODY_PLACEHOLDER, block->bimg_len);
                 offset += block->bimg_len;
             }
 
-            recordSize += block->data_length;
-            record = memResize(record, recordSize);
+            record = memResize(record, offset + block->data_length);
             if (block->data)
             {
                 memcpy((uint8_t *) record + offset, block->data, block->data_length);
@@ -113,15 +111,17 @@ hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
         }
     }
 
-    recordSize += param.main_data_size;
-    record = memResize(record, recordSize);
-    if (param.main_data == NULL)
-        memset((uint8_t *) record + offset, RECORD_BODY_PLACEHOLDER, param.main_data_size);
-    else
-        memcpy((uint8_t *) record + offset, param.main_data, param.main_data_size);
-
-    ASSERT(recordSize <= UINT32_MAX);
-    record->xl_tot_len = (uint32_t) recordSize;
+    if (param.main_data_size != 0)
+    {
+        record = memResize(record, offset + param.main_data_size);
+        if (param.main_data == NULL)
+            memset((uint8_t *) record + offset, RECORD_BODY_PLACEHOLDER, param.main_data_size);
+        else
+            memcpy((uint8_t *) record + offset, param.main_data, param.main_data_size);
+        offset += param.main_data_size;
+    }
+    ASSERT(offset <= UINT32_MAX);
+    record->xl_tot_len = (uint32_t) offset;
     if (param.xl_crc == 0)
         record->xl_crc = xLogRecordChecksumGPDB7(record);
     else

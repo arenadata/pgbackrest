@@ -24,6 +24,18 @@ enum
  */
 typedef uint16 RepOriginId;
 
+typedef struct XLogRecordDataHeaderShort
+{
+    uint8_t id;                   /* XLR_BLOCK_ID_DATA_SHORT */
+    uint8_t data_length;          /* number of payload bytes */
+} __attribute__((packed)) XLogRecordDataHeaderShort;
+
+typedef struct XLogRecordDataHeaderLong
+{
+    uint8_t id;                   /* XLR_BLOCK_ID_DATA_LONG */
+    uint32_t data_length;         /* number of payload bytes */
+} __attribute__((packed)) XLogRecordDataHeaderLong;
+
 static void
 XLogRecordGPDB7ToLog(const XLogRecordGPDB7 *const this, StringStatic *const debugLog)
 {
@@ -41,7 +53,7 @@ XLogRecordGPDB7ToLog(const XLogRecordGPDB7 *const this, StringStatic *const debu
 
 #define FUNCTION_LOG_XLOG_RECORD_GPDB7_TYPE                                                                                        \
     XLogRecordGPDB7 *
-#define FUNCTION_LOG_XLOG_RECORD_GPDB7_FORMAT(value, buffer, bufferSize)                                                                  \
+#define FUNCTION_LOG_XLOG_RECORD_GPDB7_FORMAT(value, buffer, bufferSize)                                                           \
     FUNCTION_LOG_OBJECT_FORMAT(value, XLogRecordGPDB7ToLog, buffer, bufferSize)
 
 FN_EXTERN void
@@ -51,7 +63,7 @@ validXLogRecordHeaderGPDB7(const XLogRecordBase *recordBase, __attribute__((unus
 
     if (record->xl_tot_len < sizeof(XLogRecordGPDB7))
     {
-        THROW_FMT(FormatError, "invalid record length: wanted %u, got %u", (uint32) sizeof(XLogRecordGPDB7), record->xl_tot_len);
+        THROW_FMT(FormatError, "invalid record length: wanted %zu, got %u", sizeof(XLogRecordGPDB7), record->xl_tot_len);
     }
     if (record->xl_rmid > RM_MAX_ID)
     {
@@ -189,15 +201,14 @@ getRelFileNodeFromMainData(const XLogRecordGPDB7 *const record, const void *cons
 static List *
 getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
 {
-    #define COPY_HEADER_FIELD(_dst, _size) \
-    do                                     \
-    {                                      \
-        if (remaining < _size)             \
-            return NULL;                   \
-        memcpy(_dst, ptr, _size);          \
-        ptr += _size;                      \
-        remaining -= (uint32_t) _size;     \
-    }                                      \
+    #define COPY_HEADER_FIELD(_dst)                                                       \
+    do                                                                                    \
+    {                                                                                     \
+        if ((record->xl_tot_len - (uintptr_t) (ptr - (uint8_t *) record)) < sizeof(_dst)) \
+            return NULL;                                                                  \
+        memcpy(&_dst, ptr, sizeof(_dst));                                                 \
+        ptr += sizeof(_dst);                                                              \
+    }                                                                                     \
     while(0)
 
     FUNCTION_LOG_BEGIN(logLevelTrace);
@@ -205,39 +216,37 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
         FUNCTION_LOG_PARAM(INT, (int) pageSize);
     FUNCTION_LOG_END();
 
-    size_t remaining = record->xl_tot_len - sizeof(XLogRecordGPDB7);
     /* Decode the headers */
     size_t datatotal = 0;
     int maxBlockId = -1;
-    char *ptr = (char *) record;
-    ptr += sizeof(XLogRecordGPDB7);
+    const uint8_t *ptr = XLogRecordData(record);
 
     RelFileNode *relFileNode = NULL;
     List *result = lstNewP(sizeof(RelFileNode));
     uint32_t mainDataSize = 0;
-    while (remaining > datatotal)
+    // Read the headers while the amount of remaining data is more than the amount of data
+    while (((uintptr_t) (ptr - (uint8_t *) record)) < record->xl_tot_len - datatotal)
     {
         uint8 block_id;
-        COPY_HEADER_FIELD(&block_id, sizeof(block_id));
+        COPY_HEADER_FIELD(block_id);
 
         if (block_id == XLR_BLOCK_ID_DATA_SHORT)
         {
             uint8_t size;
-            COPY_HEADER_FIELD(&size, sizeof(size));
+            COPY_HEADER_FIELD(size);
             mainDataSize = size;
             break;              /* by convention, the main data fragment is
                                  * always last */
         }
         if (block_id == XLR_BLOCK_ID_DATA_LONG)
         {
-            COPY_HEADER_FIELD(&mainDataSize, sizeof(mainDataSize));
+            COPY_HEADER_FIELD(mainDataSize);
             break;              /* by convention, the main data fragment is
                                  * always last */
         }
         if (block_id == XLR_BLOCK_ID_ORIGIN)
         {
             ptr += sizeof(RepOriginId);
-            remaining -= (uint32_t) sizeof(RepOriginId);
             continue;
         }
         if (block_id > XLR_MAX_BLOCK_ID)
@@ -254,13 +263,12 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
         }
         maxBlockId = block_id;
 
-        COPY_HEADER_FIELD(&fork_flags, sizeof(fork_flags));
-        bool has_image = ((fork_flags & BKPBLOCK_HAS_IMAGE) != 0);
+        COPY_HEADER_FIELD(fork_flags);
         bool has_data = ((fork_flags & BKPBLOCK_HAS_DATA) != 0);
 
         uint16_t data_len;
 
-        COPY_HEADER_FIELD(&data_len, sizeof(data_len));
+        COPY_HEADER_FIELD(data_len);
         /* cross-check that the HAS_DATA flag is set iff data_length > 0 */
         if (has_data && data_len == 0)
         {
@@ -272,21 +280,21 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
         }
         datatotal += data_len;
 
-        if (has_image)
+        if ((fork_flags & BKPBLOCK_HAS_IMAGE) != 0)
         {
             uint16_t bimg_len;
             uint16_t hole_offset;
             uint8_t bimg_info;
 
-            COPY_HEADER_FIELD(&bimg_len, sizeof(bimg_len));
-            COPY_HEADER_FIELD(&hole_offset, sizeof(hole_offset));
-            COPY_HEADER_FIELD(&bimg_info, sizeof(bimg_info));
+            COPY_HEADER_FIELD(bimg_len);
+            COPY_HEADER_FIELD(hole_offset);
+            COPY_HEADER_FIELD(bimg_info);
 
             uint16_t hole_length;
             if (bimg_info & BKPIMAGE_IS_COMPRESSED)
             {
                 if (bimg_info & BKPIMAGE_HAS_HOLE)
-                    COPY_HEADER_FIELD(&hole_length, sizeof(hole_length));
+                    COPY_HEADER_FIELD(hole_length);
                 else
                     hole_length = 0;
             }
@@ -342,10 +350,8 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
             relFileNode = (RelFileNode *) ptr;
             lstAdd(result, relFileNode);
             ptr += sizeof(RelFileNode);
-            remaining -= (uint32_t) sizeof(RelFileNode);
         }
         ptr += sizeof(BlockNumber);
-        remaining -= (uint32_t) sizeof(BlockNumber);
     }
 #undef COPY_HEADER_FIELD
 
@@ -365,7 +371,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
 static void
 overrideXLogRecordBody(XLogRecordGPDB7 *const record)
 {
-    uint8_t *recordData = (uint8_t *) record + sizeof(XLogRecordGPDB7);
+    uint8_t *recordData = XLogRecordData(record);
     if (record->xl_tot_len - sizeof(XLogRecordGPDB7) - sizeof(XLogRecordDataHeaderShort) <= UINT8_MAX)
     {
         *((XLogRecordDataHeaderShort *) recordData) = (XLogRecordDataHeaderShort){
@@ -428,13 +434,16 @@ filterRecordGPDB7(XLogRecordBase *const recordBase, const PgPageSize pageSize)
         ASSERT(!lstEmpty(notPassFilterList));
         String *errMessage = strCatZ(strNew(), "The following RefFileNodes cannot be filtered out because they are in the same"
                                      " XLogRecord as the RefFileNode that passes the filter. [");
-        for (uint32_t i = 0; i < lstSize(notPassFilterList) - 1; i++)
+        for (uint32_t i = 0; i < lstSize(notPassFilterList); i++)
         {
+            if (i > 0)
+                strCatZ(errMessage, ", ");
             const RelFileNode *const relFileNode = lstGet(notPassFilterList, i);
-            strCatFmt(errMessage, "{%u, %u, %u}, ", relFileNode->spcNode, relFileNode->dbNode, relFileNode->relNode);
+            strCatFmt(errMessage, "{%u, %u, %u}", relFileNode->spcNode, relFileNode->dbNode, relFileNode->relNode);
         }
-        const RelFileNode *const lastRelFileNode = lstGetLast(notPassFilterList);
-        strCatFmt(errMessage, "{%u, %u, %u}].", lastRelFileNode->spcNode, lastRelFileNode->dbNode, lastRelFileNode->relNode);
+        strCatZ(errMessage, "].");
+//        const RelFileNode *const lastRelFileNode = lstGetLast(notPassFilterList);
+//        strCatFmt(errMessage, "{%u, %u, %u}].", lastRelFileNode->spcNode, lastRelFileNode->dbNode, lastRelFileNode->relNode);
         strCatFmt(errMessage, "\nHINT: Add these RelFileNodes to your filter.");
         THROW(ConfigError, strZ(errMessage));
     }
