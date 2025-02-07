@@ -104,7 +104,7 @@ xLogRecordIsWalSwitchGPDB7(const XLogRecordBase *recordBase)
 static const RelFileNode *
 getRelFileNodeFromMainData(const XLogRecordGPDB7 *const record, const void *const mainData)
 {
-    uint8 info = (uint8) (record->xl_info & ~XLR_INFO_MASK);
+    uint8 info = record->xl_info & (uint8) ~XLR_INFO_MASK;
     switch (record->xl_rmid)
     {
         case RM7_SMGR_ID:
