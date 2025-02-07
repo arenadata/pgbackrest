@@ -809,7 +809,7 @@ verifyCollectBackupRange(VerifyJobData *const jobData, const String *const backu
                                                 true, jobData->manifestCipherPass);
         }
 
-        // If the main file did not error, then save WAL range of the backup
+        // If the manifest file has no error, then save WAL range of the backup
         if (verifyManifestInfo.errorCode == 0)
         {
             const ManifestData *const manData = manifestData(verifyManifestInfo.manifest);
