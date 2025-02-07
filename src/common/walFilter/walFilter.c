@@ -37,11 +37,11 @@ typedef struct WalInterface
     unsigned int pgVersion;
     StringId fork;
 
-    uint16_t header_magic;
+    uint16 header_magic;
     void (*validXLogRecordHeader)(const XLogRecordBase *record, PgPageSize heapPageSize);
     void (*validXLogRecord)(const XLogRecordBase *record, PgPageSize heapPageSize);
-    uint32_t (*xLogRecordHeaderSize)(void);
-    uint32_t (*xLogRecordRmidSize)(void);
+    uint32 (*xLogRecordHeaderSize)(void);
+    uint32 (*xLogRecordRmidSize)(void);
     bool (*xLogRecordIsWalSwitch)(const XLogRecordBase *record);
     void (*xLogRecordFilter)(XLogRecordBase *record, PgPageSize pageSize);
 } WalInterface;
@@ -77,7 +77,7 @@ typedef struct WalFilter
 
     PgPageSize heapPageSize;
     PgPageSize walPageSize;
-    uint32_t segSize;
+    uint32 segSize;
 
     bool isBegin;
 
@@ -88,7 +88,7 @@ typedef struct WalFilter
     XLogPageHeaderData *currentPageHeader;
 
     XLogRecordBase *record;
-    uint32_t recBufSize;
+    uint32 recBufSize;
     // Size of header of the current record on the current page
     size_t headerSize;
     // How many bytes we read from this record
@@ -96,8 +96,8 @@ typedef struct WalFilter
     // Total size of the current record on current page
     size_t totLen;
 
-    uint32_t xLogRecordHeaderSize;
-    uint32_t xLogRecordRmidSize;
+    uint32 xLogRecordHeaderSize;
+    uint32 xLogRecordRmidSize;
 
     List *pageHeaders;
 
@@ -106,7 +106,7 @@ typedef struct WalFilter
     const ArchiveGetFile *archiveInfo;
 
     // Records count for debug
-    uint32_t recordNum;
+    uint32 recordNum;
 
     bool done;
     bool inputSame;
@@ -176,7 +176,7 @@ getNextPage(WalFilterState *const this, const Buffer *const input)
     return true;
 }
 
-static inline uint32_t
+static inline uint32
 getRecordSize(const unsigned char *const buffer)
 {
     return ((XLogRecordBase *) (buffer))->xl_tot_len;
@@ -231,7 +231,7 @@ stepBeginOfRecord:
     }
 
     // Record header can be split between pages but first field xl_tot_len is always on single page
-    uint32_t record_size = getRecordSize(((unsigned char *) this->currentPageHeader) + this->pageOffset);
+    uint32 record_size = getRecordSize(((unsigned char *) this->currentPageHeader) + this->pageOffset);
 
     if (this->recBufSize < record_size)
     {
@@ -290,8 +290,8 @@ stepReadHeader:
     // Read rest of the record on this page
     size_t toRead = Min(this->record->xl_tot_len - this->xLogRecordHeaderSize, this->walPageSize - this->pageOffset - this->xLogRecordHeaderSize);
     memcpy(
-        ((uint8_t *) this->record) + this->xLogRecordHeaderSize,
-        ((unsigned char *) this->currentPageHeader) + this->pageOffset + this->headerSize,
+        ((uint8 *) this->record) + this->xLogRecordHeaderSize,
+        ((uint8 *) this->currentPageHeader) + this->pageOffset + this->headerSize,
         toRead);
     this->gotLen += toRead;
 
@@ -343,7 +343,7 @@ stepReadBody:
 static void
 writeRecord(WalFilterState *const this, Buffer *const output, const unsigned char *recordData)
 {
-    uint32_t header_i = 0;
+    uint32 header_i = 0;
     if (this->recPtr % this->walPageSize == 0)
     {
         ASSERT(!lstEmpty(this->pageHeaders));
@@ -391,7 +391,7 @@ getNearWal (WalFilterState *const this, bool isNext)
 {
     const String *walSegment = NULL;
     const TimeLineID timeLine = this->currentPageHeader->xlp_tli;
-    uint64_t segno = this->currentPageHeader->xlp_pageaddr / this->segSize;
+    uint64 segno = this->currentPageHeader->xlp_pageaddr / this->segSize;
     const String *const path = strNewFmt("%08X%08X", timeLine, (uint32) (segno / XLogSegmentsPerXLogId(this->segSize)));
 
     const StringList *const segmentList = storageListP(
@@ -405,12 +405,12 @@ getNearWal (WalFilterState *const this, bool isNext)
         THROW(FormatError, "no WAL files were found in the repository");
     }
 
-    uint64_t segnoDiff = UINT64_MAX;
-    for (uint32_t i = 0; i < strLstSize(segmentList); i++)
+    uint64 segnoDiff = UINT64_MAX;
+    for (uint32 i = 0; i < strLstSize(segmentList); i++)
     {
         const String *const file = strSubN(strLstGet(segmentList, i), 0, 24);
         TimeLineID tli;
-        uint64_t fileSegNo = 0;
+        uint64 fileSegNo = 0;
         XLogFromFileName(strZ(file), &tli, &fileSegNo, this->segSize);
 
         if (isNext)

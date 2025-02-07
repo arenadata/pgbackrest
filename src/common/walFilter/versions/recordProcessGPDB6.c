@@ -408,13 +408,13 @@ validXLogRecordGPDB6(const XLogRecordBase *const recordBase, const PgPageSize he
     }
 }
 
-FN_EXTERN uint32_t
+FN_EXTERN uint32
 xLogRecordHeaderSizeGPDB6(void)
 {
     return SizeOfXLogRecordGPDB6;
 }
 
-FN_EXTERN uint32_t
+FN_EXTERN uint32
 xLogRecordRmidSizeGPDB6(void)
 {
     return offsetof(XLogRecordGPDB6, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecordGPDB6, xl_rmid);
@@ -441,6 +441,6 @@ filterRecordGPDB6(XLogRecordBase *const recordBase, const PgPageSize pageSize)
 
     record->xl_rmid = RM_XLOG_ID;
     // Save 4 least significant bits which represent backup blocks flags.
-    record->xl_info = (uint8_t) (XLOG_NOOP | (record->xl_info & XLR_INFO_MASK));
+    record->xl_info = (uint8) (XLOG_NOOP | (record->xl_info & XLR_INFO_MASK));
     record->xl_crc = xLogRecordChecksumGPDB6(record, pageSize);
 }

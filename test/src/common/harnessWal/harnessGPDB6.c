@@ -17,11 +17,11 @@ hrnGpdbCreateXRecord94GPDB(uint8 rmid, uint8 info, CreateXRecordParam param)
 
     XLogRecordGPDB6 *record = memNew(SizeOfXLogRecordGPDB6 + param.body_size);
     *record = (XLogRecordGPDB6){
-        .xl_tot_len = (uint32_t) (SizeOfXLogRecordGPDB6 + param.body_size),
+        .xl_tot_len = (uint32) (SizeOfXLogRecordGPDB6 + param.body_size),
         .xl_xid = TRANSACTION_ID_PLACEHOLDER,
         .xl_len = param.xl_len,
         .xl_info = info,
-        .xl_rmid = (uint8_t) rmid,
+        .xl_rmid = (uint8) rmid,
         .xl_prev = PREV_RECPTR_PLACEHOLDER
     };
 

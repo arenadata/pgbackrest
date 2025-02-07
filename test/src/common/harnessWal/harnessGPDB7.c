@@ -36,7 +36,7 @@ hrnGpdbCreateXRecord12GPDB(uint8 rmid, uint8 info, CreateXRecordParam param)
     *record = (XLogRecordGPDB7){
         .xl_xid = TRANSACTION_ID_PLACEHOLDER,
         .xl_info = info,
-        .xl_rmid = (uint8_t) rmid,
+        .xl_rmid = (uint8) rmid,
         .xl_prev = PREV_RECPTR_PLACEHOLDER
     };
 
@@ -45,8 +45,8 @@ hrnGpdbCreateXRecord12GPDB(uint8 rmid, uint8 info, CreateXRecordParam param)
     if (param.has_origin)
     {
         // block id
-        WRITE_FIELD_CONST(uint8_t, XLR_BLOCK_ID_ORIGIN);
-        WRITE_FIELD_CONST(uint16_t, 0);
+        WRITE_FIELD_CONST(uint8, XLR_BLOCK_ID_ORIGIN);
+        WRITE_FIELD_CONST(uint16, 0);
     }
 
     if (param.backupBlocks && !lstEmpty(param.backupBlocks))
@@ -82,16 +82,16 @@ hrnGpdbCreateXRecord12GPDB(uint8 rmid, uint8 info, CreateXRecordParam param)
     {
         if (param.main_data_size <= UINT8_MAX)
         {
-            uint8 bodySizeSmall = (uint8_t) param.main_data_size;
+            uint8 bodySizeSmall = (uint8) param.main_data_size;
             // block id
-            WRITE_FIELD_CONST(uint8_t, XLR_BLOCK_ID_DATA_SHORT);
+            WRITE_FIELD_CONST(uint8, XLR_BLOCK_ID_DATA_SHORT);
             WRITE_FIELD(bodySizeSmall);
         }
         else
         {
             // block id
-            WRITE_FIELD_CONST(uint8_t, XLR_BLOCK_ID_DATA_LONG);
-            WRITE_FIELD_CONST(uint32_t, param.main_data_size);
+            WRITE_FIELD_CONST(uint8, XLR_BLOCK_ID_DATA_LONG);
+            WRITE_FIELD_CONST(uint32, param.main_data_size);
         }
     }
 
@@ -117,7 +117,7 @@ hrnGpdbCreateXRecord12GPDB(uint8 rmid, uint8 info, CreateXRecordParam param)
         WRITE_DATA(param.main_data, param.main_data_size);
     }
     ASSERT(offset <= UINT32_MAX);
-    record->xl_tot_len = (uint32_t) offset;
+    record->xl_tot_len = (uint32) offset;
     if (param.xl_crc == 0)
         record->xl_crc = xLogRecordChecksumGPDB7(record);
     else
