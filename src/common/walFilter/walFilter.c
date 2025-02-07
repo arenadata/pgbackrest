@@ -34,9 +34,6 @@ typedef enum
 
 typedef struct WalInterface
 {
-    unsigned int pgVersion;
-    StringId fork;
-
     uint16 header_magic;
     void (*validXLogRecordHeader)(const XLogRecordBase *record, PgPageSize heapPageSize);
     void (*validXLogRecord)(const XLogRecordBase *record, PgPageSize heapPageSize);
@@ -45,31 +42,6 @@ typedef struct WalInterface
     bool (*xLogRecordIsWalSwitch)(const XLogRecordBase *record);
     void (*xLogRecordFilter)(XLogRecordBase *record, PgPageSize pageSize);
 } WalInterface;
-
-static WalInterface interfaces[] = {
-    {
-        PG_VERSION_94,
-        CFGOPTVAL_FORK_GPDB,
-        GPDB6_XLOG_PAGE_MAGIC,
-        validXLogRecordHeaderGPDB6,
-        validXLogRecordGPDB6,
-        xLogRecordHeaderSizeGPDB6,
-        xLogRecordRmidSizeGPDB6,
-        xLogRecordIsWalSwitchGPDB6,
-        filterRecordGPDB6
-    },
-    {
-        PG_VERSION_12,
-        CFGOPTVAL_FORK_GPDB,
-        GPDB7_XLOG_PAGE_MAGIC,
-        validXLogRecordHeaderGPDB7,
-        validXLogRecordGPDB7,
-        xLogRecordHeaderSizeGPDB7,
-        xLogRecordRmidSizeGPDB7,
-        xLogRecordIsWalSwitchGPDB7,
-        filterRecordGPDB7
-    }
-};
 
 typedef struct WalFilter
 {
@@ -101,7 +73,7 @@ typedef struct WalFilter
 
     List *pageHeaders;
 
-    WalInterface *walInterface;
+    WalInterface walInterface;
 
     const ArchiveGetFile *archiveInfo;
 
@@ -166,7 +138,7 @@ getNextPage(WalFilterState *const this, const Buffer *const input)
     this->inputOffset += this->walPageSize;
 
     // Make sure that WAL belongs to supported Postgres version, since magic value is different in different versions.
-    if (this->currentPageHeader->xlp_magic != this->walInterface->header_magic)
+    if (this->currentPageHeader->xlp_magic != this->walInterface.header_magic)
     {
         THROW_FMT(FormatError, "%s - wrong page magic", strZ(pgLsnToStr(this->recPtr)));
     }
@@ -286,7 +258,7 @@ stepReadHeader:
     }
     this->gotLen = this->xLogRecordHeaderSize;
 
-    this->walInterface->validXLogRecordHeader(this->record, this->heapPageSize);
+    this->walInterface.validXLogRecordHeader(this->record, this->heapPageSize);
     // Read rest of the record on this page
     size_t toRead = Min(this->record->xl_tot_len - this->xLogRecordHeaderSize, this->walPageSize - this->pageOffset - this->xLogRecordHeaderSize);
     memcpy(
@@ -332,9 +304,9 @@ stepReadBody:
         this->pageOffset += MAXALIGN(to_write);
         this->gotLen += to_write;
     }
-    this->walInterface->validXLogRecord(this->record, this->heapPageSize);
+    this->walInterface.validXLogRecord(this->record, this->heapPageSize);
 
-    this->isSwitchWal = this->walInterface->xLogRecordIsWalSwitch(this->record);
+    this->isSwitchWal = this->walInterface.xLogRecordIsWalSwitch(this->record);
 
     this->recordNum++;
     return ReadRecordSuccess;
@@ -551,7 +523,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             if (this->gotLen >= this->xLogRecordRmidSize)
             {
                 getEndOfRecord(this);
-                this->walInterface->xLogRecordFilter(this->record, this->heapPageSize);
+                this->walInterface.xLogRecordFilter(this->record, this->heapPageSize);
             }
 
             bufCatC(output, (const unsigned char *) this->record, 0, size_on_page);
@@ -585,7 +557,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                     // read this record.
                     THROW_FMT(FormatError, "%s - record is too big", strZ(pgLsnToStr(this->recPtr)));
                 }
-                this->walInterface->xLogRecordFilter(this->record, this->heapPageSize);
+                this->walInterface.xLogRecordFilter(this->record, this->heapPageSize);
 
                 ASSERT(offset % MAXIMUM_ALIGNOF == 0 && offset <= MAXIMUM_ALIGNOF * 2);
                 this->gotLen -= offset;
@@ -635,7 +607,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         // In the case of overwrite contrecord, we do not need to try to filter it, since the record may not have a body at all.
         if (this->gotLen == this->record->xl_tot_len)
         {
-            this->walInterface->xLogRecordFilter(this->record, this->heapPageSize);
+            this->walInterface.xLogRecordFilter(this->record, this->heapPageSize);
         }
 
         writeRecord(this, output, (const unsigned char *) this->record);
@@ -681,19 +653,36 @@ walFilterNew(const PgControl pgControl, const ArchiveGetFile *const archiveInfo)
     {
         StringId fork = cfgOptionStrId(cfgOptFork);
 
-        WalInterface *walInterface = NULL;
-
-        for (unsigned int i = 0; i < LENGTH_OF(interfaces); i++)
+        if (fork != CFGOPTVAL_FORK_GPDB)
         {
-            if (interfaces[i].pgVersion == pgControl.version && interfaces[i].fork == fork)
-            {
-                walInterface = &interfaces[i];
-                break;
-            }
+            THROW(VersionNotSupportedError, "WAL filtering is only supported for GPDB 6 and 7");
         }
-        if (walInterface == NULL)
+
+        WalInterface walInterface;
+
+        if (pgControl.version == PG_VERSION_94)
         {
-            THROW(VersionNotSupportedError, "WAL filtering is unsupported for this Postgres version");
+            walInterface.header_magic = GPDB6_XLOG_PAGE_MAGIC;
+            walInterface.validXLogRecordHeader = validXLogRecordHeaderGPDB6;
+            walInterface.validXLogRecord = validXLogRecordGPDB6;
+            walInterface.xLogRecordHeaderSize = xLogRecordHeaderSizeGPDB6;
+            walInterface.xLogRecordRmidSize = xLogRecordRmidSizeGPDB6;
+            walInterface.xLogRecordIsWalSwitch = xLogRecordIsWalSwitchGPDB6;
+            walInterface.xLogRecordFilter = filterRecordGPDB6;
+        }
+        else if (pgControl.version == PG_VERSION_12)
+        {
+            walInterface.header_magic = GPDB7_XLOG_PAGE_MAGIC;
+            walInterface.validXLogRecordHeader = validXLogRecordHeaderGPDB7;
+            walInterface.validXLogRecord = validXLogRecordGPDB7;
+            walInterface.xLogRecordHeaderSize = xLogRecordHeaderSizeGPDB7;
+            walInterface.xLogRecordRmidSize = xLogRecordRmidSizeGPDB7;
+            walInterface.xLogRecordIsWalSwitch = xLogRecordIsWalSwitchGPDB7;
+            walInterface.xLogRecordFilter = filterRecordGPDB7;
+        }
+        else
+        {
+            THROW(VersionNotSupportedError, "WAL filtering is not supported for this version of GPDB");
         }
 
         *this = (WalFilterState){
@@ -705,8 +694,8 @@ walFilterNew(const PgControl pgControl, const ArchiveGetFile *const archiveInfo)
             .heapPageSize = pgControl.pageSize,
             .walPageSize = pgControl.walPageSize,
             .segSize = pgControl.walSegmentSize,
-            .xLogRecordHeaderSize = walInterface->xLogRecordHeaderSize(),
-            .xLogRecordRmidSize = walInterface->xLogRecordRmidSize(),
+            .xLogRecordHeaderSize = walInterface.xLogRecordHeaderSize(),
+            .xLogRecordRmidSize = walInterface.xLogRecordRmidSize(),
             .walInterface = walInterface
         };
 

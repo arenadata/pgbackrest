@@ -2010,7 +2010,7 @@ testRun(void)
 
         TEST_ERROR(
             walFilterNew(pgControl, NULL),
-            VersionNotSupportedError, "WAL filtering is unsupported for this Postgres version");
+            VersionNotSupportedError, "WAL filtering is not supported for this version of GPDB");
 
         StringList *argBaseList = strLstNew();
         hrnCfgArgRawZ(argBaseList, cfgOptFork, CFGOPTVAL_FORK_POSTGRESQL_Z);
@@ -2021,7 +2021,7 @@ testRun(void)
         pgControl.version = PG_VERSION_94;
         TEST_ERROR(
             walFilterNew(pgControl, NULL),
-            VersionNotSupportedError, "WAL filtering is unsupported for this Postgres version");
+            VersionNotSupportedError, "WAL filtering is only supported for GPDB 6 and 7");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();
