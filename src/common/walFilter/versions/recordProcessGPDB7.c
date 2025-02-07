@@ -411,7 +411,7 @@ filterRecordGPDB7(XLogRecordBase *const recordBase, const PgPageSize pageSize)
     bool hasPassFilter = false;
     bool hasNotPassFilter = false;
     List *notPassFilterList = lstNewP(sizeof(RelFileNode));
-    for (uint32 i = 0; i < lstSize(nodes); i++)
+    for (unsigned int i = 0; i < lstSize(nodes); i++)
     {
         const RelFileNode *const relFileNode = lstGet(nodes, i);
         if (isRelationNeeded(relFileNode->dbNode, relFileNode->spcNode, relFileNode->relNode))
@@ -436,7 +436,7 @@ filterRecordGPDB7(XLogRecordBase *const recordBase, const PgPageSize pageSize)
         ASSERT(!lstEmpty(notPassFilterList));
         String *errMessage = strCatZ(strNew(), "The following RefFileNodes cannot be filtered out because they are in the same"
                                      " XLogRecord as the RefFileNode that passes the filter. [");
-        for (uint32 i = 0; i < lstSize(notPassFilterList); i++)
+        for (unsigned int i = 0; i < lstSize(notPassFilterList); i++)
         {
             if (i > 0)
                 strCatZ(errMessage, ", ");
