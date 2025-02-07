@@ -19,6 +19,16 @@
 #define WRITE_FIELD(data)                     \
     WRITE_FIELD_CONST(__typeof__(data), data)
 
+#define WRITE_DATA(data, size)                                                  \
+    do {                                                                        \
+        record = memResize(record, offset + size);                              \
+        if (data)                                                               \
+            memcpy((uint8_t *) record + offset, data, size);                    \
+        else                                                                    \
+            memset((uint8_t *) record + offset, RECORD_BODY_PLACEHOLDER, size); \
+        offset += size;                                                         \
+    } while (0)
+
 XLogRecordBase *
 hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
 {
@@ -98,27 +108,13 @@ hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
                 offset += block->bimg_len;
             }
 
-            record = memResize(record, offset + block->data_length);
-            if (block->data)
-            {
-                memcpy((uint8_t *) record + offset, block->data, block->data_length);
-            }
-            else
-            {
-                memset((uint8_t *) record + offset, RECORD_BODY_PLACEHOLDER, block->data_length);
-            }
-            offset += block->data_length;
+            WRITE_DATA(block->data, block->data_length);
         }
     }
 
     if (param.main_data_size != 0)
     {
-        record = memResize(record, offset + param.main_data_size);
-        if (param.main_data == NULL)
-            memset((uint8_t *) record + offset, RECORD_BODY_PLACEHOLDER, param.main_data_size);
-        else
-            memcpy((uint8_t *) record + offset, param.main_data, param.main_data_size);
-        offset += param.main_data_size;
+        WRITE_DATA(param.main_data, param.main_data_size);
     }
     ASSERT(offset <= UINT32_MAX);
     record->xl_tot_len = (uint32_t) offset;

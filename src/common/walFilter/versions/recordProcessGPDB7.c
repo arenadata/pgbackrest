@@ -201,14 +201,14 @@ getRelFileNodeFromMainData(const XLogRecordGPDB7 *const record, const void *cons
 static List *
 getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
 {
-    #define COPY_HEADER_FIELD(_dst)                                                       \
-    do                                                                                    \
-    {                                                                                     \
-        if ((record->xl_tot_len - (uintptr_t) (ptr - (uint8_t *) record)) < sizeof(_dst)) \
-            return NULL;                                                                  \
-        memcpy(&_dst, ptr, sizeof(_dst));                                                 \
-        ptr += sizeof(_dst);                                                              \
-    }                                                                                     \
+    #define COPY_HEADER_FIELD(_dst)                     \
+    do                                                  \
+    {                                                   \
+        if (record->xl_tot_len - offset < sizeof(_dst)) \
+            return NULL;                                \
+        memcpy(&_dst, ptr + offset, sizeof(_dst));      \
+        offset += sizeof(_dst);                         \
+    }                                                   \
     while(0)
 
     FUNCTION_LOG_BEGIN(logLevelTrace);
@@ -219,13 +219,15 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
     /* Decode the headers */
     size_t datatotal = 0;
     int maxBlockId = -1;
-    const uint8_t *ptr = XLogRecordData(record);
+    const uint8_t *ptr = (uint8_t *) record;
+    size_t offset = sizeof(XLogRecordGPDB7);
 
     RelFileNode *relFileNode = NULL;
     List *result = lstNewP(sizeof(RelFileNode));
     uint32_t mainDataSize = 0;
-    // Read the headers while the amount of remaining data is more than the amount of data
-    while (((uintptr_t) (ptr - (uint8_t *) record)) < record->xl_tot_len - datatotal)
+    // Read only the headers.
+    // All headers are read when the total size of all backup blocks and main data is greater than the remaining data.
+    while (record->xl_tot_len - offset > datatotal)
     {
         uint8 block_id;
         COPY_HEADER_FIELD(block_id);
@@ -280,7 +282,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
         }
         datatotal += data_len;
 
-        if ((fork_flags & BKPBLOCK_HAS_IMAGE) != 0)
+        if (fork_flags & BKPBLOCK_HAS_IMAGE)
         {
             uint16_t bimg_len;
             uint16_t hole_offset;
@@ -338,7 +340,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
                 THROW_FMT(FormatError, "BKPIMAGE_IS_COMPRESSED set, but block image length %" PRIu16, bimg_len);
             }
         }
-        if ((fork_flags & BKPBLOCK_SAME_REL) != 0)
+        if (fork_flags & BKPBLOCK_SAME_REL)
         {
             if (relFileNode == NULL)
             {
@@ -347,11 +349,11 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
         }
         else
         {
-            relFileNode = (RelFileNode *) ptr;
+            relFileNode = (RelFileNode *) (ptr + offset);
             lstAdd(result, relFileNode);
-            ptr += sizeof(RelFileNode);
+            offset += sizeof(RelFileNode);
         }
-        ptr += sizeof(BlockNumber);
+        offset += sizeof(BlockNumber);
     }
 #undef COPY_HEADER_FIELD
 
