@@ -441,10 +441,7 @@ filterRecordGPDB7(XLogRecordBase *const recordBase, const PgPageSize pageSize)
             const RelFileNode *const relFileNode = lstGet(notPassFilterList, i);
             strCatFmt(errMessage, "{%u, %u, %u}", relFileNode->spcNode, relFileNode->dbNode, relFileNode->relNode);
         }
-        strCatZ(errMessage, "].");
-//        const RelFileNode *const lastRelFileNode = lstGetLast(notPassFilterList);
-//        strCatFmt(errMessage, "{%u, %u, %u}].", lastRelFileNode->spcNode, lastRelFileNode->dbNode, lastRelFileNode->relNode);
-        strCatFmt(errMessage, "\nHINT: Add these RelFileNodes to your filter.");
+        strCatZ(errMessage, "].\nHINT: Add these RelFileNodes to your filter.");
         THROW(ConfigError, strZ(errMessage));
     }
     lstFree(notPassFilterList);
