@@ -10,7 +10,7 @@
 #define RECORD_BODY_PLACEHOLDER 0XAB
 
 XLogRecordBase *
-hrnGpdbCreateXRecord94GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
+hrnGpdbCreateXRecord94GPDB(uint8 rmid, uint8 info, CreateXRecordParam param)
 {
     if (param.xl_len == 0)
         param.xl_len = param.body_size;

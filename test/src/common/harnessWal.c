@@ -9,8 +9,8 @@
 /***********************************************************************************************************************************
 Interface definition
 ***********************************************************************************************************************************/
-XLogRecordBase *hrnGpdbCreateXRecord94GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param);
-XLogRecordBase *hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param);
+XLogRecordBase *hrnGpdbCreateXRecord94GPDB(uint8 rmid, uint8 info, CreateXRecordParam param);
+XLogRecordBase *hrnGpdbCreateXRecord12GPDB(uint8 rmid, uint8 info, CreateXRecordParam param);
 
 typedef struct HrnWalInterface
 {
@@ -19,7 +19,7 @@ typedef struct HrnWalInterface
 
     StringId fork;
 
-    XLogRecordBase *(*hrnGpdbCreateXRecord)(uint8_t rmid, uint8_t info, CreateXRecordParam param);
+    XLogRecordBase *(*hrnGpdbCreateXRecord)(uint8 rmid, uint8 info, CreateXRecordParam param);
 } HrnWalInterface;
 
 static const HrnWalInterface hrnWalInterfaces[] = {
@@ -62,7 +62,7 @@ hrnWalInterfaceVersion(unsigned int pgVersion)
 }
 
 XLogRecordBase *
-hrnGpdbCreateXRecord(unsigned int pgVersion, uint8_t rmid, uint8_t info, CreateXRecordParam param)
+hrnGpdbCreateXRecord(unsigned int pgVersion, uint8 rmid, uint8 info, CreateXRecordParam param)
 {
     if (param.heapPageSize == 0)
         param.heapPageSize = DEFAULT_GDPB_XLOG_PAGE_SIZE;

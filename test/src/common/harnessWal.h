@@ -24,9 +24,9 @@ typedef enum InsertRecordFlags
 typedef struct InsertXRecordParam
 {
     VAR_PARAM_HEADER;
-    uint16_t magic;
-    uint32_t beginOffset;
-    uint64_t segno;
+    uint16 magic;
+    uint32 beginOffset;
+    uint64 segno;
     PgPageSize walPageSize;
 } InsertXRecordParam;
 
@@ -34,15 +34,15 @@ typedef struct CreateXRecordParam
 {
     VAR_PARAM_HEADER;
     PgPageSize heapPageSize;
-    uint32_t xl_crc;
+    uint32 xl_crc;
     // GPDB6
-    uint32_t xl_len;
-    uint32_t body_size;
+    uint32 xl_len;
+    uint32 body_size;
     void *body;
     // GPDB7
     List *backupBlocks;
     void *main_data;
-    uint32_t main_data_size;
+    uint32 main_data_size;
     bool has_origin;
 } CreateXRecordParam;
 
@@ -52,10 +52,10 @@ typedef struct
     uint8 fork_flags;
     uint16 data_length;
 
-    uint16_t bimg_len;
-    uint16_t hole_offset;
-    uint8_t bimg_info;
-    uint16_t hole_length;
+    uint16 bimg_len;
+    uint16 hole_offset;
+    uint8 bimg_info;
+    uint16 hole_length;
 
     RelFileNode relFileNode;
     BlockNumber blockNumber;
@@ -65,7 +65,7 @@ typedef struct
 #define hrnGpdbCreateXRecordP(pgVersion, rmid, info, ...) \
     hrnGpdbCreateXRecord(pgVersion, rmid, info, (CreateXRecordParam){VAR_PARAM_INIT, __VA_ARGS__})
 
-XLogRecordBase *hrnGpdbCreateXRecord(unsigned int pgVersion, uint8_t rmid, uint8_t info, CreateXRecordParam param);
+XLogRecordBase *hrnGpdbCreateXRecord(unsigned int pgVersion, uint8 rmid, uint8 info, CreateXRecordParam param);
 
 #define hrnGpdbWalInsertXRecordP(wal, record, flags, ...) \
     hrnGpdbWalInsertXRecord(wal, record, (InsertXRecordParam){VAR_PARAM_INIT, __VA_ARGS__}, flags)
