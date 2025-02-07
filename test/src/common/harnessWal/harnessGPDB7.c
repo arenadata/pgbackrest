@@ -12,25 +12,25 @@
 #define WRITE_FIELD_CONST(type, data)                      \
     do {                                                   \
         record = memResize(record, offset + sizeof(type)); \
-        *((type *) ((uint8_t *) record + offset)) = data;  \
+        *((type *) ((uint8 *) record + offset)) = data;    \
         offset += sizeof(type);                            \
     } while (0)
 
 #define WRITE_FIELD(data)                     \
     WRITE_FIELD_CONST(__typeof__(data), data)
 
-#define WRITE_DATA(data, size)                                                  \
-    do {                                                                        \
-        record = memResize(record, offset + size);                              \
-        if (data)                                                               \
-            memcpy((uint8_t *) record + offset, data, size);                    \
-        else                                                                    \
-            memset((uint8_t *) record + offset, RECORD_BODY_PLACEHOLDER, size); \
-        offset += size;                                                         \
+#define WRITE_DATA(data, size)                                                \
+    do {                                                                      \
+        record = memResize(record, offset + size);                            \
+        if (data)                                                             \
+            memcpy((uint8 *) record + offset, data, size);                    \
+        else                                                                  \
+            memset((uint8 *) record + offset, RECORD_BODY_PLACEHOLDER, size); \
+        offset += size;                                                       \
     } while (0)
 
 XLogRecordBase *
-hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
+hrnGpdbCreateXRecord12GPDB(uint8 rmid, uint8 info, CreateXRecordParam param)
 {
     XLogRecordGPDB7 *record = memNew(sizeof(XLogRecordGPDB7));
     *record = (XLogRecordGPDB7){
@@ -82,7 +82,7 @@ hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
     {
         if (param.main_data_size <= UINT8_MAX)
         {
-            uint8_t bodySizeSmall = (uint8_t) param.main_data_size;
+            uint8 bodySizeSmall = (uint8_t) param.main_data_size;
             // block id
             WRITE_FIELD_CONST(uint8_t, XLR_BLOCK_ID_DATA_SHORT);
             WRITE_FIELD(bodySizeSmall);
@@ -104,7 +104,7 @@ hrnGpdbCreateXRecord12GPDB(uint8_t rmid, uint8_t info, CreateXRecordParam param)
             if (block->fork_flags & BKPBLOCK_HAS_IMAGE)
             {
                 record = memResize(record, offset + block->bimg_len);
-                memset((uint8_t *) record + offset, RECORD_BODY_PLACEHOLDER, block->bimg_len);
+                memset((uint8 *) record + offset, RECORD_BODY_PLACEHOLDER, block->bimg_len);
                 offset += block->bimg_len;
             }
 

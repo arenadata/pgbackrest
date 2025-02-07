@@ -67,11 +67,11 @@ typedef struct XLogRecordGPDB7
     uint8 xl_info;              /* flag bits, see below */
     RmgrId xl_rmid;             /* resource manager for this record */
     /* 2 bytes of padding here, initialize to zero */
-    uint32_t xl_crc;            /* CRC for this record */
+    uint32 xl_crc;              /* CRC for this record */
 
     /* XLogRecordBlockHeaders and XLogRecordDataHeader follow, no padding */
 } XLogRecordGPDB7;
-#define XLogRecordData(record) ((uint8_t *) record + sizeof(XLogRecordGPDB7))
+#define XLogRecordData(record) ((uint8 *) record + sizeof(XLogRecordGPDB7))
 _Static_assert(
     offsetof(XLogRecordGPDB7, xl_info) / 8 == offsetof(XLogRecordGPDB7, xl_rmid) / 8,
     "The xl_info and xl_rmid fields are in different 8 byte chunks.");
@@ -79,7 +79,7 @@ _Static_assert(
 FN_INLINE_ALWAYS pg_crc32
 xLogRecordChecksumGPDB7(const XLogRecordGPDB7 *const record)
 {
-    uint32_t crc = crc32cInit();
+    uint32 crc = crc32cInit();
 
     /* Calculate the CRC */
     crc = crc32cComp(crc, ((unsigned char *) record) + sizeof(XLogRecordGPDB7), record->xl_tot_len - sizeof(XLogRecordGPDB7));

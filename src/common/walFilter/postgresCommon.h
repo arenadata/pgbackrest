@@ -95,7 +95,7 @@ typedef struct XLogLongPageHeaderData
     uint32 xlp_xlog_blcksz;         /* just as a cross-check */
 } XLogLongPageHeaderData;
 
-// This part of XLogRecord is the same in all supported versions of Postgresql.
+// This part of XLogRecord is the same in all supported versions of PostgreSQL.
 typedef struct XLogRecordBase
 {
     uint32 xl_tot_len;          /* total len of entire record */

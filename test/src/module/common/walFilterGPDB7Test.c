@@ -23,8 +23,8 @@ typedef enum WalFlags
 
 typedef struct XRecordInfo
 {
-    uint8_t rmid;
-    uint8_t info;
+    uint8 rmid;
+    uint8 info;
     RelFileNode node;
     bool main_data;
 } XRecordInfo;
@@ -132,13 +132,13 @@ insertWalSwitchXRecord(Buffer *wal)
 }
 
 void
-testGetRelfilenode(uint8_t rmid, uint8_t info, bool expect_not_skip)
+testGetRelfilenode(uint8 rmid, uint8 info, bool expect_not_skip)
 {
     RelFileNode node = {1, 2, 3};
 
     XLogRecordBase *record = createXRecord(rmid, info, .main_data_size = sizeof(node), .main_data = &node);
 
-    const RelFileNode *nodeResult = getRelFileNodeFromMainData((XLogRecordGPDB7 *) record, (uint8_t *) record + sizeof(XLogRecordGPDB7) + 2);
+    const RelFileNode *nodeResult = getRelFileNodeFromMainData((XLogRecordGPDB7 *) record, (uint8 *) record + sizeof(XLogRecordGPDB7) + 2);
     RelFileNode nodeExpect = {1, 2, 3};
     TEST_RESULT_BOOL(nodeResult != NULL, expect_not_skip, "RelFileNode is different from expected");
     if (expect_not_skip)
@@ -1225,7 +1225,7 @@ testRun(void)
                 .rnode = {1, 2, 3}
             };
             record = createXRecord(RM7_SMGR_ID, XLOG_SMGR_TRUNCATE, .main_data_size = sizeof(xlrec), .main_data = &xlrec);
-            const RelFileNode *nodeResult = getRelFileNodeFromMainData((XLogRecordGPDB7 *) record, (uint8_t *) record + sizeof(XLogRecordGPDB7) + 2);
+            const RelFileNode *nodeResult = getRelFileNodeFromMainData((XLogRecordGPDB7 *) record, (uint8 *) record + sizeof(XLogRecordGPDB7) + 2);
             TEST_RESULT_BOOL(nodeResult != NULL, true, "relFileNode not found");
             TEST_RESULT_BOOL(memcmp(&xlrec.rnode, nodeResult, sizeof(RelFileNode)) == 0, true, "relFileNode is not the same");
         }
@@ -1242,7 +1242,7 @@ testRun(void)
                 .target = {1, 2, 3}
             };
             record = createXRecord(RM7_HEAP2_ID, XLOG_HEAP2_NEW_CID, .main_data_size = sizeof(xlrec), .main_data = &xlrec);
-            const RelFileNode *nodeResult = getRelFileNodeFromMainData((XLogRecordGPDB7 *) record, (uint8_t *) record + sizeof(XLogRecordGPDB7) + 2);
+            const RelFileNode *nodeResult = getRelFileNodeFromMainData((XLogRecordGPDB7 *) record, (uint8 *) record + sizeof(XLogRecordGPDB7) + 2);
             TEST_RESULT_BOOL(nodeResult != NULL, true, "relFileNode not found");
             TEST_RESULT_BOOL(memcmp(&xlrec.target, nodeResult, sizeof(RelFileNode)) == 0, true, "relFileNode is not the same");
         }
