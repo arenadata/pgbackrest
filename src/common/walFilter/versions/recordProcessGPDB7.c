@@ -165,7 +165,7 @@ getRelFileNodeFromMainData(const XLogRecordGPDB7 *const record, const void *cons
         case RM7_SEQ_ID:
             if (info == XLOG_SEQ_LOG)
                 return (const RelFileNode *) mainData;
-            THROW_FMT(FormatError, "unknown Sequence: %d", info);
+            THROW_FMT(FormatError, "unknown Sequence: %" PRIu8, info);
 
         case RM7_BITMAP_ID:
             switch (info)
@@ -191,7 +191,7 @@ getRelFileNodeFromMainData(const XLogRecordGPDB7 *const record, const void *cons
                     return (const RelFileNode *) mainData;
 
                 default:
-                    THROW_FMT(FormatError, "unknown Appendonly: %d", info);
+                    THROW_FMT(FormatError, "unknown Appendonly: %" PRIu8, info);
             }
     }
 
