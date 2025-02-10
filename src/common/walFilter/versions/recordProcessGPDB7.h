@@ -4,8 +4,6 @@
 #include "build.auto.h"
 #include "common/walFilter/postgresCommon.h"
 
-FN_EXTERN WalInterface getWalInterfaceGPDB7(PgPageSize heapPageSize);
-
 /*
  * Block IDs used to distinguish different kinds of record fragments. Block
  * references are numbered from 0 to XLR_MAX_BLOCK_ID. A rmgr is free to use
@@ -79,5 +77,6 @@ _Static_assert(
     "The xl_info and xl_rmid fields are in different 8 byte chunks.");
 
 FN_EXTERN pg_crc32 xLogRecordChecksumGPDB7(const XLogRecordGPDB7 *record);
+FN_EXTERN WalInterface getWalInterfaceGPDB7(PgPageSize heapPageSize);
 
 #endif // PGBACKREST_RECORDPROCRESSGPDB7_H

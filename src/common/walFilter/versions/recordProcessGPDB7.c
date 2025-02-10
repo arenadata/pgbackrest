@@ -406,7 +406,8 @@ filterRecordGPDB7(XLogRecordBase *const recordBase)
         goto end;
 
     List *const nodes = getRelFileNodes(record);
-    if (lstEmpty(nodes)){
+    if (lstEmpty(nodes))
+    {
         lstFree(nodes);
         goto end;
     }

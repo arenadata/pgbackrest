@@ -3,8 +3,6 @@
 
 #include "common/walFilter/postgresCommon.h"
 
-FN_EXTERN WalInterface getWalInterfaceGPDB6(PgPageSize heapPageSize);
-
 typedef enum ForkNumber
 {
     InvalidForkNumber = -1,
@@ -75,5 +73,6 @@ typedef struct BkpBlock
 } BkpBlock;
 
 FN_EXTERN pg_crc32 xLogRecordChecksumGPDB6(const XLogRecordGPDB6 *record, PgPageSize heapPageSize);
+FN_EXTERN WalInterface getWalInterfaceGPDB6(PgPageSize heapPageSize);
 
 #endif // COMMON_WALFILTER_VERSIONS_RECORDPROCESSGPDB6_H
