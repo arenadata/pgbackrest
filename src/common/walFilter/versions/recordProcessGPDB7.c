@@ -5,8 +5,6 @@
 #include "definitionsGPDB7.h"
 #include "recordProcessGPDB7.h"
 
-#define GPDB7_XLOG_PAGE_MAGIC 0xD101
-
 enum
 {
     RM7_SMGR_ID = 2,
@@ -454,7 +452,7 @@ FN_EXTERN WalInterface
 getWalInterfaceGPDB7(void)
 {
     return (WalInterface){
-               GPDB7_XLOG_PAGE_MAGIC,
+               0xD101,
                sizeof(XLogRecordGPDB7),
                offsetof(XLogRecordGPDB7, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecordGPDB7, xl_rmid),
                validXLogRecordHeaderGPDB7,

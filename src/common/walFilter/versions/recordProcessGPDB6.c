@@ -6,7 +6,6 @@
 #include "definitionsGPDB6.h"
 #include "recordProcessGPDB6.h"
 
-#define GPDB6_XLOG_PAGE_MAGIC 0xD07E
 #define XLOG_HEAP_OPMASK        0x70
 
 enum
@@ -437,13 +436,13 @@ filterRecordGPDB6(XLogRecordBase *const recordBase, const PgPageSize pageSize)
 FN_EXTERN WalInterface
 getWalInterfaceGPDB6(void)
 {
-    return (WalInterface) {
-            GPDB6_XLOG_PAGE_MAGIC,
-            SizeOfXLogRecordGPDB6,
-            offsetof(XLogRecordGPDB6, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecordGPDB6, xl_rmid),
-            validXLogRecordHeaderGPDB6,
-            validXLogRecordGPDB6,
-            xLogRecordIsWalSwitchGPDB6,
-            filterRecordGPDB6
+    return (WalInterface){
+               0xD07E,
+               SizeOfXLogRecordGPDB6,
+               offsetof(XLogRecordGPDB6, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecordGPDB6, xl_rmid),
+               validXLogRecordHeaderGPDB6,
+               validXLogRecordGPDB6,
+               xLogRecordIsWalSwitchGPDB6,
+               filterRecordGPDB6
     };
 }
