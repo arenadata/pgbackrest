@@ -243,10 +243,10 @@ typedef struct WalInterface
     uint16 header_magic;
     uint32 headerSize;
     uint32 rmidSize;
-    void (*validXLogRecordHeader)(const XLogRecordBase *record, PgPageSize heapPageSize);
-    void (*validXLogRecord)(const XLogRecordBase *record, PgPageSize heapPageSize);
+    void (*validXLogRecordHeader)(const XLogRecordBase *record);
+    void (*validXLogRecord)(const XLogRecordBase *record);
     bool (*xLogRecordIsWalSwitch)(const XLogRecordBase *record);
-    void (*xLogRecordFilter)(XLogRecordBase *record, PgPageSize pageSize);
+    void (*xLogRecordFilter)(XLogRecordBase *record);
 } WalInterface;
 
 #endif // COMMON_WALFILTER_POSTGRESCOMMON_H

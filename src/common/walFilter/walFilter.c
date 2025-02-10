@@ -244,7 +244,7 @@ stepReadHeader:
     }
     this->gotLen = this->walInterface.headerSize;
 
-    this->walInterface.validXLogRecordHeader(this->record, this->heapPageSize);
+    this->walInterface.validXLogRecordHeader(this->record);
     // Read rest of the record on this page
     size_t toRead = Min(
         this->record->xl_tot_len - this->walInterface.headerSize,
@@ -292,7 +292,7 @@ stepReadBody:
         this->pageOffset += MAXALIGN(to_write);
         this->gotLen += to_write;
     }
-    this->walInterface.validXLogRecord(this->record, this->heapPageSize);
+    this->walInterface.validXLogRecord(this->record);
 
     this->isSwitchWal = this->walInterface.xLogRecordIsWalSwitch(this->record);
 
@@ -511,7 +511,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             if (this->gotLen >= this->walInterface.rmidSize)
             {
                 getEndOfRecord(this);
-                this->walInterface.xLogRecordFilter(this->record, this->heapPageSize);
+                this->walInterface.xLogRecordFilter(this->record);
             }
 
             bufCatC(output, (const unsigned char *) this->record, 0, size_on_page);
@@ -545,7 +545,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                     // read this record.
                     THROW_FMT(FormatError, "%s - record is too big", strZ(pgLsnToStr(this->recPtr)));
                 }
-                this->walInterface.xLogRecordFilter(this->record, this->heapPageSize);
+                this->walInterface.xLogRecordFilter(this->record);
 
                 ASSERT(offset % MAXIMUM_ALIGNOF == 0 && offset <= MAXIMUM_ALIGNOF * 2);
                 this->gotLen -= offset;
@@ -595,7 +595,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         // In the case of overwrite contrecord, we do not need to try to filter it, since the record may not have a body at all.
         if (this->gotLen == this->record->xl_tot_len)
         {
-            this->walInterface.xLogRecordFilter(this->record, this->heapPageSize);
+            this->walInterface.xLogRecordFilter(this->record);
         }
 
         writeRecord(this, output, (const unsigned char *) this->record);
@@ -659,11 +659,11 @@ walFilterNew(const PgControl pgControl, const ArchiveGetFile *const archiveInfo)
 
         if (pgControl.version == PG_VERSION_94)
         {
-            this->walInterface = getWalInterfaceGPDB6();
+            this->walInterface = getWalInterfaceGPDB6(pgControl.pageSize);
         }
         else if (pgControl.version == PG_VERSION_12)
         {
-            this->walInterface = getWalInterfaceGPDB7();
+            this->walInterface = getWalInterfaceGPDB7(pgControl.pageSize);
         }
         else
         {

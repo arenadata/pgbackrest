@@ -3,6 +3,6 @@
 
 #include "common/walFilter/postgresCommon.h"
 
-FN_EXTERN WalInterface getWalInterfaceGPDB6(void);
+FN_EXTERN WalInterface getWalInterfaceGPDB6(PgPageSize heapPageSize);
 
 #endif // COMMON_WALFILTER_VERSIONS_RECORDPROCESSGPDB6_H

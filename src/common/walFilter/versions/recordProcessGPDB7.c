@@ -5,6 +5,8 @@
 #include "definitionsGPDB7.h"
 #include "recordProcessGPDB7.h"
 
+static PgPageSize HeapPageSize;
+
 enum
 {
     RM7_SMGR_ID = 2,
@@ -57,7 +59,7 @@ XLogRecordGPDB7ToLog(const XLogRecordGPDB7 *const this, StringStatic *const debu
     FUNCTION_LOG_OBJECT_FORMAT(value, XLogRecordGPDB7ToLog, buffer, bufferSize)
 
 static void
-validXLogRecordHeaderGPDB7(const XLogRecordBase *recordBase, __attribute__((unused)) PgPageSize heapPageSize)
+validXLogRecordHeaderGPDB7(const XLogRecordBase *recordBase)
 {
     const XLogRecordGPDB7 *const record = (const XLogRecordGPDB7 *const) recordBase;
 
@@ -72,7 +74,7 @@ validXLogRecordHeaderGPDB7(const XLogRecordBase *recordBase, __attribute__((unus
 }
 
 static void
-validXLogRecordGPDB7(const XLogRecordBase *const recordBase, __attribute__((unused)) const PgPageSize heapPageSize)
+validXLogRecordGPDB7(const XLogRecordBase *const recordBase)
 {
     const XLogRecordGPDB7 *const record = (const XLogRecordGPDB7 *const) recordBase;
 
@@ -187,7 +189,7 @@ getRelFileNodeFromMainData(const XLogRecordGPDB7 *const record, const void *cons
 }
 
 static List *
-getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
+getRelFileNodes(XLogRecordGPDB7 *const record)
 {
     #define COPY_HEADER_FIELD(_dst)                     \
     do                                                  \
@@ -201,7 +203,6 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
 
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(XLOG_RECORD_GPDB7, record);
-        FUNCTION_LOG_PARAM(INT, (int) pageSize);
     FUNCTION_LOG_END();
 
     /* Decode the headers */
@@ -290,7 +291,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
                     hole_length = 0;
             }
             else
-                hole_length = (uint16) (pageSize - bimg_len);
+                hole_length = (uint16) (HeapPageSize - bimg_len);
             datatotal += bimg_len;
 
             /*
@@ -300,7 +301,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
             if ((bimg_info & BKPIMAGE_HAS_HOLE) &&
                 (hole_offset == 0 ||
                  hole_length == 0 ||
-                 bimg_len == pageSize))
+                 bimg_len == HeapPageSize))
             {
                 THROW_FMT(FormatError,
                           "BKPIMAGE_HAS_HOLE set, but hole offset %" PRIu16 " length %" PRIu16 " block image length %" PRIu16,
@@ -324,7 +325,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record, PgPageSize pageSize)
              * cross-check that bimg_len < BLCKSZ if the IS_COMPRESSED
              * flag is set.
              */
-            if ((bimg_info & BKPIMAGE_IS_COMPRESSED) && bimg_len == pageSize)
+            if ((bimg_info & BKPIMAGE_IS_COMPRESSED) && bimg_len == HeapPageSize)
             {
                 THROW_FMT(FormatError, "BKPIMAGE_IS_COMPRESSED set, but block image length %" PRIu16, bimg_len);
             }
@@ -380,10 +381,9 @@ overrideXLogRecordBody(XLogRecordGPDB7 *const record)
 }
 
 static void
-filterRecordGPDB7(XLogRecordBase *const recordBase, const PgPageSize pageSize)
+filterRecordGPDB7(XLogRecordBase *const recordBase)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
-        FUNCTION_LOG_PARAM(INT, (int) pageSize);
     FUNCTION_LOG_END();
 
     XLogRecordGPDB7 *const record = (XLogRecordGPDB7 *const) recordBase;
@@ -391,7 +391,7 @@ filterRecordGPDB7(XLogRecordBase *const recordBase, const PgPageSize pageSize)
     if (record->xl_rmid == RM_XLOG_ID && record->xl_info == XLOG_NOOP)
         goto end;
 
-    List *const nodes = getRelFileNodes(record, pageSize);
+    List *const nodes = getRelFileNodes(record);
     if (lstEmpty(nodes)){
         lstFree(nodes);
         goto end;
@@ -449,8 +449,10 @@ end:
 }
 
 FN_EXTERN WalInterface
-getWalInterfaceGPDB7(void)
+getWalInterfaceGPDB7(PgPageSize heapPageSize)
 {
+    HeapPageSize = heapPageSize;
+
     return (WalInterface){
                0xD101,
                sizeof(XLogRecordGPDB7),
