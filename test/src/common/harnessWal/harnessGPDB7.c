@@ -2,7 +2,7 @@
 
 #include "../harnessWal.h"
 #include "common/type/object.h"
-#include "common/walFilter/versions/definitionsGPDB7.h"
+#include "common/walFilter/versions/recordProcessGPDB7.h"
 #include "string.h"
 
 #define TRANSACTION_ID_PLACEHOLDER 0xADDE

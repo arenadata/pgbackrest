@@ -2,7 +2,7 @@
 
 #include "common/log.h"
 #include "common/partialRestore.h"
-#include "definitionsGPDB7.h"
+#include "postgres/interface/crc32.h"
 #include "recordProcessGPDB7.h"
 
 static PgPageSize heapPageSizeGPDB7 = 0;

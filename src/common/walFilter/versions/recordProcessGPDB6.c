@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "common/log.h"
 #include "common/partialRestore.h"
-#include "definitionsGPDB6.h"
+#include "postgres/interface/crc32.h"
 #include "recordProcessGPDB6.h"
 
 static PgPageSize heapPageSizeGPDB6 = 0;
