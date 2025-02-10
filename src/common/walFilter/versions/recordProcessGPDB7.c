@@ -5,7 +5,7 @@
 #include "definitionsGPDB7.h"
 #include "recordProcessGPDB7.h"
 
-static PgPageSize HeapPageSize = 0;
+static PgPageSize heapPageSizeGPDB7 = 0;
 
 enum
 {
@@ -217,7 +217,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record)
         FUNCTION_LOG_PARAM(XLOG_RECORD_GPDB7, record);
     FUNCTION_LOG_END();
 
-    ASSERT(HeapPageSize != 0);
+    ASSERT(heapPageSizeGPDB7 != 0);
 
     /* Decode the headers */
     size_t datatotal = 0;
@@ -305,7 +305,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record)
                     hole_length = 0;
             }
             else
-                hole_length = (uint16) (HeapPageSize - bimg_len);
+                hole_length = (uint16) (heapPageSizeGPDB7 - bimg_len);
             datatotal += bimg_len;
 
             /*
@@ -315,7 +315,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record)
             if ((bimg_info & BKPIMAGE_HAS_HOLE) &&
                 (hole_offset == 0 ||
                  hole_length == 0 ||
-                 bimg_len == HeapPageSize))
+                 bimg_len == heapPageSizeGPDB7))
             {
                 THROW_FMT(FormatError,
                           "BKPIMAGE_HAS_HOLE set, but hole offset %" PRIu16 " length %" PRIu16 " block image length %" PRIu16,
@@ -339,7 +339,7 @@ getRelFileNodes(XLogRecordGPDB7 *const record)
              * cross-check that bimg_len < BLCKSZ if the IS_COMPRESSED
              * flag is set.
              */
-            if ((bimg_info & BKPIMAGE_IS_COMPRESSED) && bimg_len == HeapPageSize)
+            if ((bimg_info & BKPIMAGE_IS_COMPRESSED) && bimg_len == heapPageSizeGPDB7)
             {
                 THROW_FMT(FormatError, "BKPIMAGE_IS_COMPRESSED set, but block image length %" PRIu16, bimg_len);
             }
@@ -466,7 +466,7 @@ FN_EXTERN WalInterface
 getWalInterfaceGPDB7(PgPageSize heapPageSize)
 {
     ASSERT(pgPageSizeValid(heapPageSize));
-    HeapPageSize = heapPageSize;
+    heapPageSizeGPDB7 = heapPageSize;
 
     return (WalInterface){
                0xD101,

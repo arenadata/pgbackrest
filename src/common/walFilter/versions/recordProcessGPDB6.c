@@ -6,7 +6,7 @@
 #include "definitionsGPDB6.h"
 #include "recordProcessGPDB6.h"
 
-static PgPageSize HeapPageSize = 0;
+static PgPageSize heapPageSizeGPDB6 = 0;
 
 #define XLOG_HEAP_OPMASK        0x70
 
@@ -326,7 +326,7 @@ getRelFileNode(const XLogRecordGPDB6 *const record)
 static void
 validXLogRecordHeaderGPDB6(const XLogRecordBase *const recordBase)
 {
-    ASSERT(HeapPageSize != 0);
+    ASSERT(heapPageSizeGPDB6 != 0);
 
     const XLogRecordGPDB6 *const record = (const XLogRecordGPDB6 *const) recordBase;
 
@@ -347,7 +347,7 @@ validXLogRecordHeaderGPDB6(const XLogRecordBase *const recordBase)
     }
     if (record->xl_tot_len < SizeOfXLogRecordGPDB6 + record->xl_len ||
         record->xl_tot_len > SizeOfXLogRecordGPDB6 + record->xl_len +
-        XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + HeapPageSize))
+        XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + heapPageSizeGPDB6))
     {
         THROW_FMT(FormatError, "invalid record length");
     }
@@ -360,7 +360,7 @@ validXLogRecordHeaderGPDB6(const XLogRecordBase *const recordBase)
 static void
 validXLogRecordGPDB6(const XLogRecordBase *const recordBase)
 {
-    ASSERT(HeapPageSize != 0);
+    ASSERT(heapPageSizeGPDB6 != 0);
 
     const XLogRecordGPDB6 *const record = (const XLogRecordGPDB6 *const) recordBase;
     const uint32 len = record->xl_len;
@@ -383,12 +383,12 @@ validXLogRecordGPDB6(const XLogRecordBase *const recordBase)
         }
 
         const BkpBlock *bkpb = (const BkpBlock *) blk;
-        if (bkpb->hole_offset + bkpb->hole_length > HeapPageSize)
+        if (bkpb->hole_offset + bkpb->hole_length > heapPageSizeGPDB6)
         {
             THROW_FMT(FormatError, "incorrect hole size in record");
         }
 
-        const uint32 blen = (uint32) sizeof(BkpBlock) + HeapPageSize - bkpb->hole_length;
+        const uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSizeGPDB6 - bkpb->hole_length;
         if (remaining < blen)
         {
             THROW_FMT(FormatError, "invalid backup block size in record");
@@ -453,7 +453,7 @@ xLogRecordChecksumGPDB6(const XLogRecordGPDB6 *const record, const PgPageSize he
 static void
 filterRecordGPDB6(XLogRecordBase *const recordBase)
 {
-    ASSERT(HeapPageSize != 0);
+    ASSERT(heapPageSizeGPDB6 != 0);
 
     XLogRecordGPDB6 *const record = (XLogRecordGPDB6 *const) recordBase;
 
@@ -467,7 +467,7 @@ filterRecordGPDB6(XLogRecordBase *const recordBase)
     record->xl_rmid = RM_XLOG_ID;
     // Save 4 least significant bits which represent backup blocks flags.
     record->xl_info = (uint8) (XLOG_NOOP | (record->xl_info & XLR_INFO_MASK));
-    record->xl_crc = xLogRecordChecksumGPDB6(record, HeapPageSize);
+    record->xl_crc = xLogRecordChecksumGPDB6(record, heapPageSizeGPDB6);
 }
 
 FN_EXTERN WalInterface
@@ -475,7 +475,7 @@ getWalInterfaceGPDB6(PgPageSize heapPageSize)
 {
     ASSERT(pgPageSizeValid(heapPageSize));
 
-    HeapPageSize = heapPageSize;
+    heapPageSizeGPDB6 = heapPageSize;
 
     return (WalInterface){
                0xD07E,
