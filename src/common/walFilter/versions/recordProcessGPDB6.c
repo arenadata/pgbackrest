@@ -6,6 +6,7 @@
 #include "definitionsGPDB6.h"
 #include "recordProcessGPDB6.h"
 
+#define GPDB6_XLOG_PAGE_MAGIC 0xD07E
 #define XLOG_HEAP_OPMASK        0x70
 
 enum
@@ -321,7 +322,7 @@ getRelFileNode(const XLogRecordGPDB6 *const record)
     THROW(FormatError, "Unknown resource manager");
 }
 
-FN_EXTERN void
+static void
 validXLogRecordHeaderGPDB6(const XLogRecordBase *const recordBase, const PgPageSize heapPageSize)
 {
     const XLogRecordGPDB6 *const record = (const XLogRecordGPDB6 *const) recordBase;
@@ -353,7 +354,7 @@ validXLogRecordHeaderGPDB6(const XLogRecordBase *const recordBase, const PgPageS
     }
 }
 
-FN_EXTERN void
+static void
 validXLogRecordGPDB6(const XLogRecordBase *const recordBase, const PgPageSize heapPageSize)
 {
     const XLogRecordGPDB6 *const record = (const XLogRecordGPDB6 *const) recordBase;
@@ -408,14 +409,14 @@ validXLogRecordGPDB6(const XLogRecordBase *const recordBase, const PgPageSize he
     }
 }
 
-FN_EXTERN bool
+static bool
 xLogRecordIsWalSwitchGPDB6(const XLogRecordBase *recordBase)
 {
     const XLogRecordGPDB6 *const record = (const XLogRecordGPDB6 *const) recordBase;
     return record->xl_rmid == RM_XLOG_ID && record->xl_info == XLOG_SWITCH;
 }
 
-FN_EXTERN void
+static void
 filterRecordGPDB6(XLogRecordBase *const recordBase, const PgPageSize pageSize)
 {
     XLogRecordGPDB6 *const record = (XLogRecordGPDB6 *const) recordBase;
@@ -436,15 +437,13 @@ filterRecordGPDB6(XLogRecordBase *const recordBase, const PgPageSize pageSize)
 FN_EXTERN WalInterface
 getWalInterfaceGPDB6(void)
 {
-    WalInterface interface = {
-        GPDB6_XLOG_PAGE_MAGIC,
-        SizeOfXLogRecordGPDB6,
-        offsetof(XLogRecordGPDB6, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecordGPDB6, xl_rmid),
-        validXLogRecordHeaderGPDB6,
-        validXLogRecordGPDB6,
-        xLogRecordIsWalSwitchGPDB6,
-        filterRecordGPDB6
+    return (WalInterface) {
+            GPDB6_XLOG_PAGE_MAGIC,
+            SizeOfXLogRecordGPDB6,
+            offsetof(XLogRecordGPDB6, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecordGPDB6, xl_rmid),
+            validXLogRecordHeaderGPDB6,
+            validXLogRecordGPDB6,
+            xLogRecordIsWalSwitchGPDB6,
+            filterRecordGPDB6
     };
-
-    return interface;
 }

@@ -5,6 +5,8 @@
 #include "definitionsGPDB7.h"
 #include "recordProcessGPDB7.h"
 
+#define GPDB7_XLOG_PAGE_MAGIC 0xD101
+
 enum
 {
     RM7_SMGR_ID = 2,
@@ -56,7 +58,7 @@ XLogRecordGPDB7ToLog(const XLogRecordGPDB7 *const this, StringStatic *const debu
 #define FUNCTION_LOG_XLOG_RECORD_GPDB7_FORMAT(value, buffer, bufferSize)                                                           \
     FUNCTION_LOG_OBJECT_FORMAT(value, XLogRecordGPDB7ToLog, buffer, bufferSize)
 
-FN_EXTERN void
+static void
 validXLogRecordHeaderGPDB7(const XLogRecordBase *recordBase, __attribute__((unused)) PgPageSize heapPageSize)
 {
     const XLogRecordGPDB7 *const record = (const XLogRecordGPDB7 *const) recordBase;
@@ -71,7 +73,7 @@ validXLogRecordHeaderGPDB7(const XLogRecordBase *recordBase, __attribute__((unus
     }
 }
 
-FN_EXTERN void
+static void
 validXLogRecordGPDB7(const XLogRecordBase *const recordBase, __attribute__((unused)) const PgPageSize heapPageSize)
 {
     const XLogRecordGPDB7 *const record = (const XLogRecordGPDB7 *const) recordBase;
@@ -82,7 +84,7 @@ validXLogRecordGPDB7(const XLogRecordBase *const recordBase, __attribute__((unus
     }
 }
 
-FN_EXTERN bool
+static bool
 xLogRecordIsWalSwitchGPDB7(const XLogRecordBase *recordBase)
 {
     const XLogRecordGPDB7 *const record = (const XLogRecordGPDB7 *const) recordBase;
@@ -379,7 +381,7 @@ overrideXLogRecordBody(XLogRecordGPDB7 *const record)
     }
 }
 
-FN_EXTERN void
+static void
 filterRecordGPDB7(XLogRecordBase *const recordBase, const PgPageSize pageSize)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
@@ -451,15 +453,13 @@ end:
 FN_EXTERN WalInterface
 getWalInterfaceGPDB7(void)
 {
-    WalInterface interface = {
-        GPDB7_XLOG_PAGE_MAGIC,
-        sizeof(XLogRecordGPDB7),
-        offsetof(XLogRecordGPDB7, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecordGPDB7, xl_rmid),
-        validXLogRecordHeaderGPDB7,
-        validXLogRecordGPDB7,
-        xLogRecordIsWalSwitchGPDB7,
-        filterRecordGPDB7
+    return (WalInterface){
+               GPDB7_XLOG_PAGE_MAGIC,
+               sizeof(XLogRecordGPDB7),
+               offsetof(XLogRecordGPDB7, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecordGPDB7, xl_rmid),
+               validXLogRecordHeaderGPDB7,
+               validXLogRecordGPDB7,
+               xLogRecordIsWalSwitchGPDB7,
+               filterRecordGPDB7
     };
-
-    return interface;
 }
