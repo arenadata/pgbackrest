@@ -238,4 +238,15 @@ enum
     XLOG_APPENDONLY_TRUNCATE = 0x10,
 };
 
+typedef struct WalInterface
+{
+    uint16 header_magic;
+    uint32 headerSize;
+    uint32 rmidSize;
+    void (*validXLogRecordHeader)(const XLogRecordBase *record, PgPageSize heapPageSize);
+    void (*validXLogRecord)(const XLogRecordBase *record, PgPageSize heapPageSize);
+    bool (*xLogRecordIsWalSwitch)(const XLogRecordBase *record);
+    void (*xLogRecordFilter)(XLogRecordBase *record, PgPageSize pageSize);
+} WalInterface;
+
 #endif // COMMON_WALFILTER_POSTGRESCOMMON_H

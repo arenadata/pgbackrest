@@ -82,18 +82,6 @@ validXLogRecordGPDB7(const XLogRecordBase *const recordBase, __attribute__((unus
     }
 }
 
-FN_EXTERN uint32
-xLogRecordHeaderSizeGPDB7(void)
-{
-    return sizeof(XLogRecordGPDB7);
-}
-
-FN_EXTERN uint32
-xLogRecordRmidSizeGPDB7(void)
-{
-    return offsetof(XLogRecordGPDB7, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecordGPDB7, xl_rmid);
-}
-
 FN_EXTERN bool
 xLogRecordIsWalSwitchGPDB7(const XLogRecordBase *recordBase)
 {
@@ -458,4 +446,20 @@ filterRecordGPDB7(XLogRecordBase *const recordBase, const PgPageSize pageSize)
     record->xl_crc = xLogRecordChecksumGPDB7(record);
 end:
     FUNCTION_LOG_RETURN_VOID();
+}
+
+FN_EXTERN WalInterface
+getWalInterfaceGPDB7(void)
+{
+    WalInterface interface = {
+        GPDB7_XLOG_PAGE_MAGIC,
+        sizeof(XLogRecordGPDB7),
+        offsetof(XLogRecordGPDB7, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecordGPDB7, xl_rmid),
+        validXLogRecordHeaderGPDB7,
+        validXLogRecordGPDB7,
+        xLogRecordIsWalSwitchGPDB7,
+        filterRecordGPDB7
+    };
+
+    return interface;
 }

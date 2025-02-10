@@ -32,17 +32,6 @@ typedef enum
     ReadRecordSuccess
 } ReadRecordStatus;
 
-typedef struct WalInterface
-{
-    uint16 header_magic;
-    void (*validXLogRecordHeader)(const XLogRecordBase *record, PgPageSize heapPageSize);
-    void (*validXLogRecord)(const XLogRecordBase *record, PgPageSize heapPageSize);
-    uint32 (*xLogRecordHeaderSize)(void);
-    uint32 (*xLogRecordRmidSize)(void);
-    bool (*xLogRecordIsWalSwitch)(const XLogRecordBase *record);
-    void (*xLogRecordFilter)(XLogRecordBase *record, PgPageSize pageSize);
-} WalInterface;
-
 typedef struct WalFilter
 {
     ReadStep currentStep;
@@ -67,9 +56,6 @@ typedef struct WalFilter
     size_t gotLen;
     // Total size of the current record on current page
     size_t totLen;
-
-    uint32 xLogRecordHeaderSize;
-    uint32 xLogRecordRmidSize;
 
     List *pageHeaders;
 
@@ -218,12 +204,12 @@ stepBeginOfRecord:
     memcpy(
         this->record,
         ((unsigned char *) this->currentPageHeader) + this->pageOffset,
-        Min(this->xLogRecordHeaderSize, this->walPageSize - this->pageOffset));
+        Min(this->walInterface.headerSize, this->walPageSize - this->pageOffset));
 
     this->totLen = this->record->xl_tot_len;
 
     // If header is split read rest of the header from next page
-    if (this->xLogRecordHeaderSize > this->walPageSize - this->pageOffset)
+    if (this->walInterface.headerSize > this->walPageSize - this->pageOffset)
     {
         this->gotLen = this->walPageSize - this->pageOffset;
         this->currentStep = stepReadHeader;
@@ -248,21 +234,23 @@ stepReadHeader:
         memcpy(
             ((char *) this->record) + this->gotLen,
             ((unsigned char *) this->currentPageHeader) + this->pageOffset,
-            this->xLogRecordHeaderSize - this->gotLen);
+            this->walInterface.headerSize - this->gotLen);
         this->totLen -= this->gotLen;
-        this->headerSize = this->xLogRecordHeaderSize - this->gotLen;
+        this->headerSize = this->walInterface.headerSize - this->gotLen;
     }
     else
     {
-        this->headerSize = this->xLogRecordHeaderSize;
+        this->headerSize = this->walInterface.headerSize;
     }
-    this->gotLen = this->xLogRecordHeaderSize;
+    this->gotLen = this->walInterface.headerSize;
 
     this->walInterface.validXLogRecordHeader(this->record, this->heapPageSize);
     // Read rest of the record on this page
-    size_t toRead = Min(this->record->xl_tot_len - this->xLogRecordHeaderSize, this->walPageSize - this->pageOffset - this->xLogRecordHeaderSize);
+    size_t toRead = Min(
+        this->record->xl_tot_len - this->walInterface.headerSize,
+        this->walPageSize - this->pageOffset - this->walInterface.headerSize);
     memcpy(
-        ((uint8 *) this->record) + this->xLogRecordHeaderSize,
+        ((uint8 *) this->record) + this->walInterface.headerSize,
         ((uint8 *) this->currentPageHeader) + this->pageOffset + this->headerSize,
         toRead);
     this->gotLen += toRead;
@@ -454,7 +442,7 @@ readBeginOfRecord(WalFilterState *const this)
         lstClearFast(this->pageHeaders);
     }
     // If xl_info and xl_rmid is in prev file then nothing to do
-    result = this->gotLen < this->xLogRecordRmidSize;
+    result = this->gotLen < this->walInterface.rmidSize;
 
     ioReadClose(storageReadIo(storageRead));
 end:
@@ -520,7 +508,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             const size_t size_on_page = this->gotLen;
 
             // if xl_info and xl_rmid of the header is in current file then read end of record from next file if it exits
-            if (this->gotLen >= this->xLogRecordRmidSize)
+            if (this->gotLen >= this->walInterface.rmidSize)
             {
                 getEndOfRecord(this);
                 this->walInterface.xLogRecordFilter(this->record, this->heapPageSize);
@@ -658,33 +646,6 @@ walFilterNew(const PgControl pgControl, const ArchiveGetFile *const archiveInfo)
             THROW(VersionNotSupportedError, "WAL filtering is only supported for GPDB 6 and 7");
         }
 
-        WalInterface walInterface;
-
-        if (pgControl.version == PG_VERSION_94)
-        {
-            walInterface.header_magic = GPDB6_XLOG_PAGE_MAGIC;
-            walInterface.validXLogRecordHeader = validXLogRecordHeaderGPDB6;
-            walInterface.validXLogRecord = validXLogRecordGPDB6;
-            walInterface.xLogRecordHeaderSize = xLogRecordHeaderSizeGPDB6;
-            walInterface.xLogRecordRmidSize = xLogRecordRmidSizeGPDB6;
-            walInterface.xLogRecordIsWalSwitch = xLogRecordIsWalSwitchGPDB6;
-            walInterface.xLogRecordFilter = filterRecordGPDB6;
-        }
-        else if (pgControl.version == PG_VERSION_12)
-        {
-            walInterface.header_magic = GPDB7_XLOG_PAGE_MAGIC;
-            walInterface.validXLogRecordHeader = validXLogRecordHeaderGPDB7;
-            walInterface.validXLogRecord = validXLogRecordGPDB7;
-            walInterface.xLogRecordHeaderSize = xLogRecordHeaderSizeGPDB7;
-            walInterface.xLogRecordRmidSize = xLogRecordRmidSizeGPDB7;
-            walInterface.xLogRecordIsWalSwitch = xLogRecordIsWalSwitchGPDB7;
-            walInterface.xLogRecordFilter = filterRecordGPDB7;
-        }
-        else
-        {
-            THROW(VersionNotSupportedError, "WAL filtering is not supported for this version of GPDB");
-        }
-
         *this = (WalFilterState){
             .isBegin = true,
             .record = memNew(pgControl.pageSize),
@@ -694,10 +655,20 @@ walFilterNew(const PgControl pgControl, const ArchiveGetFile *const archiveInfo)
             .heapPageSize = pgControl.pageSize,
             .walPageSize = pgControl.walPageSize,
             .segSize = pgControl.walSegmentSize,
-            .xLogRecordHeaderSize = walInterface.xLogRecordHeaderSize(),
-            .xLogRecordRmidSize = walInterface.xLogRecordRmidSize(),
-            .walInterface = walInterface
         };
+
+        if (pgControl.version == PG_VERSION_94)
+        {
+            this->walInterface = getWalInterfaceGPDB6();
+        }
+        else if (pgControl.version == PG_VERSION_12)
+        {
+            this->walInterface = getWalInterfaceGPDB7();
+        }
+        else
+        {
+            THROW(VersionNotSupportedError, "WAL filtering is not supported for this version of GPDB");
+        }
 
         relationFilterInit();
     }
