@@ -326,6 +326,8 @@ getRelFileNode(const XLogRecordGPDB6 *const record)
 static void
 validXLogRecordHeaderGPDB6(const XLogRecordBase *const recordBase)
 {
+    ASSERT(HeapPageSize != 0);
+
     const XLogRecordGPDB6 *const record = (const XLogRecordGPDB6 *const) recordBase;
 
     /*
@@ -358,6 +360,8 @@ validXLogRecordHeaderGPDB6(const XLogRecordBase *const recordBase)
 static void
 validXLogRecordGPDB6(const XLogRecordBase *const recordBase)
 {
+    ASSERT(HeapPageSize != 0);
+
     const XLogRecordGPDB6 *const record = (const XLogRecordGPDB6 *const) recordBase;
     const uint32 len = record->xl_len;
     uint32 remaining = record->xl_tot_len;
@@ -417,9 +421,40 @@ xLogRecordIsWalSwitchGPDB6(const XLogRecordBase *recordBase)
     return record->xl_rmid == RM_XLOG_ID && record->xl_info == XLOG_SWITCH;
 }
 
+FN_EXTERN pg_crc32
+xLogRecordChecksumGPDB6(const XLogRecordGPDB6 *const record, const PgPageSize heapPageSize)
+{
+    const uint32 len = record->xl_len;
+
+    pg_crc32 crc = crc32cInit();
+    crc = crc32cComp(crc, XLogRecGetData(record), len);
+
+    /* Add in the backup blocks, if any */
+    const unsigned char *blk = XLogRecGetData(record) + len;
+    for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
+    {
+        if (!(record->xl_info & XLR_BKP_BLOCK(i)))
+            continue;
+
+        const BkpBlock *bkpb = (const BkpBlock *) blk;
+
+        const uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
+
+        crc = crc32cComp(crc, blk, blen);
+        blk += blen;
+    }
+
+    /* Finally include the record header */
+    crc = crc32cComp(crc, (const unsigned char *) record, offsetof(XLogRecordGPDB6, xl_crc));
+
+    return crc32cFinish(crc);
+}
+
 static void
 filterRecordGPDB6(XLogRecordBase *const recordBase)
 {
+    ASSERT(HeapPageSize != 0);
+
     XLogRecordGPDB6 *const record = (XLogRecordGPDB6 *const) recordBase;
 
     const RelFileNode *const node = getRelFileNode(record);

@@ -73,33 +73,6 @@ typedef struct BkpBlock
     /* ACTUAL BLOCK DATA FOLLOWS AT END OF STRUCT */
 } BkpBlock;
 
-static inline pg_crc32
-xLogRecordChecksumGPDB6(const XLogRecordGPDB6 *const record, const PgPageSize heapPageSize)
-{
-    const uint32 len = record->xl_len;
-
-    pg_crc32 crc = crc32cInit();
-    crc = crc32cComp(crc, XLogRecGetData(record), len);
-
-    /* Add in the backup blocks, if any */
-    const unsigned char *blk = XLogRecGetData(record) + len;
-    for (int i = 0; i < XLR_MAX_BKP_BLOCKS; i++)
-    {
-        if (!(record->xl_info & XLR_BKP_BLOCK(i)))
-            continue;
-
-        const BkpBlock *bkpb = (const BkpBlock *) blk;
-
-        const uint32 blen = (uint32) sizeof(BkpBlock) + heapPageSize - bkpb->hole_length;
-
-        crc = crc32cComp(crc, blk, blen);
-        blk += blen;
-    }
-
-    /* Finally include the record header */
-    crc = crc32cComp(crc, (const unsigned char *) record, offsetof(XLogRecordGPDB6, xl_crc));
-
-    return crc32cFinish(crc);
-}
+FN_EXTERN pg_crc32 xLogRecordChecksumGPDB6(const XLogRecordGPDB6 *const record, const PgPageSize heapPageSize);
 
 #endif // PGBACKREST_DEFINITIONSGPDB6_H

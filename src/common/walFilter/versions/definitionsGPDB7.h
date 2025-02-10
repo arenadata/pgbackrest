@@ -76,16 +76,6 @@ _Static_assert(
     offsetof(XLogRecordGPDB7, xl_info) / 8 == offsetof(XLogRecordGPDB7, xl_rmid) / 8,
     "The xl_info and xl_rmid fields are in different 8 byte chunks.");
 
-FN_INLINE_ALWAYS pg_crc32
-xLogRecordChecksumGPDB7(const XLogRecordGPDB7 *const record)
-{
-    uint32 crc = crc32cInit();
-
-    /* Calculate the CRC */
-    crc = crc32cComp(crc, ((unsigned char *) record) + sizeof(XLogRecordGPDB7), record->xl_tot_len - sizeof(XLogRecordGPDB7));
-    /* include the record header last */
-    crc = crc32cComp(crc, (unsigned char *) record, offsetof(XLogRecordGPDB7, xl_crc));
-    return crc32cFinish(crc);
-}
+FN_EXTERN pg_crc32 xLogRecordChecksumGPDB7(const XLogRecordGPDB7 *const record);
 
 #endif // PGBACKREST_DEFINITIONSGPDB7_H

@@ -5,7 +5,7 @@
 #include "definitionsGPDB7.h"
 #include "recordProcessGPDB7.h"
 
-static PgPageSize HeapPageSize;
+static PgPageSize HeapPageSize = 0;
 
 enum
 {
@@ -71,6 +71,18 @@ validXLogRecordHeaderGPDB7(const XLogRecordBase *recordBase)
     {
         THROW_FMT(FormatError, "invalid resource manager ID");
     }
+}
+
+FN_EXTERN pg_crc32
+xLogRecordChecksumGPDB7(const XLogRecordGPDB7 *const record)
+{
+    uint32 crc = crc32cInit();
+
+    /* Calculate the CRC */
+    crc = crc32cComp(crc, ((unsigned char *) record) + sizeof(XLogRecordGPDB7), record->xl_tot_len - sizeof(XLogRecordGPDB7));
+    /* include the record header last */
+    crc = crc32cComp(crc, (unsigned char *) record, offsetof(XLogRecordGPDB7, xl_crc));
+    return crc32cFinish(crc);
 }
 
 static void
@@ -204,6 +216,8 @@ getRelFileNodes(XLogRecordGPDB7 *const record)
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(XLOG_RECORD_GPDB7, record);
     FUNCTION_LOG_END();
+
+    ASSERT(HeapPageSize != 0);
 
     /* Decode the headers */
     size_t datatotal = 0;
@@ -451,6 +465,7 @@ end:
 FN_EXTERN WalInterface
 getWalInterfaceGPDB7(PgPageSize heapPageSize)
 {
+    ASSERT(pgPageSizeValid(heapPageSize));
     HeapPageSize = heapPageSize;
 
     return (WalInterface){
