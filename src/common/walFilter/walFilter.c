@@ -36,7 +36,6 @@ typedef struct WalFilter
 {
     ReadStep currentStep;
 
-    PgPageSize heapPageSize;
     PgPageSize walPageSize;
     uint32 segSize;
 
@@ -652,7 +651,6 @@ walFilterNew(const PgControl pgControl, const ArchiveGetFile *const archiveInfo)
             .recBufSize = pgControl.pageSize,
             .pageHeaders = lstNewP(SizeOfXLogLongPHD),
             .archiveInfo = archiveInfo,
-            .heapPageSize = pgControl.pageSize,
             .walPageSize = pgControl.walPageSize,
             .segSize = pgControl.walSegmentSize,
         };
