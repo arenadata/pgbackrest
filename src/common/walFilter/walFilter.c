@@ -49,12 +49,8 @@ typedef struct WalFilter
 
     XLogRecordBase *record;
     uint32 recBufSize;
-    // Size of header of the current record on the current page
-    size_t headerSize;
     // How many bytes we read from this record
     size_t gotLen;
-    // Total size of the current record on current page
-    size_t totLen;
 
     List *pageHeaders;
 
@@ -78,15 +74,14 @@ walFilterToLog(const WalFilterState *const this, StringStatic *const debugLog)
 {
     strStcFmt(
         debugLog,
-        "{recordNum: %u, step: %u isBegin: %s, pageOffset: %zu, inputOffset: %zu, recBufSize: %u, gotLen: %zu, totLen: %zu}",
+        "{recordNum: %u, step: %u isBegin: %s, pageOffset: %zu, inputOffset: %zu, recBufSize: %u, gotLen: %zu}",
         this->recordNum,
         this->currentStep,
         this->isBegin ? "true" : "false",
         this->pageOffset,
         this->inputOffset,
         this->recBufSize,
-        this->gotLen,
-        this->totLen
+        this->gotLen
         );
 }
 
@@ -205,8 +200,6 @@ stepBeginOfRecord:
         ((unsigned char *) this->currentPageHeader) + this->pageOffset,
         Min(this->walInterface.headerSize, this->walPageSize - this->pageOffset));
 
-    this->totLen = this->record->xl_tot_len;
-
     // If header is split read rest of the header from next page
     if (this->walInterface.headerSize > this->walPageSize - this->pageOffset)
     {
@@ -234,28 +227,25 @@ stepReadHeader:
             ((char *) this->record) + this->gotLen,
             ((unsigned char *) this->currentPageHeader) + this->pageOffset,
             this->walInterface.headerSize - this->gotLen);
-        this->totLen -= this->gotLen;
-        this->headerSize = this->walInterface.headerSize - this->gotLen;
+        this->pageOffset += this->walInterface.headerSize - this->gotLen;
     }
     else
     {
-        this->headerSize = this->walInterface.headerSize;
+        this->pageOffset += this->walInterface.headerSize;
     }
     this->gotLen = this->walInterface.headerSize;
 
     this->walInterface.validXLogRecordHeader(this->record);
     // Read rest of the record on this page
-    size_t toRead = Min(
-        this->record->xl_tot_len - this->walInterface.headerSize,
-        this->walPageSize - this->pageOffset - this->walInterface.headerSize);
+    size_t toRead = Min(this->record->xl_tot_len - this->walInterface.headerSize, this->walPageSize - this->pageOffset);
     memcpy(
-        ((uint8 *) this->record) + this->walInterface.headerSize,
-        ((uint8 *) this->currentPageHeader) + this->pageOffset + this->headerSize,
+        (uint8 *) XLogRecGetData(this->record),
+        ((uint8 *) this->currentPageHeader) + this->pageOffset,
         toRead);
     this->gotLen += toRead;
 
     // Move pointer to the next record on the page
-    this->pageOffset += MAXALIGN(this->totLen);
+    this->pageOffset += MAXALIGN(toRead);
 
     // Rest of the record data is on the next page
     while (this->gotLen != this->record->xl_tot_len)
@@ -280,7 +270,7 @@ stepReadBody:
         }
 
         if (this->currentPageHeader->xlp_rem_len == 0 ||
-            this->totLen != (this->currentPageHeader->xlp_rem_len + this->gotLen))
+            this->record->xl_tot_len != (this->currentPageHeader->xlp_rem_len + this->gotLen))
         {
             THROW_FMT(FormatError, "%s - invalid contrecord length: expect: %zu, get %u", strZ(pgLsnToStr(this->recPtr)),
                       this->record->xl_tot_len - this->gotLen, this->currentPageHeader->xlp_rem_len);
