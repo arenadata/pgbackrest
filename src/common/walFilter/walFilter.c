@@ -239,7 +239,7 @@ stepReadHeader:
     // Read rest of the record on this page
     size_t toRead = Min(this->record->xl_tot_len - this->walInterface.headerSize, this->walPageSize - this->pageOffset);
     memcpy(
-        (uint8 *) XLogRecGetData(this->record),
+        ((uint8 *) this->record) + this->walInterface.headerSize,
         ((uint8 *) this->currentPageHeader) + this->pageOffset,
         toRead);
     this->gotLen += toRead;

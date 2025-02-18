@@ -231,8 +231,8 @@ testRun(void)
         record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .main_data_size = 100);
         insertXRecord(wal2, record, NO_FLAGS, .segno = 2, .beginOffset = record->xl_tot_len - 16);
         insertWalSwitchXRecord(wal2);
-
         fillLastPage(wal2, pgPageSize32);
+
         result = testFilter(filter, wal2, bufSize(wal2), bufSize(wal2));
         TEST_RESULT_BOOL(bufEq(wal2, result), true, "WAL not the same");
 
@@ -547,6 +547,34 @@ testRun(void)
             lstAdd(backupBlocks, &block);
 
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .backupBlocks = backupBlocks);
+            insertXRecord(wal, record, 0);
+            insertWalSwitchXRecord(wal);
+            fillLastPage(wal, pgPageSize32);
+        }
+        result = testFilter(filter, wal, bufSize(wal), bufSize(wal));
+        TEST_RESULT_BOOL(bufEq(wal, result), true, "WAL not the same");
+        MEM_CONTEXT_TEMP_END();
+
+        TEST_TITLE("long record with split header");
+        MEM_CONTEXT_TEMP_BEGIN();
+        filter = walFilterNew(pgControl, NULL);
+        {
+            wal = bufNew(1024 * 1024);
+            record = createXRecord(
+                RM_XLOG_ID,
+                XLOG_XACT_COMMIT,
+                // Leave exactly 8 bytes free at the end of the page.
+                .main_data_size =
+                    DEFAULT_GDPB_XLOG_PAGE_SIZE -
+                    SizeOfXLogLongPHD -
+                    sizeof(XLogRecordGPDB7) -
+                    sizeof(XLogRecordDataHeaderLong) -
+                    8
+                );
+            insertXRecord(wal, record, 0);
+            record = createXRecord(RM_XLOG_ID, XLOG_XACT_COMMIT, .main_data_size = pgPageSize32 * 2);
+            insertXRecord(wal, record, 0);
+            record = createXRecord(RM_XLOG_ID, XLOG_XACT_COMMIT, .main_data_size = pgPageSize32 * 6);
             insertXRecord(wal, record, 0);
             insertWalSwitchXRecord(wal);
             fillLastPage(wal, pgPageSize32);

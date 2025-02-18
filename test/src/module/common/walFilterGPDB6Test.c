@@ -1122,7 +1122,7 @@ testRun(void)
             wal = bufNew(1024 * 1024);
             XRecordInfo walRecords[] = {
                 // Leave exactly 8 bytes free at the end of the page.
-                {RM_XLOG_ID, XLOG_NOOP, DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecord - 8},
+                {RM_XLOG_ID, XLOG_NOOP, DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB6 - 8},
                 {RM_XLOG_ID, XLOG_NOOP, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2},
                 {RM_XLOG_ID, XLOG_NOOP, DEFAULT_GDPB_XLOG_PAGE_SIZE * 6}
             };
