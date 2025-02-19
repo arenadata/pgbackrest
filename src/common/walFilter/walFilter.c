@@ -628,9 +628,7 @@ walFilterNew(const PgControl pgControl, const ArchiveGetFile *const archiveInfo)
 
     OBJ_NEW_BEGIN(WalFilterState, .childQty = MEM_CONTEXT_QTY_MAX, .allocQty = MEM_CONTEXT_QTY_MAX)
     {
-        StringId fork = cfgOptionStrId(cfgOptFork);
-
-        if (fork != CFGOPTVAL_FORK_GPDB)
+        if (cfgOptionStrId(cfgOptFork) != CFGOPTVAL_FORK_GPDB)
         {
             THROW(VersionNotSupportedError, "WAL filtering is only supported for GPDB 6 and 7");
         }
