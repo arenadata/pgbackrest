@@ -248,7 +248,7 @@ stepReadHeader:
     this->pageOffset += MAXALIGN(toRead);
 
     // Rest of the record data is on the next page
-    while (this->gotLen != this->record->xl_tot_len)
+    while (this->gotLen < this->record->xl_tot_len)
     {
         this->currentStep = stepReadBody;
 stepReadBody:
@@ -281,6 +281,12 @@ stepReadBody:
         this->pageOffset += MAXALIGN(to_write);
         this->gotLen += to_write;
     }
+
+    if (this->gotLen != this->record->xl_tot_len)
+    {
+        THROW_FMT(FormatError, "Record size is larger than expected. expect: %u, get %zu", this->record->xl_tot_len, this->gotLen);
+    }
+
     this->walInterface.validXLogRecord(this->record);
 
     this->isSwitchWal = this->walInterface.xLogRecordIsWalSwitch(this->record);
