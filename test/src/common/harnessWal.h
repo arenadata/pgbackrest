@@ -35,11 +35,11 @@ typedef struct CreateXRecordParam
     VAR_PARAM_HEADER;
     PgPageSize heapPageSize;
     uint32 xl_crc;
-    // GPDB6
+    // GPDB 6
     uint32 xl_len;
     uint32 body_size;
     void *body;
-    // GPDB7
+    // GPDB 7
     List *backupBlocks;
     void *main_data;
     uint32 main_data_size;
