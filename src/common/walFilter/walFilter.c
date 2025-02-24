@@ -281,11 +281,7 @@ stepReadBody:
         this->pageOffset += MAXALIGN(to_write);
         this->gotLen += to_write;
     }
-
-    if (this->gotLen != this->record->xl_tot_len)
-    {
-        THROW_FMT(FormatError, "Record size is larger than expected. expect: %u, get %zu", this->record->xl_tot_len, this->gotLen);
-    }
+    ASSERT(this->gotLen == this->record->xl_tot_len);
 
     this->walInterface.validXLogRecord(this->record);
 
