@@ -52,6 +52,8 @@ sub new
         $self->{oTest},
         $self->{bDryRun},
         $self->{bVmOut},
+        $self->{strPlatform},
+        $self->{strImage},
         $self->{iVmIdx},
         $self->{iVmMax},
         $self->{strMakeCmd},
@@ -85,6 +87,8 @@ sub new
             {name => 'oTest'},
             {name => 'bDryRun'},
             {name => 'bVmOut'},
+            {name => 'strPlatform'},
+            {name => 'strImage'},
             {name => 'iVmIdx'},
             {name => 'iVmMax'},
             {name => 'strMakeCmd'},
@@ -208,15 +212,15 @@ sub run
                     my $strBuildPath = $self->{strTestPath} . '/build/' . $self->{oTest}->{&TEST_VM};
 
                     executeTest(
-                        'docker run -itd -h ' . $self->{oTest}->{&TEST_VM} . "-test --name=${strImage}" .
-                        " -v ${strHostTestPath}:${strVmTestPath}" .
+                        'docker run' . $self->{strPlatform} . ' -itd -h ' .
+                        $self->{oTest}->{&TEST_VM} . "-test --name=${strImage} -v ${strHostTestPath}:${strVmTestPath}" .
                         ($self->{oTest}->{&TEST_C} ? " -v $self->{strUnitPath}:$self->{strUnitPath}" : '') .
                         ($self->{oTest}->{&TEST_C} ? " -v $self->{strDataPath}:$self->{strDataPath}" : '') .
                         " -v $self->{strBackRestBase}:$self->{strBackRestBase}" .
                         " -v $self->{strRepoPath}:$self->{strRepoPath}" .
                         ($self->{oTest}->{&TEST_C} ? " -v ${strBuildPath}:${strBuildPath}:ro" : '') .
                         ($self->{oTest}->{&TEST_C} ? " -v ${strCCachePath}:/home/${\TEST_USER}/.ccache" : '') .
-                        ' ' . containerRepo() . ':' . $self->{oTest}->{&TEST_VM} . '-test',
+                        ' ' . $self->{strImage},
                         {bSuppressStdErr => true});
                 }
             }
