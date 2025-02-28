@@ -1739,19 +1739,13 @@ testRun(void)
         }
         Buffer *expect_wal = bufNew(1024 * 1024);
         {
-            uint8_t info = XLOG_NOOP;
-            info |= XLR_BKP_BLOCK(0);
-            info |= XLR_BKP_BLOCK(1);
-            info |= XLR_BKP_BLOCK(2);
-            info |= XLR_BKP_BLOCK(3);
-
             uint32_t bodySize = sizeof(node1) + XLR_MAX_BKP_BLOCKS * (sizeof(BkpBlock) + DEFAULT_GDPB_PAGE_SIZE);
             char *body = memNew(bodySize);
             RelFileNode *node = (RelFileNode *) body;
             *node = node1;
             memset(body + sizeof(node1), 0, bodySize - sizeof(node1));
 
-            record = createXRecord(RM_XLOG_ID, info, .body_size = bodySize, .body = body, .xl_len = sizeof(node1));
+            record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = bodySize, .body = body, .xl_len = bodySize);
             insertXRecord(expect_wal, record, NO_FLAGS);
 
             insertWalSwitchXRecord(expect_wal);

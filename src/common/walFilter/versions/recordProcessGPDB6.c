@@ -465,8 +465,9 @@ filterRecordGPDB6(XLogRecordBase *const recordBase)
     }
 
     record->xl_rmid = RM_XLOG_ID;
-    // Save 4 least significant bits which represent backup blocks flags.
-    record->xl_info = (uint8) (XLOG_NOOP | (record->xl_info & XLR_INFO_MASK));
+    record->xl_info = (uint8_t) XLOG_NOOP; // Clear backup blocks bits
+    // If the initial record has backup blocks, then treat them as rmgr-specific data
+    record->xl_len = record->xl_tot_len - (uint32) SizeOfXLogRecordGPDB6;
     record->xl_crc = xLogRecordChecksumGPDB6(record, heapPageSizeGPDB6);
 }
 
