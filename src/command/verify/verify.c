@@ -640,7 +640,7 @@ verifyCreateArchiveIdRange(
 }
 
 /***********************************************************************************************************************************
-Populate the WAL range to be verified later based on the specified backup
+Check if backup is block incremental and populate backup list from its references
 ***********************************************************************************************************************************/
 static void
 verifyBlockDependencyCheck(VerifyJobData *const jobData, const String *const backupLabel)
