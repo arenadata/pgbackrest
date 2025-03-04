@@ -125,7 +125,7 @@ dump_table t3 pre
 dump_table t4 pre
 dump_table t6 pre
 
-psql -c "select * FROM gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
+psql -c "select * from gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
 
 gpstop -a
 rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
@@ -198,5 +198,5 @@ gprecoverseg -aF
 gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby" -P $((PGPORT+1))
 
 # Checking cluster configuration after restore
-psql -c "select * FROM gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
+psql -c "select * from gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
 diff "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out" "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
