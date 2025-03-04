@@ -125,7 +125,7 @@ dump_table t3 pre
 dump_table t4 pre
 dump_table t6 pre
 
-psql -c "SELECT * FROM gp_segment_configuration ORDER BY dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
+psql -c "SELECT * FROM gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
 
 gpstop -a
 rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
@@ -142,10 +142,11 @@ gpstart -am
 gpinitstandby -ar
 
 PGOPTIONS="-c gp_session_role=utility" psql << EOF
-SET allow_system_table_mods to true;
-UPDATE gp_segment_configuration
-SET status = CASE WHEN role='m' THEN 'd' ELSE status END, mode = 'n'
-WHERE content >= 0;
+set allow_system_table_mods to true;
+
+update gp_segment_configuration
+set status = case when role='m' then 'd' else status end, mode = 'n'
+where content >= 0;
 EOF
 gpstop -ra
 # Prevent sending the WAL to the archive while receiving the metadata of the tables
@@ -154,13 +155,13 @@ gpconfig -r archive_command
 psql -c "create language $PYTHON_EXTENSION_NAME;"
 psql -c "create or replace function table_metadata_dump (to_dump text) returns text as \$\$
 $(cat /home/gpadmin/pgbackrest/arenadata/scripts/helpers/partial_restore_helper.py)
-\$\$ LANGUAGE $PYTHON_EXTENSION_NAME"
+\$\$ language $PYTHON_EXTENSION_NAME"
 
 # Dump metadata
 psql -Atc "select * from table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$)" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg-1.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 0;" >> "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg0.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 1;" >> "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg1.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 2;" >> "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg2.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 0;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg0.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 1;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg1.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 2;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg2.json"
 
 gpstop -a
 rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
@@ -173,10 +174,11 @@ done
 gpstart -am
 gpinitstandby -ar
 PGOPTIONS="-c gp_session_role=utility" psql << EOF
-SET allow_system_table_mods to true;
-UPDATE gp_segment_configuration
-SET status = CASE WHEN role='m' THEN 'd' ELSE status END, mode = 'n'
-WHERE content >= 0;
+set allow_system_table_mods to true;
+
+update gp_segment_configuration
+set status = case when role='m' then 'd' else status end, mode = 'n'
+where content >= 0;
 EOF
 gpstop -ra
 
@@ -196,5 +198,5 @@ gprecoverseg -aF
 gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby" -P $((PGPORT+1))
 
 # Checking cluster configuration after restore
-psql -c "SELECT * FROM gp_segment_configuration ORDER BY dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
+psql -c "SELECT * FROM gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
 diff "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out" "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"

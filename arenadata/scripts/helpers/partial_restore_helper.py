@@ -3,7 +3,7 @@
     database_info = plpy.execute('select oid, datname from pg_database where datname = current_database();')[0]
 
     tables = plpy.execute("""
-            select
+        select
             pgc.oid,
             pgn.nspname,
             pgc.relname,
@@ -39,17 +39,17 @@
             "relfilenode": table_info['relfilenode'],
         })
         if table_info['segrelid'] is not None:
-            seg_info = plpy.execute('select oid, relname, relfilenode from pg_class where oid = {};'.format(table_info['segrelid']))[0]
+            seg_info = plpy.execute('select relname, relfilenode from pg_class where oid = {};'.format(table_info['segrelid']))[0]
             database['tables'].append({
                 "tablefqn": seg_info['relname'],
-                "tableoid": seg_info['oid'],
+                "tableoid": table_info['segrelid'],
                 "relfilenode": seg_info['relfilenode'],
             })
         if table_info['visimaprelid'] is not None:
-            visimap_info = plpy.execute('select oid, relname, relfilenode from pg_class where oid = {};'.format(table_info['visimaprelid']))[0]
+            visimap_info = plpy.execute('select relname, relfilenode from pg_class where oid = {};'.format(table_info['visimaprelid']))[0]
             database['tables'].append({
                 "tablefqn": visimap_info['relname'],
-                "tableoid": visimap_info['oid'],
+                "tableoid": table_info['visimaprelid'],
                 "relfilenode": visimap_info['relfilenode'],
             })
             index_info = plpy.execute('select pc.oid, relname, relfilenode from pg_index join pg_class pc on pc.oid = indexrelid where indrelid = {};'.format(table_info['visimaprelid']))[0]
