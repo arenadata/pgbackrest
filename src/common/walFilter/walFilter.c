@@ -128,7 +128,6 @@ getNextPage(WalFilterState *const this, const Buffer *const input)
 {
     if (this->inputOffset >= bufUsed(input))
     {
-        ASSERT(this->currentStep != noStep);
         this->inputOffset = 0;
         this->inputSame = false;
         return false;
@@ -178,7 +177,8 @@ readRecord(WalFilterState *const this, const Buffer *const input)
             goto stepReadBody;
     }
 
-    if (this->pageOffset == 0 || this->pageOffset == this->walPageSize)
+    ASSERT(this->pageOffset != 0);
+    if (this->pageOffset == this->walPageSize)
     {
         this->currentStep = stepBeginOfRecord;
 stepBeginOfRecord:
@@ -187,18 +187,8 @@ stepBeginOfRecord:
             return ReadRecordNeedBuffer;
         }
 
-        if (this->isBegin)
-        {
-            this->isBegin = false;
-            // There may be an unfinished record from the previous file at the beginning of the file. Just skip it.
-            // We should have handled it elsewhere.
-            if (this->currentPageHeader->xlp_info & XLP_FIRST_IS_CONTRECORD &&
-                !(this->currentPageHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD))
-            {
-                this->pageOffset += MAXALIGN(this->currentPageHeader->xlp_rem_len);
-            }
-        }
-        else if (this->currentPageHeader->xlp_info & XLP_FIRST_IS_CONTRECORD)
+        ASSERT(!this->isBegin);
+        if (this->currentPageHeader->xlp_info & XLP_FIRST_IS_CONTRECORD)
         {
             THROW_FMT(FormatError, "%s - should not be XLP_FIRST_IS_CONTRECORD", strZ(pgLsnToStr(this->recPtr)));
         }
@@ -464,13 +454,38 @@ readBeginOfRecord(WalFilterState *const this)
     }
 
     ioReadOpen(storageReadIo(storageRead));
-    this->isBegin = true;
     this->inputOffset = 0;
     this->pageOffset = 0;
 
     Buffer *const buffer = bufNew(this->walPageSize);
     size_t size = ioRead(storageReadIo(storageRead), buffer);
     bufUsedSet(buffer, size);
+
+    // There may be an unfinished record from the previous file at the beginning of the file. Just skip it.
+    while (true)
+    {
+#ifdef DEBUG
+        bool ret =
+#endif
+        getNextPage(this, buffer);
+        ASSERT(ret);
+        if (!(this->currentPageHeader->xlp_info & XLP_FIRST_IS_CONTRECORD) ||
+            this->currentPageHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD)
+        {
+            break;
+        }
+
+        if (this->currentPageHeader->xlp_rem_len <= this->walPageSize - this->pageOffset)
+        {
+            this->pageOffset += MAXALIGN(this->currentPageHeader->xlp_rem_len);
+            break;
+        }
+
+        bufUsedZero(buffer);
+        size = ioRead(storageReadIo(storageRead), buffer);
+        bufUsedSet(buffer, size);
+        this->inputOffset = 0;
+    }
 
     while (!ioReadEof(storageReadIo(storageRead)))
     {
@@ -599,18 +614,24 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             }
 
             this->inputOffset = 0;
-            getNextPage(this, input);
-            ASSERT(this->recPtr == this->currentPageHeader->xlp_pageaddr);
-            bufCatC(output, (const unsigned char *) this->currentPageHeader, 0, SizeOfXLogLongPHD);
-            this->recPtr += SizeOfXLogLongPHD;
+            do
+            {
+                if (!getNextPage(this, input))
+                {
+                    THROW_FMT(FormatError, "%s - record is too big", strZ(pgLsnToStr(this->recPtr)));
+                }
+                bufCatC(output, (const unsigned char *) this->currentPageHeader, 0, XLogPageHeaderSize(this->currentPageHeader));
+                ASSERT(this->recPtr == this->currentPageHeader->xlp_pageaddr);
+                this->recPtr += XLogPageHeaderSize(this->currentPageHeader);
 
-            lstClearFast(this->pageHeaders);
-
-            // The header that needs to be modified is in another file or not exists. Just copy it as is.
-            bufCatC(output, bufPtrConst(input), this->pageOffset, MAXALIGN(this->currentPageHeader->xlp_rem_len));
-
+                size_t toCopy = Min(MAXALIGN(this->currentPageHeader->xlp_rem_len), this->walPageSize - this->pageOffset);
+                ASSERT(!(this->currentPageHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD) || toCopy == 0);
+                bufCatC(output, (const unsigned char *) this->currentPageHeader, this->pageOffset, toCopy);
+                this->recPtr += toCopy;
+            }
+            while (this->currentPageHeader->xlp_rem_len > this->walPageSize - this->pageOffset);
             this->pageOffset += MAXALIGN(this->currentPageHeader->xlp_rem_len);
-            this->recPtr += MAXALIGN(this->currentPageHeader->xlp_rem_len);
+            lstClearFast(this->pageHeaders);
         }
     }
 

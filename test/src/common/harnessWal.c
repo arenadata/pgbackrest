@@ -86,7 +86,7 @@ hrnGpdbWalInsertXRecord(
         XLogPageHeaderData header = {0};
         header.xlp_magic = param.magic;
         header.xlp_tli = 1;
-        header.xlp_pageaddr = bufUsed(walBuffer);
+        header.xlp_pageaddr = param.segno * GPDB6_XLOG_SEG_SIZE + bufUsed(walBuffer);
         header.xlp_rem_len = 0;
 
         if (flags & COND_FLAG)
@@ -131,7 +131,12 @@ hrnGpdbWalInsertXRecord(
 
             bufUsedInc(walBuffer, toWrite);
             if (flags & INCOMPLETE_RECORD)
-                return;
+            {
+                if (param.incompletePosition == 0)
+                    return;
+                else
+                    param.incompletePosition--;
+            }
             if (wrote == totalLen)
                 break;
 
