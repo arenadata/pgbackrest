@@ -358,6 +358,11 @@ writeRecord(WalFilterState *const this, Buffer *const output, const unsigned cha
         wrote += to_write;
         this->recPtr += to_write;
 
+        // Stop if we have reached the end of the segment file.
+        // This can happen if we have an incomplete record at the end of the file.
+        if (this->recPtr % this->segSize == 0)
+            return;
+
         // write header
         if (header_i < lstSize(this->pageHeaders))
         {
@@ -561,16 +566,13 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         // We have an incomplete record at the end
         if (this->currentStep != noStep)
         {
-            const size_t size_on_page = this->gotLen;
-
             // if xl_info and xl_rmid of the header is in current file then read end of record from next file if it exits
             if (this->gotLen >= offsetof(XLogRecord, xl_rmid) + SIZE_OF_STRUCT_MEMBER(XLogRecord, xl_rmid))
             {
                 getEndOfRecord(this);
                 filterRecord(this);
             }
-
-            bufCatC(output, (const unsigned char *) this->record, 0, size_on_page);
+            writeRecord(this, output, (const unsigned char *) this->record);
         }
         this->done = true;
         goto end;
