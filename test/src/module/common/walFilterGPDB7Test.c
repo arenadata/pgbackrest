@@ -282,7 +282,9 @@ testRun(void)
 
         TEST_TITLE("simple read end from next file");
         MEM_CONTEXT_TEMP_BEGIN();
-        filter = walFilterNew(pgControl, &archiveInfo);
+        PgControl testPgControl = pgControl;
+        testPgControl.walSegmentSize = DEFAULT_GDPB_XLOG_PAGE_SIZE;
+        filter = walFilterNew(testPgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -1138,9 +1140,10 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
         MEM_CONTEXT_TEMP_END();
 
-        TEST_TITLE("simple read end from next file");
+        TEST_TITLE("filter record with the end in the next file");
         MEM_CONTEXT_TEMP_BEGIN();
-
+        PgControl testPgControl = pgControl;
+        testPgControl.walSegmentSize = DEFAULT_GDPB_XLOG_PAGE_SIZE;
         ArchiveGetFile archiveInfo = {
             .file = STRDEF(
                 STORAGE_REPO_ARCHIVE "/12-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd"),
@@ -1162,7 +1165,7 @@ testRun(void)
         List *backupBlocks = lstNewP(sizeof(BackupBlockInfoGPDB7));
         lstAdd(backupBlocks, &block);
 
-        filter = walFilterNew(pgControl, &archiveInfo);
+        filter = walFilterNew(testPgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
