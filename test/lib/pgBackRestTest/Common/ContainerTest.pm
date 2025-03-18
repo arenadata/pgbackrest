@@ -84,6 +84,7 @@ sub containerWrite
     my $oStorageDocker = shift;
     my $strTempPath = shift;
     my $strOS = shift;
+    my $strArch = shift;
     my $strTitle = shift;
     my $strImageParent = shift;
     my $strImage = shift;
@@ -104,14 +105,16 @@ sub containerWrite
     my $strScriptSha1;
     my $bCached = false;
 
-    if ($strImage =~ /\-base$/)
+    if ($strImage =~ /\-base\-/)
     {
         $strScriptSha1 = sha1_hex($strScript);
 
         foreach my $strBuild (reverse(keys(%{$hContainerCache})))
         {
-            if (defined($hContainerCache->{$strBuild}{hostArch()}{$strOS}) &&
-                $hContainerCache->{$strBuild}{hostArch()}{$strOS} eq $strScriptSha1)
+            my $strArchLookup = defined($strArch) ? $strArch : hostArch();
+
+            if (defined($hContainerCache->{$strBuild}{$strArchLookup}{$strOS}) &&
+                $hContainerCache->{$strBuild}{$strArchLookup}{$strOS} eq $strScriptSha1)
             {
                 &log(INFO, "Using cached ${strTag}-${strBuild} image (${strScriptSha1}) ...");
 
@@ -132,7 +135,8 @@ sub containerWrite
     # Write the image
     $oStorageDocker->put("${strTempPath}/${strImage}", trim($strScript) . "\n");
     executeTest(
-        'docker build' . (defined($bForce) && $bForce ? ' --no-cache' : '') . " -f ${strTempPath}/${strImage} -t ${strTag} " .
+        'docker build' . (defined($strArch) ? " --platform linux/${strArch}" : '') .
+        (defined($bForce) && $bForce ? ' --no-cache' : '') . " -f ${strTempPath}/${strImage} -t ${strTag} " .
             $oStorageDocker->pathGet('test'),
         {bSuppressStdErr => true, bShowOutputAsync => (logLevel())[1] eq DETAIL});
 }
@@ -321,7 +325,7 @@ sub entryPointSetup
 
     if ($oVm->{$strOS}{&VM_OS_BASE} eq VM_OS_BASE_RHEL)
     {
-        $strScript .= '/usr/sbin/sshd -D';
+        $strScript .= 'rm -rf /run/nologin && /usr/sbin/sshd -D';
     }
     else
     {
@@ -338,6 +342,7 @@ sub containerBuild
 {
     my $oStorageDocker = shift;
     my $strVm = shift;
+    my $strArch = shift;
     my $bVmForce = shift;
 
     # Create temp path
@@ -378,8 +383,10 @@ sub containerBuild
 
         # Base image
         ###########################################################################################################################
-        my $strImageParent = "$$oVm{$strOS}{&VM_IMAGE}";
-        my $strImage = "${strOS}-base";
+        my $strImageParent =
+            (defined($strArch) ? "${strArch}/" : (vmArch($strOS) eq VM_ARCH_AMD64 ? '' : vmArch($strOS) . '/')) .
+            "$$oVm{$strOS}{&VM_IMAGE}";
+        my $strImage = "${strOS}-base" . (defined($strArch) ? "-${strArch}" : '-' . hostArch());
         my $strCopy = undef;
 
         #---------------------------------------------------------------------------------------------------------------------------
@@ -388,10 +395,13 @@ sub containerBuild
 
         if ($$oVm{$strOS}{&VM_OS_BASE} eq VM_OS_BASE_RHEL)
         {
-            if ($strOS eq VM_RH7)
+            if ($strOS eq VM_RH8)
             {
                 $strScript .=
-                    "    yum -y install centos-release-scl-rh epel-release && \\\n";
+                    "    dnf install -y dnf-plugins-core && \\\n" .
+                    "    dnf config-manager --set-enabled powertools && \\\n" .
+                    "    dnf -y install epel-release && \\\n" .
+                    "    crb enable && \\\n";
             }
 
             $strScript .=
@@ -501,18 +511,19 @@ sub containerBuild
                 $strScript .=
                     "    rpm --import https://download.postgresql.org/pub/repos/yum/keys/RPM-GPG-KEY-PGDG && \\\n";
 
-                if ($strOS eq VM_RH7)
+                if ($strOS eq VM_RH8)
                 {
                     $strScript .=
                         "    rpm -ivh \\\n" .
-                        "        https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-" . hostArch() . "/" .
-                            "pgdg-redhat-repo-latest.noarch.rpm && \\\n";
+                        "        https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-" . hostArch() . "/" .
+                            "pgdg-redhat-repo-latest.noarch.rpm && \\\n" .
+                        "    dnf -qy module disable postgresql && \\\n";
                 }
-                elsif ($strOS eq VM_F40)
+                elsif ($strOS eq VM_F41)
                 {
                     $strScript .=
                         "    rpm -ivh \\\n" .
-                        "        https://download.postgresql.org/pub/repos/yum/reporpms/F-40-" . hostArch() . "/" .
+                        "        https://download.postgresql.org/pub/repos/yum/reporpms/F-41-" . hostArch() . "/" .
                             "pgdg-fedora-repo-latest.noarch.rpm && \\\n";
                 }
 
@@ -520,11 +531,17 @@ sub containerBuild
             }
             else
             {
+                # Install repo from apt.postgresql.org
+                if (vmPgRepo($strVm))
+                {
+                    $strScript .=
+                        "    echo \"deb http://apt.postgresql.org/pub/repos/apt/ \$(lsb_release -s -c)-pgdg main" .
+                            ($strOS eq VM_U22 ? ' 17' : '') . "\" >> /etc/apt/sources.list.d/pgdg.list && \\\n" .
+                        "    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \\\n" .
+                        "    apt-get update && \\\n";
+                }
+
                 $strScript .=
-                    "    echo \"deb http://apt.postgresql.org/pub/repos/apt/ \$(lsb_release -s -c)-pgdg main" .
-                        ($strOS eq VM_U22 ? ' 17' : '') . "\" >> /etc/apt/sources.list.d/pgdg.list && \\\n" .
-                    "    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \\\n" .
-                    "    apt-get update && \\\n" .
                     "    apt-get install -y --no-install-recommends postgresql-common libpq-dev && \\\n" .
                     "    sed -i 's/^\\#create\\_main\\_cluster.*\$/create\\_main\\_cluster \\= false/' " .
                         "/etc/postgresql-common/createcluster.conf";
@@ -589,14 +606,14 @@ sub containerBuild
         }
 
         containerWrite(
-            $oStorageDocker, $strTempPath, $strOS, 'Base', $strImageParent, $strImage, $strCopy, $strScript, $bVmForce);
+            $oStorageDocker, $strTempPath, $strOS, $strArch, 'Base', $strImageParent, $strImage, $strCopy, $strScript, $bVmForce);
 
         # Test image
         ########################################################################################################################
         if (!$bDeprecated)
         {
-            $strImageParent = containerRepo() . ":${strOS}-base";
-            $strImage = "${strOS}-test";
+            $strImageParent = containerRepo() . ":${strImage}";
+            $strImage = "${strOS}-test" . (defined($strArch) ? "-${strArch}" : '-' . hostArch());
 
             $strCopy = undef;
             $strScript = '';
@@ -671,7 +688,8 @@ sub containerBuild
             $strScript .= entryPointSetup($strOS);
 
             containerWrite(
-                $oStorageDocker, $strTempPath, $strOS, 'Test', $strImageParent, $strImage, $strCopy, $strScript, $bVmForce);
+                $oStorageDocker, $strTempPath, $strOS, $strArch, 'Test', $strImageParent, $strImage, $strCopy, $strScript,
+                $bVmForce);
         }
     }
 

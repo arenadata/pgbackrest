@@ -27,7 +27,9 @@ typedef struct InsertXRecordParam
     uint16 magic;
     uint32 beginOffset;
     uint64 segno;
+    uint32 segSize;
     PgPageSize walPageSize;
+    uint32 incompletePosition;
 } InsertXRecordParam;
 
 typedef struct CreateXRecordParam

@@ -10,21 +10,18 @@
 #
 # To upload a new image:
 # - docker login -u pgbackrest
-# - VM=XXX;DATE=YYYYMMDDX;BASE=pgbackrest/test:${VM?}-base;docker tag ${BASE?} ${BASE?}-${DATE?} && docker push ${BASE?}-${DATE?}
+# - DATE=YYYYMMDDX;VM=X;ARCH=X;BASE=pgbackrest/test:${VM?}-base-${ARCH?};docker tag ${BASE?} ${BASE?}-${DATE?} && docker push ${BASE?}-${DATE?}
 # **********************************************************************************************************************************
-20240524A:
-  x86_64:
-    u22: eab8001bbbe7c610453ce06adb31ebd971c61592
+20250228A:
+  ppc64le:
+    u22: 28fa02cb370bbdacadf984afb215d3973ed5ab3e
 
-20240518A:
-  x86_64:
-    f40: 5173d773cfff925d4d41bd34029e55775be23c51
+  s390x:
+    u22: f3e108dd7f808f6b0e82eadcfd72f585a7632530
 
-20240425A:
   x86_64:
-    d10: fb03907abefd68fe16557b759e7e110e99eda748
-    u20: c3fc7cc1956c5eb10995119deed7a21b92dd07a7
-
-20240423A:
-  x86_64:
-    rh7: 3ba01dc5bbc96eed48287b8e4f52054d4d7030a5
+    d11: 01e6970744c2b2529a14832e92cb861c7da94308
+    f41: ce870455184e991e0efd90176da1412f0f3f72a2
+    rh8: 4d141c845abfbdbf402ba447cf2bd2e4357c8a63
+    u20: 711ee90bf3ea0e8bb054285193811266b9b1f2f3
+    u22: 57c2af91a1b1a9624e325b704cc9213821c6b968
