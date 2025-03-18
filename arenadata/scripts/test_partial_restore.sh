@@ -82,6 +82,9 @@ psql -c "create table t2 (a int, b int[128]) distributed by(a);"
 psql -c "create table t4 (a int, b int[128]) with (appendoptimized=true) distributed by(a);"
 psql -c "create table t5 (a int, b int[128]) with (appendoptimized=true) distributed by(a);"
 
+psql -c "create table t7 (a int, b int[128]) with (appendoptimized=true, orientation=column) distributed by(a);"
+psql -c "create table t8 (a int, b int[128]) with (appendoptimized=true, orientation=column) distributed by(a);"
+
 psql -c "insert into t1 select a, (select * from random_array) from generate_series(1, 100000)a;"
 psql -c "insert into t2 select a, (select * from random_array) from generate_series(1, 100000)a;"
 
@@ -97,13 +100,17 @@ done
 # Create new tables and add data to existing ones.
 psql -c "create table t3 (a int, b int[128]) distributed by(a);"
 psql -c "create table t6 (a int, b int[128]) with (appendoptimized=true) distributed by(a);"
+psql -c "create table t9 (a int, b int[128]) with (appendoptimized=true, orientation=column) distributed by(a);"
 psql -c "insert into t3 select a, (select * from random_array) from generate_series(1, 100000)a;"
 psql -c "insert into t6 select a, (select * from random_array) from generate_series(1, 100000)a;"
+psql -c "insert into t9 select a, (select * from random_array) from generate_series(1, 100000)a;"
 
 psql -c "insert into t1 select a, (select * from random_array) from generate_series(1, 100000)a;"
 psql -c "insert into t2 select a, (select * from random_array) from generate_series(1, 100000)a;"
 psql -c "insert into t4 select a, (select * from random_array) from generate_series(1, 100000)a;"
 psql -c "insert into t5 select a, (select * from random_array) from generate_series(1, 100000)a;"
+psql -c "insert into t7 select a, (select * from random_array) from generate_series(1, 100000)a;"
+psql -c "insert into t8 select a, (select * from random_array) from generate_series(1, 100000)a;"
 
 GP_VERSION_NUM=$(pg_config --gp_version | cut -c 11)
 
@@ -124,6 +131,8 @@ dump_table t1 pre
 dump_table t3 pre
 dump_table t4 pre
 dump_table t6 pre
+dump_table t7 pre
+dump_table t9 pre
 
 psql -c "select * from gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
 
@@ -158,10 +167,10 @@ $(cat /home/gpadmin/pgbackrest/arenadata/scripts/helpers/partial_restore_helper.
 \$\$ language $PYTHON_EXTENSION_NAME"
 
 # Dump metadata
-psql -Atc "select * from table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$)" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg-1.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 0;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg0.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 1;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg1.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 2;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg2.json"
+psql -Atc "select * from table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$)" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg-1.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 0;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg0.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 1;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg1.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 2;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg2.json"
 
 gpstop -a
 rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
@@ -187,12 +196,16 @@ dump_table t1 after
 dump_table t3 after
 dump_table t4 after
 dump_table t6 after
+dump_table t7 after
+dump_table t9 after
 
 # Verify data integrity.
 diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_after.txt"
 diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t3_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t3_after.txt"
 diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t4_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t4_after.txt"
 diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t6_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t6_after.txt"
+diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t7_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t7_after.txt"
+diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t9_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t9_after.txt"
 
 gprecoverseg -aF
 gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby" -P $((PGPORT+1))
