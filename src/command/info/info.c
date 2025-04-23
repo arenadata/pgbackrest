@@ -107,6 +107,9 @@ STRING_STATIC(INFO_STANZA_INVALID_STR,                              "[invalid]")
 #define INFO_STANZA_STATUS_MESSAGE_LOCK_BACKUP                      "backup/expire running"
 #define INFO_STANZA_STATUS_MESSAGE_LOCK_RESTORE                     "restore running"
 
+#define NS() ({ struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); \
+    ((uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec); })
+
 /***********************************************************************************************************************************
 Data types and structures
 ***********************************************************************************************************************************/
@@ -365,9 +368,12 @@ archiveDbList(
     if (walRange)
     {
         // Get a list of WAL directories in the archive repo from oldest to newest, if any exist
+        uint64_t t0 = NS();
         const StringList *const walDir = strLstSort(
             storageListP(storageRepo, archivePath, .expression = WAL_SEGMENT_DIR_REGEXP_STR), sortOrderAsc);
 
+        uint64_t dt = NS() - t0;
+        LOG_WARN_FMT("[TRACE] Get a list of all WAL directories in the archive repo: %.3f ms", (double)dt / 1e6);
         if (!strLstEmpty(walDir))
         {
             // Not every WAL dir has WAL files so check each
@@ -375,11 +381,14 @@ archiveDbList(
             {
                 // Get a list of all WAL in this WAL dir and sort the list from oldest to newest to get the oldest starting WAL
                 // archived for this db
+                uint64_t t0 = NS();
                 const StringList *const list = strLstSort(
                     storageListP(
                         storageRepo, strNewFmt("%s/%s", strZ(archivePath), strZ(strLstGet(walDir, idx))),
                         .expression = WAL_SEGMENT_FILE_REGEXP_STR),
                     sortOrderAsc);
+                uint64_t dt = NS() - t0;
+                LOG_WARN_FMT("[TRACE] Get a list of all WAL in this WAL dir: %.3f ms", (double)dt / 1e6);
 
                 // If wal segments are found, get the oldest one as the archive start
                 if (!strLstEmpty(list))
@@ -394,11 +403,14 @@ archiveDbList(
             {
                 // Get a list of all WAL in this WAL dir and sort the list from newest to oldest to get the newest ending WAL
                 // archived for this db
+                uint64_t t0 = NS();
                 const StringList *const list = strLstSort(
                     storageListP(
                         storageRepo, strNewFmt("%s/%s", strZ(archivePath), strZ(strLstGet(walDir, idx))),
                         .expression = WAL_SEGMENT_FILE_REGEXP_STR),
                     sortOrderDesc);
+                uint64_t dt = NS() - t0;
+                LOG_WARN_FMT("[TRACE] Get a list of all WAL in this WAL dir (reverse): %.3f ms", (double)dt / 1e6);
 
                 // If wal segments are found, get the newest one as the archive stop
                 if (!strLstEmpty(list))
@@ -794,9 +806,12 @@ stanzaInfoList(
                         varLstAdd(dbSection, pgInfo);
 
                         // Get the archive info for the DB from the archive.info file
+                        uint64_t t0 = NS();
                         archiveDbList(
                             stanzaData->name, &pgData, archiveSection, repoData->archiveInfo, (pgIdx == 0 ? true : false),
                             repoIdx, repoData->key, walRange);
+                        uint64_t dt = NS() - t0;
+                        LOG_WARN_FMT("[TRACE] archiveDbList: %.3f ms", (double)dt / 1e6);
                     }
 
                     // Set stanza status if the current db sections do not match across repos
@@ -855,7 +870,10 @@ stanzaInfoList(
         if (!progressOnly)
         {
             // Get a sorted list of the data for all existing backups for this stanza over all repos
+            uint64_t t0 = NS();
             backupList(backupSection, stanzaData, backupLabel, repoIdxMin, repoIdxMax);
+            uint64_t dt = NS() - t0;
+            LOG_WARN_FMT("[TRACE] backupList: %.3f ms", (double)dt / 1e6);
             kvPut(varKv(stanzaInfo), STANZA_KEY_BACKUP_VAR, varNewVarLst(backupSection));
 
             // Set the overall cipher type
@@ -1345,10 +1363,13 @@ infoUpdateStanza(
                 // Catch certain errors
                 TRY_BEGIN()
                 {
+                    uint64_t t0 = NS();
                     // Attempt to load the backup info file
                     stanzaRepo->repoList[repoIdx].backupInfo = infoBackupLoadFile(
                         storage, strNewFmt(STORAGE_PATH_BACKUP "/%s/%s", strZ(stanzaRepo->name), INFO_BACKUP_FILE),
                         stanzaRepo->repoList[repoIdx].cipher, stanzaRepo->repoList[repoIdx].cipherPass);
+                    uint64_t dt = NS() - t0;
+                    LOG_WARN_FMT("[TRACE] infoBackupLoadFile: %.3f ms", (double)dt / 1e6);
                 }
                 CATCH(FileMissingError)
                 {
@@ -1370,9 +1391,12 @@ infoUpdateStanza(
                 // load will throw an error which will be trapped and recorded
                 if (stanzaRepo->repoList[repoIdx].backupInfo != NULL)
                 {
+                    uint64_t t0 = NS();
                     stanzaRepo->repoList[repoIdx].archiveInfo = infoArchiveLoadFile(
                         storage, strNewFmt(STORAGE_PATH_ARCHIVE "/%s/%s", strZ(stanzaRepo->name), INFO_ARCHIVE_FILE),
                         stanzaRepo->repoList[repoIdx].cipher, stanzaRepo->repoList[repoIdx].cipherPass);
+                    uint64_t dt = NS() - t0;
+                    LOG_WARN_FMT("[TRACE] infoArchiveLoadFile: %.3f ms", (double)dt / 1e6);
 
                     // If a specific backup exists on this repo then attempt to load the manifest
                     if (backupLabel != NULL)
@@ -1387,8 +1411,11 @@ infoUpdateStanza(
             // Read lock files if progressOnly mode is enabled or backup information is available
             if (progressOnly || stanzaRepo->repoList[repoIdx].backupInfo != NULL)
             {
+                uint64_t t0 = NS();
                 infoUpdateStanzaLock(&stanzaRepo->backupLock, stanzaRepo->name, lockTypeBackup);
                 infoUpdateStanzaLock(&stanzaRepo->restoreLock, stanzaRepo->name, lockTypeRestore);
+                uint64_t dt = NS() - t0;
+                LOG_WARN_FMT("[TRACE] infoUpdateStanzaLock: %.3f ms", (double)dt / 1e6);
             }
 
             stanzaRepo->repoList[repoIdx].stanzaStatus = stanzaStatus;
@@ -1405,9 +1432,12 @@ infoUpdateStanza(
     // If the backup.info and therefore archive.info exist, and the currentPg has not been set for the stanza, then set it
     if (stanzaRepo->currentPgVersion == 0 && stanzaRepo->repoList[repoIdx].backupInfo != NULL)
     {
+        uint64_t t0 = NS();
         InfoPgData backupInfoCurrentPg = infoPgData(
             infoBackupPg(stanzaRepo->repoList[repoIdx].backupInfo),
             infoPgDataCurrentId(infoBackupPg(stanzaRepo->repoList[repoIdx].backupInfo)));
+        uint64_t dt = NS() - t0;
+        LOG_WARN_FMT("[TRACE] infoPgData: %.3f ms", (double)dt / 1e6);
 
         stanzaRepo->currentPgVersion = backupInfoCurrentPg.version;
         stanzaRepo->currentPgSystemId = backupInfoCurrentPg.systemId;
@@ -1492,10 +1522,13 @@ infoRender(void)
                     }
                 }
 
+                uint64_t t0 = NS();
                 // Get a list of stanzas in the backup directory
                 StringList *stanzaNameList = strLstSort(
                     storageListP(storageRepo, STORAGE_PATH_BACKUP_STR), sortOrderAsc);
 
+                uint64_t dt = NS() - t0;
+                LOG_WARN_FMT("[TRACE] Get a list of stanzas in the backup directory: %.3f ms", (double)dt / 1e6);
                 // All stanzas will be "found" if they are in the storage list
                 bool stanzaExists = true;
 
@@ -1546,7 +1579,10 @@ infoRender(void)
                         }
 
                         // Update the info for this repo
+                        uint64_t t0 = NS();
                         infoUpdateStanza(storageRepo, &stanzaRepo, repoIdx, stanzaExists, backupExistsOnRepo, progressOnly);
+                        uint64_t dt = NS() - t0;
+                        LOG_WARN_FMT("[TRACE] infoUpdateStanza: %.3f ms", (double)dt / 1e6);
                         lstAdd(stanzaRepoList, &stanzaRepo);
                     }
                 }
@@ -1619,8 +1655,15 @@ infoRender(void)
 
         // If the backup storage exists, then search for and process any stanzas
         if (!lstEmpty(stanzaRepoList))
+        {
+            uint64_t t0 = NS();
             infoList = stanzaInfoList(stanzaRepoList, backupLabel, repoIdxMin, repoIdxMax, progressOnly, walRange);
 
+            uint64_t dt = NS() - t0;
+            LOG_WARN_FMT("[TRACE] infoStanzaList: %.3f ms", (double)dt / 1e6);
+        }
+        
+        uint64_t t0 = NS();
         // Format text output
         if (cfgOptionStrId(cfgOptOutput) == CFGOPTVAL_OUTPUT_TEXT)
         {
@@ -1787,6 +1830,8 @@ infoRender(void)
             ASSERT(cfgOptionStrId(cfgOptOutput) == CFGOPTVAL_OUTPUT_JSON);
             resultStr = jsonFromVar(varNewVarLst(infoList));
         }
+        uint64_t dt = NS() - t0;
+        LOG_WARN_FMT("[TRACE] Format text output: %.3f ms", (double)dt / 1e6);
 
         MEM_CONTEXT_PRIOR_BEGIN()
         {
