@@ -6743,7 +6743,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo yum install make gcc postgresql12-devel openssl-devel \\",
+                     "sudo yum install make gcc postgresql13-devel openssl-devel \\",
                      "    libxml2-devel lz4-devel libzstd-devel bzip2-devel libyaml-devel libssh2-devel"
                   ],
                   "cmd-extra" : "-y 2>&1",
@@ -6963,8 +6963,8 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres /usr/pgsql-12/bin/initdb \\",
-                     "    -D /var/lib/pgsql/12/data -k -A peer"
+                     "sudo -u postgres /usr/pgsql-13/bin/initdb \\",
+                     "    -D /var/lib/pgsql/13/data -k -A peer"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -6977,7 +6977,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "cat /root/postgresql.common.conf >> /var/lib/pgsql/12/data/postgresql.conf"
+                     "cat /root/postgresql.common.conf >> /var/lib/pgsql/13/data/postgresql.conf"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -6988,7 +6988,7 @@
             },
             {
                "key" : {
-                  "file" : "/var/lib/pgsql/12/data/postgresql.conf",
+                  "file" : "/var/lib/pgsql/13/data/postgresql.conf",
                   "host" : "pg-primary",
                   "option" : {
                      "log_filename" : {
@@ -7010,7 +7010,7 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/pgsql/12/data"
+                           "value" : "/var/lib/pgsql/13/data"
                         }
                      },
                      "global" : {
@@ -7027,7 +7027,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data"
+                     "pg1-path=/var/lib/pgsql/13/data"
                   ]
                }
             },
@@ -7121,7 +7121,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-path=/var/lib/pgbackrest"
@@ -7130,7 +7130,7 @@
             },
             {
                "key" : {
-                  "file" : "/var/lib/pgsql/12/data/postgresql.conf",
+                  "file" : "/var/lib/pgsql/13/data/postgresql.conf",
                   "host" : "pg-primary",
                   "option" : {
                      "archive_command" : {
@@ -7162,7 +7162,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl restart postgresql-12.service"
+                     "sudo systemctl restart postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -7225,7 +7225,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-path=/var/lib/pgbackrest",
@@ -7251,7 +7251,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-path=/var/lib/pgbackrest",
@@ -7281,7 +7281,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-cipher-pass=zWaf6XtpjIVZC5444yXB+cgFDFl7MxGlgkZSaoPvTGirhPygu4jOKOXf9LO4vjfO",
@@ -7315,7 +7315,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: stanza-create command begin 2.52: --exec-id=1124-8550570a --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
+                     "P00   INFO: stanza-create command begin 2.52: --exec-id=1124-8550570a --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
                      "P00   INFO: stanza-create for stanza 'demo' on repo1",
                      "P00   INFO: stanza-create command end: completed successfully"
                   ]
@@ -7342,10 +7342,10 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: check command begin 2.52: --exec-id=1151-49fef788 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
+                     "P00   INFO: check command begin 2.52: --exec-id=1151-49fef788 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
                      "P00   INFO: check repo1 configuration (primary)",
                      "P00   INFO: check repo1 archive for WAL (primary)",
-                     "P00   INFO: WAL segment 000000010000000000000001 successfully archived to '/var/lib/pgbackrest/archive/demo/12-1/0000000100000000/000000010000000000000001-572cad774288f7b2182ec728ea7c5c6e57455de3.gz' on repo1",
+                     "P00   INFO: WAL segment 000000010000000000000001 successfully archived to '/var/lib/pgbackrest/archive/demo/13-1/0000000100000000/000000010000000000000001-572cad774288f7b2182ec728ea7c5c6e57455de3.gz' on repo1",
                      "P00   INFO: check command end: completed successfully"
                   ]
                }
@@ -7366,7 +7366,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-cipher-pass=zWaf6XtpjIVZC5444yXB+cgFDFl7MxGlgkZSaoPvTGirhPygu4jOKOXf9LO4vjfO",
@@ -7402,7 +7402,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: backup command begin 2.52: --exec-id=1221-435b67be --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo1-retention-full=2 --stanza=demo --start-fast",
+                     "P00   INFO: backup command begin 2.52: --exec-id=1221-435b67be --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo1-retention-full=2 --stanza=demo --start-fast",
                      "P00   WARN: no prior backup exists, incr backup has been changed to full",
                      "P00   INFO: execute non-exclusive backup start: backup begins after the requested immediate checkpoint completes",
                      "P00   INFO: backup start archive = 000000010000000000000002, lsn = 0/2000028",
@@ -7511,7 +7511,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl stop postgresql-12.service"
+                     "sudo systemctl stop postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -7524,7 +7524,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres rm /var/lib/pgsql/12/data/global/pg_control"
+                     "sudo -u postgres rm /var/lib/pgsql/13/data/global/pg_control"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -7537,7 +7537,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-12.service"
+                     "sudo systemctl start postgresql-13.service"
                   ],
                   "err-expect" : "1",
                   "host" : "pg-primary",
@@ -7551,7 +7551,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl status postgresql-12.service"
+                     "sudo systemctl status postgresql-13.service"
                   ],
                   "err-expect" : "3",
                   "highlight" : {
@@ -7570,9 +7570,9 @@
                "value" : {
                   "output" : [
                      "       [filtered 12 lines of output]",
-                     "May 27 00:04:33 pg-primary systemd[1]: postgresql-12.service: Main process exited, code=exited, status=2/INVALIDARGUMENT",
-                     "May 27 00:04:33 pg-primary systemd[1]: postgresql-12.service: Failed with result 'exit-code'.",
-                     "May 27 00:04:33 pg-primary systemd[1]: Failed to start PostgreSQL 12 database server."
+                     "May 27 00:04:33 pg-primary systemd[1]: postgresql-13.service: Main process exited, code=exited, status=2/INVALIDARGUMENT",
+                     "May 27 00:04:33 pg-primary systemd[1]: postgresql-13.service: Failed with result 'exit-code'.",
+                     "May 27 00:04:33 pg-primary systemd[1]: Failed to start PostgreSQL 13 database server."
                   ]
                }
             },
@@ -7580,7 +7580,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres find /var/lib/pgsql/12/data -mindepth 1 -delete"
+                     "sudo -u postgres find /var/lib/pgsql/13/data -mindepth 1 -delete"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -7606,7 +7606,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-12.service"
+                     "sudo systemctl start postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -7790,7 +7790,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-bundle=y",
@@ -7852,7 +7852,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-block=y",
@@ -7926,7 +7926,7 @@
                      "    cipher: aes-256-cbc",
                      "",
                      "    db (current)",
-                     "        wal archive min/max (12): 000000020000000000000007/000000020000000000000009",
+                     "        wal archive min/max (13): 000000020000000000000007/000000020000000000000009",
                      "",
                      "        full backup: 20240527-000443F",
                      "            timestamp start/stop: 2024-05-27 00:04:43+00 / 2024-05-27 00:04:46+00",
@@ -7981,7 +7981,7 @@
                      "    cipher: aes-256-cbc",
                      "",
                      "    db (current)",
-                     "        wal archive min/max (12): 000000020000000000000007/000000020000000000000009",
+                     "        wal archive min/max (13): 000000020000000000000007/000000020000000000000009",
                      "",
                      "        full backup: 20240527-000443F",
                      "            timestamp start/stop: 2024-05-27 00:04:43+00 / 2024-05-27 00:04:46+00",
@@ -8012,7 +8012,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-block=y",
@@ -8052,8 +8052,8 @@
                   "output" : [
                      "       [filtered 993 lines of output]",
                      "P00   INFO: repo1: remove expired backup 20240527-000439F",
-                     "P00 DETAIL: repo1: 12-1 archive retention on backup 20240527-000443F, start = 000000020000000000000008",
-                     "P00   INFO: repo1: 12-1 remove archive, start = 000000020000000000000007, stop = 000000020000000000000007",
+                     "P00 DETAIL: repo1: 13-1 archive retention on backup 20240527-000443F, start = 000000020000000000000008",
+                     "P00   INFO: repo1: 13-1 remove archive, start = 000000020000000000000007, stop = 000000020000000000000007",
                      "P00   INFO: expire command end: completed successfully"
                   ]
                }
@@ -8101,7 +8101,7 @@
                      "       [filtered 11 lines of output]",
                      "P00   INFO: repo1: expire full backup 20240527-000443F",
                      "P00   INFO: repo1: remove expired backup 20240527-000443F",
-                     "P00   INFO: repo1: 12-1 remove archive, start = 000000020000000000000008, stop = 000000020000000000000009",
+                     "P00   INFO: repo1: 13-1 remove archive, start = 000000020000000000000008, stop = 000000020000000000000009",
                      "P00   INFO: expire command end: completed successfully"
                   ]
                }
@@ -8122,7 +8122,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-block=y",
@@ -8231,7 +8231,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-block=y",
@@ -8354,13 +8354,13 @@
                "value" : {
                   "output" : [
                      "P00   INFO: expire command begin 2.52: --exec-id=2477-16c1b80f --log-level-console=detail --log-level-stderr=off --no-log-timestamp --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo1-retention-archive=1 --repo1-retention-archive-type=diff --repo1-retention-diff=2 --repo1-retention-full=2 --stanza=demo",
-                     "P00 DETAIL: repo1: 12-1 archive retention on backup 20240527-000448F, start = 00000002000000000000000A, stop = 00000002000000000000000B",
-                     "P00 DETAIL: repo1: 12-1 archive retention on backup 20240527-000451F, start = 00000002000000000000000D, stop = 00000002000000000000000D",
-                     "P00 DETAIL: repo1: 12-1 archive retention on backup 20240527-000451F_20240527-000459D, start = 000000020000000000000012, stop = 000000020000000000000013",
-                     "P00 DETAIL: repo1: 12-1 archive retention on backup 20240527-000451F_20240527-000502D, start = 000000020000000000000016",
-                     "P00   INFO: repo1: 12-1 remove archive, start = 00000002000000000000000C, stop = 00000002000000000000000C",
-                     "P00   INFO: repo1: 12-1 remove archive, start = 00000002000000000000000E, stop = 000000020000000000000011",
-                     "P00   INFO: repo1: 12-1 remove archive, start = 000000020000000000000014, stop = 000000020000000000000015",
+                     "P00 DETAIL: repo1: 13-1 archive retention on backup 20240527-000448F, start = 00000002000000000000000A, stop = 00000002000000000000000B",
+                     "P00 DETAIL: repo1: 13-1 archive retention on backup 20240527-000451F, start = 00000002000000000000000D, stop = 00000002000000000000000D",
+                     "P00 DETAIL: repo1: 13-1 archive retention on backup 20240527-000451F_20240527-000459D, start = 000000020000000000000012, stop = 000000020000000000000013",
+                     "P00 DETAIL: repo1: 13-1 archive retention on backup 20240527-000451F_20240527-000502D, start = 000000020000000000000016",
+                     "P00   INFO: repo1: 13-1 remove archive, start = 00000002000000000000000C, stop = 00000002000000000000000C",
+                     "P00   INFO: repo1: 13-1 remove archive, start = 00000002000000000000000E, stop = 000000020000000000000011",
+                     "P00   INFO: repo1: 13-1 remove archive, start = 000000020000000000000014, stop = 000000020000000000000015",
                      "P00   INFO: expire command end: completed successfully"
                   ]
                }
@@ -8369,7 +8369,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl stop postgresql-12.service"
+                     "sudo systemctl stop postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -8401,11 +8401,11 @@
                "value" : {
                   "output" : [
                      "       [filtered 2 lines of output]",
-                     "P00 DETAIL: check '/var/lib/pgsql/12/data' exists",
+                     "P00 DETAIL: check '/var/lib/pgsql/13/data' exists",
                      "P00 DETAIL: remove 'global/pg_control' so cluster will not start if restore does not complete",
-                     "P00   INFO: remove invalid files/links/paths from '/var/lib/pgsql/12/data'",
-                     "P00 DETAIL: remove invalid file '/var/lib/pgsql/12/data/backup_label.old'",
-                     "P00 DETAIL: remove invalid file '/var/lib/pgsql/12/data/base/13396/pg_internal.init'",
+                     "P00   INFO: remove invalid files/links/paths from '/var/lib/pgsql/13/data'",
+                     "P00 DETAIL: remove invalid file '/var/lib/pgsql/13/data/backup_label.old'",
+                     "P00 DETAIL: remove invalid file '/var/lib/pgsql/13/data/base/13396/pg_internal.init'",
                      "       [filtered 1027 lines of output]"
                   ]
                }
@@ -8414,7 +8414,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-12.service"
+                     "sudo systemctl start postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -8545,7 +8545,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres du -sh /var/lib/pgsql/12/data/base/32768"
+                     "sudo -u postgres du -sh /var/lib/pgsql/13/data/base/32768"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -8555,7 +8555,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "7.8M\t/var/lib/pgsql/12/data/base/32768"
+                     "7.8M\t/var/lib/pgsql/13/data/base/32768"
                   ]
                }
             },
@@ -8610,7 +8610,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl stop postgresql-12.service"
+                     "sudo systemctl stop postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -8637,7 +8637,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-12.service"
+                     "sudo systemctl start postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -8710,7 +8710,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres du -sh /var/lib/pgsql/12/data/base/32768"
+                     "sudo -u postgres du -sh /var/lib/pgsql/13/data/base/32768"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -8720,7 +8720,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "16K\t/var/lib/pgsql/12/data/base/32768"
+                     "16K\t/var/lib/pgsql/13/data/base/32768"
                   ]
                }
             },
@@ -8946,7 +8946,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl stop postgresql-12.service"
+                     "sudo systemctl stop postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -8974,7 +8974,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo rm /var/lib/pgsql/12/data/log/postgresql.log"
+                     "sudo rm /var/lib/pgsql/13/data/log/postgresql.log"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -8987,7 +8987,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-12.service"
+                     "sudo systemctl start postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -9041,7 +9041,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/lib/pgsql/12/data/log/postgresql.log"
+                     "sudo -u postgres cat /var/lib/pgsql/13/data/log/postgresql.log"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -9074,7 +9074,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl stop postgresql-12.service"
+                     "sudo systemctl stop postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -9102,7 +9102,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo rm /var/lib/pgsql/12/data/log/postgresql.log"
+                     "sudo rm /var/lib/pgsql/13/data/log/postgresql.log"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -9115,7 +9115,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/lib/pgsql/12/data/postgresql.auto.conf"
+                     "sudo -u postgres cat /var/lib/pgsql/13/data/postgresql.auto.conf"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -9144,7 +9144,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-12.service"
+                     "sudo systemctl start postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -9198,7 +9198,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/lib/pgsql/12/data/log/postgresql.log"
+                     "sudo -u postgres cat /var/lib/pgsql/13/data/log/postgresql.log"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -9237,7 +9237,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl stop postgresql-12.service"
+                     "sudo systemctl stop postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -9294,7 +9294,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: stanza-delete command begin 2.52: --exec-id=3855-f55f9527 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --repo=1 --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
+                     "P00   INFO: stanza-delete command begin 2.52: --exec-id=3855-f55f9527 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --repo=1 --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
                      "P00   INFO: stanza-delete command end: completed successfully"
                   ]
                }
@@ -9303,7 +9303,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-12.service"
+                     "sudo systemctl start postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -9346,7 +9346,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "process-max=4",
@@ -9417,7 +9417,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: stanza-create command begin 2.52: --exec-id=4012-28156641 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo2-type=azure --stanza=demo",
+                     "P00   INFO: stanza-create command begin 2.52: --exec-id=4012-28156641 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo2-type=azure --stanza=demo",
                      "P00   INFO: stanza-create for stanza 'demo' on repo1",
                      "P00   INFO: stanza-create for stanza 'demo' on repo2",
                      "P00   INFO: stanza-create command end: completed successfully"
@@ -9446,7 +9446,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: backup command begin 2.52: --exec-id=4039-4e5dfd95 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --process-max=4 --repo=2 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo2-type=azure --stanza=demo --start-fast",
+                     "P00   INFO: backup command begin 2.52: --exec-id=4039-4e5dfd95 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --process-max=4 --repo=2 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo2-type=azure --stanza=demo --start-fast",
                      "P00   WARN: no prior backup exists, incr backup has been changed to full",
                      "P00   INFO: execute non-exclusive backup start: backup begins after the requested immediate checkpoint completes",
                      "P00   INFO: backup start archive = 00000006000000000000001B, lsn = 0/1B000028",
@@ -9499,7 +9499,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "process-max=4",
@@ -9607,7 +9607,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: backup command begin 2.52: --exec-id=4192-26574a45 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --process-max=4 --repo=3 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo3-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo3-retention-full=4 --repo3-s3-bucket=demo-bucket --repo3-s3-endpoint=s3.us-east-1.amazonaws.com --repo3-s3-key=<redacted> --repo3-s3-key-secret=<redacted> --repo3-s3-region=us-east-1 --repo2-type=azure --repo3-type=s3 --stanza=demo --start-fast",
+                     "P00   INFO: backup command begin 2.52: --exec-id=4192-26574a45 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --process-max=4 --repo=3 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo3-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo3-retention-full=4 --repo3-s3-bucket=demo-bucket --repo3-s3-endpoint=s3.us-east-1.amazonaws.com --repo3-s3-key=<redacted> --repo3-s3-key-secret=<redacted> --repo3-s3-region=us-east-1 --repo2-type=azure --repo3-type=s3 --stanza=demo --start-fast",
                      "P00   WARN: no prior backup exists, incr backup has been changed to full",
                      "P00   INFO: execute non-exclusive backup start: backup begins after the requested immediate checkpoint completes",
                      "P00   INFO: backup start archive = 00000006000000000000001C, lsn = 0/1C000028",
@@ -9660,7 +9660,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "process-max=4",
@@ -9843,7 +9843,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: backup command begin 2.52: --exec-id=4409-07025786 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --process-max=4 --repo=4 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo4-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo3-path=/demo-repo --repo4-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo3-retention-full=4 --repo3-s3-bucket=demo-bucket --repo3-s3-endpoint=s3.us-east-1.amazonaws.com --repo3-s3-key=<redacted> --repo3-s3-key-secret=<redacted> --repo3-s3-region=us-east-1 --repo4-sftp-host=sftp-server --repo4-sftp-host-key-hash-type=sha1 --repo4-sftp-host-user=pgbackrest --repo4-sftp-private-key-file=/var/lib/pgsql/.ssh/id_rsa_sftp --repo4-sftp-public-key-file=/var/lib/pgsql/.ssh/id_rsa_sftp.pub --repo2-type=azure --repo3-type=s3 --repo4-type=sftp --stanza=demo --start-fast",
+                     "P00   INFO: backup command begin 2.52: --exec-id=4409-07025786 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --process-max=4 --repo=4 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo4-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo3-path=/demo-repo --repo4-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo3-retention-full=4 --repo3-s3-bucket=demo-bucket --repo3-s3-endpoint=s3.us-east-1.amazonaws.com --repo3-s3-key=<redacted> --repo3-s3-key-secret=<redacted> --repo3-s3-region=us-east-1 --repo4-sftp-host=sftp-server --repo4-sftp-host-key-hash-type=sha1 --repo4-sftp-host-user=pgbackrest --repo4-sftp-private-key-file=/var/lib/pgsql/.ssh/id_rsa_sftp --repo4-sftp-public-key-file=/var/lib/pgsql/.ssh/id_rsa_sftp.pub --repo2-type=azure --repo3-type=s3 --repo4-type=sftp --stanza=demo --start-fast",
                      "P00   WARN: option 'repo4-retention-full' is not set for 'repo4-retention-full-type=count', the repository may run out of space",
                      "            HINT: to retain full backups indefinitely (without warning), set option 'repo4-retention-full' to the maximum.",
                      "P00   WARN: no prior backup exists, incr backup has been changed to full",
@@ -9887,7 +9887,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "process-max=4",
@@ -10184,7 +10184,7 @@
                            "value" : "tls"
                         },
                         "pg1-path" : {
-                           "value" : "/var/lib/pgsql/12/data"
+                           "value" : "/var/lib/pgsql/13/data"
                         }
                      },
                      "global" : {
@@ -10227,7 +10227,7 @@
                      "pg1-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg1-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg1-host-type=tls",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "repo1-path=/var/lib/pgbackrest",
@@ -10248,7 +10248,7 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/pgsql/12/data"
+                           "value" : "/var/lib/pgsql/13/data"
                         }
                      },
                      "global" : {
@@ -10299,7 +10299,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "log-level-file=detail",
@@ -10627,7 +10627,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl stop postgresql-12.service"
+                     "sudo systemctl stop postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -10653,7 +10653,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-12.service"
+                     "sudo systemctl start postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -10709,7 +10709,7 @@
                      "pg1-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg1-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg1-host-type=tls",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "process-max=3",
@@ -10763,7 +10763,7 @@
                      "    cipher: none",
                      "",
                      "    db (current)",
-                     "        wal archive min/max (12): 000000070000000000000025/000000070000000000000027",
+                     "        wal archive min/max (13): 000000070000000000000025/000000070000000000000027",
                      "",
                      "        full backup: 20240527-000652F",
                      "            timestamp start/stop: 2024-05-27 00:06:52+00 / 2024-05-27 00:06:56+00",
@@ -11058,7 +11058,7 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/pgsql/12/data"
+                           "value" : "/var/lib/pgsql/13/data"
                         }
                      },
                      "global" : {
@@ -11108,7 +11108,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "log-level-file=detail",
@@ -11254,7 +11254,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres mkdir -p -m 700 /var/lib/pgsql/12/data"
+                     "sudo -u postgres mkdir -p -m 700 /var/lib/pgsql/13/data"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -11280,7 +11280,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/lib/pgsql/12/data/postgresql.auto.conf"
+                     "sudo -u postgres cat /var/lib/pgsql/13/data/postgresql.auto.conf"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -11316,7 +11316,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "cat /root/postgresql.common.conf >> /var/lib/pgsql/12/data/postgresql.conf"
+                     "cat /root/postgresql.common.conf >> /var/lib/pgsql/13/data/postgresql.conf"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -11327,7 +11327,7 @@
             },
             {
                "key" : {
-                  "file" : "/var/lib/pgsql/12/data/postgresql.conf",
+                  "file" : "/var/lib/pgsql/13/data/postgresql.conf",
                   "host" : "pg-standby",
                   "option" : {
                      "archive_command" : {
@@ -11366,7 +11366,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo rm /var/lib/pgsql/12/data/log/postgresql.log"
+                     "sudo rm /var/lib/pgsql/13/data/log/postgresql.log"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -11379,7 +11379,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-12.service"
+                     "sudo systemctl start postgresql-13.service"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -11405,7 +11405,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/lib/pgsql/12/data/log/postgresql.log"
+                     "sudo -u postgres cat /var/lib/pgsql/13/data/log/postgresql.log"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -11565,7 +11565,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: check command begin 2.52: --exec-id=1292-2e4caa2c --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --stanza=demo",
+                     "P00   INFO: check command begin 2.52: --exec-id=1292-2e4caa2c --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --stanza=demo",
                      "P00   INFO: check repo1 (standby)",
                      "P00   INFO: switch wal not performed because this is a standby",
                      "P00   INFO: check command end: completed successfully"
@@ -11597,7 +11597,7 @@
                   "cmd" : [
                      "sudo -u postgres sh -c 'echo \\",
                      "    \"host    replication     replicator      172.17.0.8/32           md5\" \\",
-                     "    >> /var/lib/pgsql/12/data/pg_hba.conf'"
+                     "    >> /var/lib/pgsql/13/data/pg_hba.conf'"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -11610,7 +11610,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl reload postgresql-12.service"
+                     "sudo systemctl reload postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -11635,7 +11635,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "recovery-option=primary_conninfo=host=172.17.0.6 port=5432 user=replicator",
                      "",
                      "[global]",
@@ -11685,7 +11685,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl stop postgresql-12.service"
+                     "sudo systemctl stop postgresql-13.service"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -11711,7 +11711,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/lib/pgsql/12/data/postgresql.auto.conf"
+                     "sudo -u postgres cat /var/lib/pgsql/13/data/postgresql.auto.conf"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -11746,7 +11746,7 @@
             },
             {
                "key" : {
-                  "file" : "/var/lib/pgsql/12/data/postgresql.conf",
+                  "file" : "/var/lib/pgsql/13/data/postgresql.conf",
                   "host" : "pg-standby",
                   "option" : {
                      "hot_standby" : {
@@ -11770,7 +11770,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo rm /var/lib/pgsql/12/data/log/postgresql.log"
+                     "sudo rm /var/lib/pgsql/13/data/log/postgresql.log"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -11783,7 +11783,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-12.service"
+                     "sudo systemctl start postgresql-13.service"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -11809,7 +11809,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/lib/pgsql/12/data/log/postgresql.log"
+                     "sudo -u postgres cat /var/lib/pgsql/13/data/log/postgresql.log"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -12048,7 +12048,7 @@
                   "option" : {
                      "demo-alt" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/pgsql/12/data"
+                           "value" : "/var/lib/pgsql/13/data"
                         }
                      },
                      "global" : {
@@ -12098,7 +12098,7 @@
                "value" : {
                   "config" : [
                      "[demo-alt]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "log-level-file=detail",
@@ -12137,7 +12137,7 @@
                            "value" : "tls"
                         },
                         "pg1-path" : {
-                           "value" : "/var/lib/pgsql/12/data"
+                           "value" : "/var/lib/pgsql/13/data"
                         }
                      }
                   }
@@ -12151,7 +12151,7 @@
                      "pg1-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg1-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg1-host-type=tls",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[demo-alt]",
                      "pg1-host=pg-alt",
@@ -12159,7 +12159,7 @@
                      "pg1-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg1-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg1-host-type=tls",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "process-max=3",
@@ -12303,8 +12303,8 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres /usr/pgsql-12/bin/initdb \\",
-                     "    -D /var/lib/pgsql/12/data -k -A peer"
+                     "sudo -u postgres /usr/pgsql-13/bin/initdb \\",
+                     "    -D /var/lib/pgsql/13/data -k -A peer"
                   ],
                   "host" : "pg-alt",
                   "load-env" : true,
@@ -12317,7 +12317,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "cat /root/postgresql.common.conf >> /var/lib/pgsql/12/data/postgresql.conf"
+                     "cat /root/postgresql.common.conf >> /var/lib/pgsql/13/data/postgresql.conf"
                   ],
                   "host" : "pg-alt",
                   "load-env" : true,
@@ -12328,7 +12328,7 @@
             },
             {
                "key" : {
-                  "file" : "/var/lib/pgsql/12/data/postgresql.conf",
+                  "file" : "/var/lib/pgsql/13/data/postgresql.conf",
                   "host" : "pg-alt",
                   "option" : {
                      "archive_command" : {
@@ -12363,7 +12363,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl restart postgresql-12.service"
+                     "sudo systemctl restart postgresql-13.service"
                   ],
                   "host" : "pg-alt",
                   "load-env" : true,
@@ -12406,7 +12406,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: stanza-create command begin 2.52: --exec-id=947-bbc659e4 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --stanza=demo-alt",
+                     "P00   INFO: stanza-create command begin 2.52: --exec-id=947-bbc659e4 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --stanza=demo-alt",
                      "P00   INFO: stanza-create for stanza 'demo-alt' on repo1",
                      "P00   INFO: stanza-create command end: completed successfully"
                   ]
@@ -12437,7 +12437,7 @@
                      "P00   INFO: check stanza 'demo-alt'",
                      "P00   INFO: check repo1 configuration (primary)",
                      "P00   INFO: check repo1 archive for WAL (primary)",
-                     "P00   INFO: WAL segment 000000010000000000000001 successfully archived to '/var/lib/pgbackrest/archive/demo-alt/12-1/0000000100000000/000000010000000000000001-63cc8bdb98eee57682d0af5b16314d599c3e3b6c.gz' on repo1",
+                     "P00   INFO: WAL segment 000000010000000000000001 successfully archived to '/var/lib/pgbackrest/archive/demo-alt/13-1/0000000100000000/000000010000000000000001-63cc8bdb98eee57682d0af5b16314d599c3e3b6c.gz' on repo1",
                      "P00   INFO: check command end: completed successfully"
                   ]
                }
@@ -12467,11 +12467,11 @@
                      "P00   INFO: check stanza 'demo'",
                      "P00   INFO: check repo1 configuration (primary)",
                      "P00   INFO: check repo1 archive for WAL (primary)",
-                     "P00   INFO: WAL segment 000000070000000000000029 successfully archived to '/var/lib/pgbackrest/archive/demo/12-1/0000000700000000/000000070000000000000029-87916bee751ebfc4345c6404ea495bc996a3071e.gz' on repo1",
+                     "P00   INFO: WAL segment 000000070000000000000029 successfully archived to '/var/lib/pgbackrest/archive/demo/13-1/0000000700000000/000000070000000000000029-87916bee751ebfc4345c6404ea495bc996a3071e.gz' on repo1",
                      "P00   INFO: check stanza 'demo-alt'",
                      "P00   INFO: check repo1 configuration (primary)",
                      "P00   INFO: check repo1 archive for WAL (primary)",
-                     "P00   INFO: WAL segment 000000010000000000000002 successfully archived to '/var/lib/pgbackrest/archive/demo-alt/12-1/0000000100000000/000000010000000000000002-dda9d7f6aafd916afaf72ddc5b978421d0ca63a3.gz' on repo1",
+                     "P00   INFO: WAL segment 000000010000000000000002 successfully archived to '/var/lib/pgbackrest/archive/demo-alt/13-1/0000000100000000/000000010000000000000002-dda9d7f6aafd916afaf72ddc5b978421d0ca63a3.gz' on repo1",
                      "P00   INFO: check command end: completed successfully"
                   ]
                }
@@ -12557,7 +12557,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "archive-async=y",
@@ -12611,7 +12611,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "recovery-option=primary_conninfo=host=172.17.0.6 port=5432 user=replicator",
                      "",
                      "[global]",
@@ -12659,7 +12659,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl restart postgresql-12.service"
+                     "sudo systemctl restart postgresql-13.service"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -12720,10 +12720,10 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: check command begin 2.52: --exec-id=5437-0e128737 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --stanza=demo",
+                     "P00   INFO: check command begin 2.52: --exec-id=5437-0e128737 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --stanza=demo",
                      "P00   INFO: check repo1 configuration (primary)",
                      "P00   INFO: check repo1 archive for WAL (primary)",
-                     "P00   INFO: WAL segment 00000007000000000000002F successfully archived to '/var/lib/pgbackrest/archive/demo/12-1/0000000700000000/00000007000000000000002F-82a3e0ac18a0e3007bf6caff91610582bc650bde.gz' on repo1",
+                     "P00   INFO: WAL segment 00000007000000000000002F successfully archived to '/var/lib/pgbackrest/archive/demo/13-1/0000000700000000/00000007000000000000002F-82a3e0ac18a0e3007bf6caff91610582bc650bde.gz' on repo1",
                      "P00   INFO: check command end: completed successfully"
                   ]
                }
@@ -12750,14 +12750,14 @@
                "value" : {
                   "output" : [
                      "-------------------PROCESS START-------------------",
-                     "P00   INFO: archive-push:async command begin 2.52: [/var/lib/pgsql/12/data/pg_wal] --archive-async --exec-id=5405-3e8356d1 --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --process-max=2 --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --spool-path=/var/spool/pgbackrest --stanza=demo",
+                     "P00   INFO: archive-push:async command begin 2.52: [/var/lib/pgsql/13/data/pg_wal] --archive-async --exec-id=5405-3e8356d1 --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --process-max=2 --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --spool-path=/var/spool/pgbackrest --stanza=demo",
                      "P00   INFO: push 1 WAL file(s) to archive: 00000007000000000000002A",
                      "P01 DETAIL: pushed WAL file '00000007000000000000002A' to the archive",
                      "P00 DETAIL: statistics: {\"socket.client\":{\"total\":1},\"socket.session\":{\"total\":1},\"tls.client\":{\"total\":1},\"tls.session\":{\"total\":1}}",
                      "P00   INFO: archive-push:async command end: completed successfully",
                      "",
                      "-------------------PROCESS START-------------------",
-                     "P00   INFO: archive-push:async command begin 2.52: [/var/lib/pgsql/12/data/pg_wal] --archive-async --exec-id=5439-e355211d --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --process-max=2 --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --spool-path=/var/spool/pgbackrest --stanza=demo",
+                     "P00   INFO: archive-push:async command begin 2.52: [/var/lib/pgsql/13/data/pg_wal] --archive-async --exec-id=5439-e355211d --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --process-max=2 --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --spool-path=/var/spool/pgbackrest --stanza=demo",
                      "P00   INFO: push 4 WAL file(s) to archive: 00000007000000000000002B...00000007000000000000002E",
                      "P01 DETAIL: pushed WAL file '00000007000000000000002B' to the archive",
                      "P02 DETAIL: pushed WAL file '00000007000000000000002C' to the archive",
@@ -12767,7 +12767,7 @@
                      "P00   INFO: archive-push:async command end: completed successfully",
                      "",
                      "-------------------PROCESS START-------------------",
-                     "P00   INFO: archive-push:async command begin 2.52: [/var/lib/pgsql/12/data/pg_wal] --archive-async --exec-id=5447-842eac4b --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --process-max=2 --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --spool-path=/var/spool/pgbackrest --stanza=demo",
+                     "P00   INFO: archive-push:async command begin 2.52: [/var/lib/pgsql/13/data/pg_wal] --archive-async --exec-id=5447-842eac4b --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --process-max=2 --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --spool-path=/var/spool/pgbackrest --stanza=demo",
                      "P00   INFO: push 1 WAL file(s) to archive: 00000007000000000000002F",
                      "P01 DETAIL: pushed WAL file '00000007000000000000002F' to the archive",
                      "P00 DETAIL: statistics: {\"socket.client\":{\"total\":1},\"socket.session\":{\"total\":1},\"tls.client\":{\"total\":1},\"tls.session\":{\"total\":1}}",
@@ -12810,23 +12810,23 @@
                "value" : {
                   "output" : [
                      "-------------------PROCESS START-------------------",
-                     "P00   INFO: archive-get:async command begin 2.52: [000000070000000000000026, 000000070000000000000027, 000000070000000000000028, 000000070000000000000029, 00000007000000000000002A, 00000007000000000000002B, 00000007000000000000002C, 00000007000000000000002D] --archive-async --exec-id=1829-41e8ea4b --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --process-max=2 --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --spool-path=/var/spool/pgbackrest --stanza=demo",
+                     "P00   INFO: archive-get:async command begin 2.52: [000000070000000000000026, 000000070000000000000027, 000000070000000000000028, 000000070000000000000029, 00000007000000000000002A, 00000007000000000000002B, 00000007000000000000002C, 00000007000000000000002D] --archive-async --exec-id=1829-41e8ea4b --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --process-max=2 --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --spool-path=/var/spool/pgbackrest --stanza=demo",
                      "P00   INFO: get 8 WAL file(s) from archive: 000000070000000000000026...00000007000000000000002D",
-                     "P01 DETAIL: found 000000070000000000000026 in the repo1: 12-1 archive",
-                     "P02 DETAIL: found 000000070000000000000027 in the repo1: 12-1 archive",
-                     "P01 DETAIL: found 000000070000000000000028 in the repo1: 12-1 archive",
-                     "P02 DETAIL: found 000000070000000000000029 in the repo1: 12-1 archive",
+                     "P01 DETAIL: found 000000070000000000000026 in the repo1: 13-1 archive",
+                     "P02 DETAIL: found 000000070000000000000027 in the repo1: 13-1 archive",
+                     "P01 DETAIL: found 000000070000000000000028 in the repo1: 13-1 archive",
+                     "P02 DETAIL: found 000000070000000000000029 in the repo1: 13-1 archive",
                      "P00 DETAIL: unable to find 00000007000000000000002A in the archive",
                      "P00 DETAIL: statistics: {\"socket.client\":{\"total\":1},\"socket.session\":{\"total\":1},\"tls.client\":{\"total\":1},\"tls.session\":{\"total\":1}}",
                      "       [filtered 17 lines of output]",
-                     "P00   INFO: archive-get:async command begin 2.52: [00000007000000000000002A, 00000007000000000000002B, 00000007000000000000002C, 00000007000000000000002D, 00000007000000000000002E, 00000007000000000000002F, 000000070000000000000030, 000000070000000000000031] --archive-async --exec-id=1883-c072908e --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/12/data --process-max=2 --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --spool-path=/var/spool/pgbackrest --stanza=demo",
+                     "P00   INFO: archive-get:async command begin 2.52: [00000007000000000000002A, 00000007000000000000002B, 00000007000000000000002C, 00000007000000000000002D, 00000007000000000000002E, 00000007000000000000002F, 000000070000000000000030, 000000070000000000000031] --archive-async --exec-id=1883-c072908e --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/pgsql/13/data --process-max=2 --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --spool-path=/var/spool/pgbackrest --stanza=demo",
                      "P00   INFO: get 8 WAL file(s) from archive: 00000007000000000000002A...000000070000000000000031",
-                     "P01 DETAIL: found 00000007000000000000002A in the repo1: 12-1 archive",
-                     "P02 DETAIL: found 00000007000000000000002B in the repo1: 12-1 archive",
-                     "P01 DETAIL: found 00000007000000000000002C in the repo1: 12-1 archive",
-                     "P02 DETAIL: found 00000007000000000000002D in the repo1: 12-1 archive",
-                     "P01 DETAIL: found 00000007000000000000002E in the repo1: 12-1 archive",
-                     "P02 DETAIL: found 00000007000000000000002F in the repo1: 12-1 archive",
+                     "P01 DETAIL: found 00000007000000000000002A in the repo1: 13-1 archive",
+                     "P02 DETAIL: found 00000007000000000000002B in the repo1: 13-1 archive",
+                     "P01 DETAIL: found 00000007000000000000002C in the repo1: 13-1 archive",
+                     "P02 DETAIL: found 00000007000000000000002D in the repo1: 13-1 archive",
+                     "P01 DETAIL: found 00000007000000000000002E in the repo1: 13-1 archive",
+                     "P02 DETAIL: found 00000007000000000000002F in the repo1: 13-1 archive",
                      "P00 DETAIL: unable to find 000000070000000000000030 in the archive",
                      "P00 DETAIL: statistics: {\"socket.client\":{\"total\":1},\"socket.session\":{\"total\":1},\"tls.client\":{\"total\":1},\"tls.session\":{\"total\":1}}",
                      "       [filtered 14 lines of output]"
@@ -12873,7 +12873,7 @@
                            "value" : "tls"
                         },
                         "pg2-path" : {
-                           "value" : "/var/lib/pgsql/12/data"
+                           "value" : "/var/lib/pgsql/13/data"
                         }
                      },
                      "global" : {
@@ -12892,13 +12892,13 @@
                      "pg1-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg1-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg1-host-type=tls",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "pg2-host=pg-standby",
                      "pg2-host-ca-file=/etc/pgbackrest/cert/ca.crt",
                      "pg2-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg2-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg2-host-type=tls",
-                     "pg2-path=/var/lib/pgsql/12/data",
+                     "pg2-path=/var/lib/pgsql/13/data",
                      "",
                      "[demo-alt]",
                      "pg1-host=pg-alt",
@@ -12906,7 +12906,7 @@
                      "pg1-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg1-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg1-host-type=tls",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "backup-standby=y",
@@ -12949,14 +12949,14 @@
                      "P00   INFO: wait for replay on the standby to reach 0/31000028",
                      "P00   INFO: replay on the standby reached 0/31000028",
                      "P00   INFO: check archive for prior segment 000000070000000000000030",
-                     "P01 DETAIL: backup file pg-primary:/var/lib/pgsql/12/data/global/pg_control (8KB, 0.34%) checksum 1c7efd19cbf84de2f410b4151d52bf31e19f1645",
-                     "P02 DETAIL: backup file pg-standby:/var/lib/pgsql/12/data/base/13396/2608 (456KB, 19.77%) checksum fdf79152d7ad43993fd0e95f3ab99230b5456da9",
-                     "P03 DETAIL: backup file pg-standby:/var/lib/pgsql/12/data/base/13396/1249 (440KB, 38.52%) checksum 80fa69c6255667377f0514d4931db96c0d023b6c",
-                     "P04 DETAIL: backup file pg-standby:/var/lib/pgsql/12/data/base/13396/2674 (344KB, 53.18%) checksum 82b8cc51aae38a0a0b387a92a9bb094029a58456",
-                     "P01 DETAIL: backup file pg-primary:/var/lib/pgsql/12/data/log/postgresql.log (6.1KB, 53.44%) checksum 9d278e8c055faca201c744359fa6e0b5764088b8",
-                     "P01 DETAIL: backup file pg-primary:/var/lib/pgsql/12/data/pg_hba.conf (4.5KB, 53.63%) checksum 65e54ae24bda87b2542351cb16a7fecc7e5aceeb",
-                     "P01 DETAIL: match file from prior backup pg-primary:/var/lib/pgsql/12/data/current_logfiles (26B, 53.63%) checksum 78a9f5c10960f0d91fcd313937469824861795a2",
-                     "P01 DETAIL: match file from prior backup pg-primary:/var/lib/pgsql/12/data/pg_logical/replorigin_checkpoint (8B, 53.63%) checksum 347fc8f2df71bd4436e38bd1516ccd7ea0d46532",
+                     "P01 DETAIL: backup file pg-primary:/var/lib/pgsql/13/data/global/pg_control (8KB, 0.34%) checksum 1c7efd19cbf84de2f410b4151d52bf31e19f1645",
+                     "P02 DETAIL: backup file pg-standby:/var/lib/pgsql/13/data/base/13396/2608 (456KB, 19.77%) checksum fdf79152d7ad43993fd0e95f3ab99230b5456da9",
+                     "P03 DETAIL: backup file pg-standby:/var/lib/pgsql/13/data/base/13396/1249 (440KB, 38.52%) checksum 80fa69c6255667377f0514d4931db96c0d023b6c",
+                     "P04 DETAIL: backup file pg-standby:/var/lib/pgsql/13/data/base/13396/2674 (344KB, 53.18%) checksum 82b8cc51aae38a0a0b387a92a9bb094029a58456",
+                     "P01 DETAIL: backup file pg-primary:/var/lib/pgsql/13/data/log/postgresql.log (6.1KB, 53.44%) checksum 9d278e8c055faca201c744359fa6e0b5764088b8",
+                     "P01 DETAIL: backup file pg-primary:/var/lib/pgsql/13/data/pg_hba.conf (4.5KB, 53.63%) checksum 65e54ae24bda87b2542351cb16a7fecc7e5aceeb",
+                     "P01 DETAIL: match file from prior backup pg-primary:/var/lib/pgsql/13/data/current_logfiles (26B, 53.63%) checksum 78a9f5c10960f0d91fcd313937469824861795a2",
+                     "P01 DETAIL: match file from prior backup pg-primary:/var/lib/pgsql/13/data/pg_logical/replorigin_checkpoint (8B, 53.63%) checksum 347fc8f2df71bd4436e38bd1516ccd7ea0d46532",
                      "       [filtered 1298 lines of output]"
                   ]
                }
@@ -12965,7 +12965,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl stop postgresql-12.service"
+                     "sudo systemctl stop postgresql-13.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -12978,7 +12978,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl stop postgresql-12.service"
+                     "sudo systemctl stop postgresql-13.service"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -12991,8 +12991,8 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres /usr/pgsql-13/bin/initdb \\",
-                     "    -D /var/lib/pgsql/13/data -k -A peer"
+                     "sudo -u postgres /usr/pgsql-14/bin/initdb \\",
+                     "    -D /var/lib/pgsql/14/data -k -A peer"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -13006,13 +13006,13 @@
                   "bash-wrap" : true,
                   "cmd" : [
                      "sudo -u postgres sh -c 'cd /var/lib/pgsql && \\",
-                     "    /usr/pgsql-13/bin/pg_upgrade \\",
-                     "    --old-bindir=/usr/pgsql-12/bin \\",
-                     "    --new-bindir=/usr/pgsql-13/bin \\",
-                     "    --old-datadir=/var/lib/pgsql/12/data \\",
-                     "    --new-datadir=/var/lib/pgsql/13/data \\",
-                     "    --old-options=\" -c config_file=/var/lib/pgsql/12/data/postgresql.conf\" \\",
-                     "    --new-options=\" -c config_file=/var/lib/pgsql/13/data/postgresql.conf\"'"
+                     "    /usr/pgsql-14/bin/pg_upgrade \\",
+                     "    --old-bindir=/usr/pgsql-13/bin \\",
+                     "    --new-bindir=/usr/pgsql-14/bin \\",
+                     "    --old-datadir=/var/lib/pgsql/13/data \\",
+                     "    --new-datadir=/var/lib/pgsql/14/data \\",
+                     "    --old-options=\" -c config_file=/var/lib/pgsql/13/data/postgresql.conf\" \\",
+                     "    --new-options=\" -c config_file=/var/lib/pgsql/14/data/postgresql.conf\"'"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -13043,7 +13043,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "cat /root/postgresql.common.conf >> /var/lib/pgsql/13/data/postgresql.conf"
+                     "cat /root/postgresql.common.conf >> /var/lib/pgsql/14/data/postgresql.conf"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -13054,7 +13054,7 @@
             },
             {
                "key" : {
-                  "file" : "/var/lib/pgsql/13/data/postgresql.conf",
+                  "file" : "/var/lib/pgsql/14/data/postgresql.conf",
                   "host" : "pg-primary",
                   "option" : {
                      "archive_command" : {
@@ -13092,7 +13092,7 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/pgsql/13/data"
+                           "value" : "/var/lib/pgsql/14/data"
                         }
                      }
                   }
@@ -13101,7 +13101,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/13/data",
+                     "pg1-path=/var/lib/pgsql/14/data",
                      "",
                      "[global]",
                      "archive-async=y",
@@ -13133,7 +13133,7 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/pgsql/13/data"
+                           "value" : "/var/lib/pgsql/14/data"
                         }
                      }
                   }
@@ -13142,7 +13142,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/pgsql/13/data",
+                     "pg1-path=/var/lib/pgsql/14/data",
                      "recovery-option=primary_conninfo=host=172.17.0.6 port=5432 user=replicator",
                      "",
                      "[global]",
@@ -13175,10 +13175,10 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/pgsql/13/data"
+                           "value" : "/var/lib/pgsql/14/data"
                         },
                         "pg2-path" : {
-                           "value" : "/var/lib/pgsql/13/data"
+                           "value" : "/var/lib/pgsql/14/data"
                         }
                      },
                      "global" : {
@@ -13197,13 +13197,13 @@
                      "pg1-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg1-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg1-host-type=tls",
-                     "pg1-path=/var/lib/pgsql/13/data",
+                     "pg1-path=/var/lib/pgsql/14/data",
                      "pg2-host=pg-standby",
                      "pg2-host-ca-file=/etc/pgbackrest/cert/ca.crt",
                      "pg2-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg2-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg2-host-type=tls",
-                     "pg2-path=/var/lib/pgsql/13/data",
+                     "pg2-path=/var/lib/pgsql/14/data",
                      "",
                      "[demo-alt]",
                      "pg1-host=pg-alt",
@@ -13211,7 +13211,7 @@
                      "pg1-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg1-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg1-host-type=tls",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "backup-standby=n",
@@ -13231,8 +13231,8 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo cp /var/lib/pgsql/12/data/pg_hba.conf \\",
-                     "    /var/lib/pgsql/13/data/pg_hba.conf"
+                     "sudo cp /var/lib/pgsql/13/data/pg_hba.conf \\",
+                     "    /var/lib/pgsql/14/data/pg_hba.conf"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -13263,7 +13263,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: stanza-upgrade command begin 2.52: --exec-id=5938-72f20868 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --no-online --pg1-path=/var/lib/pgsql/13/data --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --stanza=demo",
+                     "P00   INFO: stanza-upgrade command begin 2.52: --exec-id=5938-72f20868 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --no-online --pg1-path=/var/lib/pgsql/14/data --repo1-host=repository --repo1-host-ca-file=/etc/pgbackrest/cert/ca.crt --repo1-host-cert-file=/etc/pgbackrest/cert/client.crt --repo1-host-key-file=/etc/pgbackrest/cert/client.key --repo1-host-type=tls --stanza=demo",
                      "P00   INFO: stanza-upgrade for stanza 'demo' on repo1",
                      "P00   INFO: stanza-upgrade command end: completed successfully"
                   ]
@@ -13273,7 +13273,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-13.service"
+                     "sudo systemctl start postgresql-14.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -13286,7 +13286,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres systemctl status postgresql-13.service"
+                     "sudo -u postgres systemctl status postgresql-14.service"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -13312,7 +13312,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo rm -rf /var/lib/pgsql/12/data"
+                     "sudo rm -rf /var/lib/pgsql/13/data"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -13325,7 +13325,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo rm -rf /var/lib/pgsql/12/data"
+                     "sudo rm -rf /var/lib/pgsql/13/data"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -13338,7 +13338,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres mkdir -p -m 700 /usr/pgsql-13/bin"
+                     "sudo -u postgres mkdir -p -m 700 /usr/pgsql-14/bin"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -13395,7 +13395,7 @@
             },
             {
                "key" : {
-                  "file" : "/var/lib/pgsql/13/data/postgresql.conf",
+                  "file" : "/var/lib/pgsql/14/data/postgresql.conf",
                   "host" : "pg-standby",
                   "option" : {
                      "hot_standby" : {
@@ -13414,7 +13414,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo systemctl start postgresql-13.service"
+                     "sudo systemctl start postgresql-14.service"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -13470,13 +13470,13 @@
                      "pg1-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg1-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg1-host-type=tls",
-                     "pg1-path=/var/lib/pgsql/13/data",
+                     "pg1-path=/var/lib/pgsql/14/data",
                      "pg2-host=pg-standby",
                      "pg2-host-ca-file=/etc/pgbackrest/cert/ca.crt",
                      "pg2-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg2-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg2-host-type=tls",
-                     "pg2-path=/var/lib/pgsql/13/data",
+                     "pg2-path=/var/lib/pgsql/14/data",
                      "",
                      "[demo-alt]",
                      "pg1-host=pg-alt",
@@ -13484,7 +13484,7 @@
                      "pg1-host-cert-file=/etc/pgbackrest/cert/client.crt",
                      "pg1-host-key-file=/etc/pgbackrest/cert/client.key",
                      "pg1-host-type=tls",
-                     "pg1-path=/var/lib/pgsql/12/data",
+                     "pg1-path=/var/lib/pgsql/13/data",
                      "",
                      "[global]",
                      "backup-standby=y",
