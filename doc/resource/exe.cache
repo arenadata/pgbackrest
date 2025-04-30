@@ -334,7 +334,6 @@
                   "id" : "sftp",
                   "image" : "pgbackrest/doc:debian",
                   "name" : "sftp-server",
-                  "option" : "-m 512m -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
                   "os" : "debian",
                   "update-hosts" : true
                },
@@ -348,7 +347,6 @@
                   "id" : "build",
                   "image" : "pgbackrest/doc:debian",
                   "name" : "build",
-                  "option" : "-v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
                   "os" : "debian",
                   "update-hosts" : true
                },
@@ -455,7 +453,7 @@
                   "id" : "pg1",
                   "image" : "pgbackrest/doc:debian",
                   "name" : "pg-primary",
-                  "option" : "-m 512m -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
+                  "option" : "-m 512m",
                   "os" : "debian",
                   "update-hosts" : true
                },
@@ -645,8 +643,8 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres /usr/lib/postgresql/15/bin/initdb \\",
-                     "    -D /var/lib/postgresql/15/demo -k -A peer"
+                     "sudo -u postgres /usr/lib/postgresql/16/bin/initdb \\",
+                     "    -D /var/lib/postgresql/16/demo -k -A peer"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -659,7 +657,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_createcluster 15 demo"
+                     "sudo pg_createcluster 16 demo"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -669,9 +667,9 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "Configuring already existing cluster (configuration: /etc/postgresql/15/demo, data: /var/lib/postgresql/15/demo, owner: 102:103)",
+                     "Configuring already existing cluster (configuration: /etc/postgresql/16/demo, data: /var/lib/postgresql/16/demo, owner: 102:103)",
                      "Ver Cluster Port Status Owner    Data directory              Log file",
-                     "15  demo    5432 down   postgres /var/lib/postgresql/15/demo /var/log/postgresql/postgresql-15-demo.log"
+                     "15  demo    5432 down   postgres /var/lib/postgresql/16/demo /var/log/postgresql/postgresql-16-demo.log"
                   ]
                }
             },
@@ -679,7 +677,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "cat /root/postgresql.common.conf >> /etc/postgresql/15/demo/postgresql.conf"
+                     "cat /root/postgresql.common.conf >> /etc/postgresql/16/demo/postgresql.conf"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -695,7 +693,7 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/postgresql/15/demo"
+                           "value" : "/var/lib/postgresql/16/demo"
                         }
                      },
                      "global" : {
@@ -712,7 +710,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo"
+                     "pg1-path=/var/lib/postgresql/16/demo"
                   ]
                }
             },
@@ -806,7 +804,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-path=/var/lib/pgbackrest"
@@ -815,7 +813,7 @@
             },
             {
                "key" : {
-                  "file" : "/etc/postgresql/15/demo/postgresql.conf",
+                  "file" : "/etc/postgresql/16/demo/postgresql.conf",
                   "host" : "pg-primary",
                   "option" : {
                      "archive_command" : {
@@ -846,7 +844,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo restart"
+                     "sudo pg_ctlcluster 16 demo restart"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -909,7 +907,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-path=/var/lib/pgbackrest",
@@ -935,7 +933,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-path=/var/lib/pgbackrest",
@@ -965,7 +963,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-cipher-pass=zWaf6XtpjIVZC5444yXB+cgFDFl7MxGlgkZSaoPvTGirhPygu4jOKOXf9LO4vjfO",
@@ -999,7 +997,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: stanza-create command begin 2.52: --exec-id=385-b7c3d288 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
+                     "P00   INFO: stanza-create command begin 2.52: --exec-id=385-b7c3d288 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
                      "P00   INFO: stanza-create for stanza 'demo' on repo1",
                      "P00   INFO: stanza-create command end: completed successfully"
                   ]
@@ -1026,7 +1024,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: check command begin 2.52: --exec-id=393-258e8875 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
+                     "P00   INFO: check command begin 2.52: --exec-id=393-258e8875 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
                      "P00   INFO: check repo1 configuration (primary)",
                      "P00   INFO: check repo1 archive for WAL (primary)",
                      "P00   INFO: WAL segment 000000010000000000000001 successfully archived to '/var/lib/pgbackrest/archive/demo/15-1/0000000100000000/000000010000000000000001-ae7454844ef09dd231cac733dc1131a0d748fdba.gz' on repo1",
@@ -1050,7 +1048,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-cipher-pass=zWaf6XtpjIVZC5444yXB+cgFDFl7MxGlgkZSaoPvTGirhPygu4jOKOXf9LO4vjfO",
@@ -1086,7 +1084,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: backup command begin 2.52: --exec-id=418-d42a947d --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo1-retention-full=2 --stanza=demo --start-fast",
+                     "P00   INFO: backup command begin 2.52: --exec-id=418-d42a947d --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo1-retention-full=2 --stanza=demo --start-fast",
                      "P00   WARN: no prior backup exists, incr backup has been changed to full",
                      "P00   INFO: execute non-exclusive backup start: backup begins after the requested immediate checkpoint completes",
                      "P00   INFO: backup start archive = 000000010000000000000002, lsn = 0/2000028",
@@ -1195,7 +1193,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo stop"
+                     "sudo pg_ctlcluster 16 demo stop"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -1208,7 +1206,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres rm /var/lib/postgresql/15/demo/global/pg_control"
+                     "sudo -u postgres rm /var/lib/postgresql/16/demo/global/pg_control"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -1221,7 +1219,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo start"
+                     "sudo pg_ctlcluster 16 demo start"
                   ],
                   "err-expect" : "1",
                   "highlight" : {
@@ -1239,10 +1237,10 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "Error: /usr/lib/postgresql/15/bin/pg_ctl /usr/lib/postgresql/15/bin/pg_ctl start -D /var/lib/postgresql/15/demo -l /var/log/postgresql/postgresql-15-demo.log -s -o  -c config_file=\"/etc/postgresql/15/demo/postgresql.conf\"  exited with status 1: ",
+                     "Error: /usr/lib/postgresql/16/bin/pg_ctl /usr/lib/postgresql/16/bin/pg_ctl start -D /var/lib/postgresql/16/demo -l /var/log/postgresql/postgresql-16-demo.log -s -o  -c config_file=\"/etc/postgresql/16/demo/postgresql.conf\"  exited with status 1: ",
                      "postgres: could not find the database system",
-                     "Expected to find it in the directory \"/var/lib/postgresql/15/demo\",",
-                     "but could not open file \"/var/lib/postgresql/15/demo/global/pg_control\": No such file or directory",
+                     "Expected to find it in the directory \"/var/lib/postgresql/16/demo\",",
+                     "but could not open file \"/var/lib/postgresql/16/demo/global/pg_control\": No such file or directory",
                      "Examine the log output."
                   ]
                }
@@ -1251,7 +1249,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres find /var/lib/postgresql/15/demo -mindepth 1 -delete"
+                     "sudo -u postgres find /var/lib/postgresql/16/demo -mindepth 1 -delete"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -1277,7 +1275,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo start"
+                     "sudo pg_ctlcluster 16 demo start"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -1513,7 +1511,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-bundle=y",
@@ -1575,7 +1573,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-block=y",
@@ -1735,7 +1733,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-block=y",
@@ -1845,7 +1843,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-block=y",
@@ -1954,7 +1952,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-block=y",
@@ -2091,7 +2089,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo stop"
+                     "sudo pg_ctlcluster 16 demo stop"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2123,17 +2121,17 @@
                "value" : {
                   "output" : [
                      "       [filtered 2 lines of output]",
-                     "P00 DETAIL: check '/var/lib/postgresql/15/demo' exists",
+                     "P00 DETAIL: check '/var/lib/postgresql/16/demo' exists",
                      "P00 DETAIL: remove 'global/pg_control' so cluster will not start if restore does not complete",
-                     "P00   INFO: remove invalid files/links/paths from '/var/lib/postgresql/15/demo'",
-                     "P00 DETAIL: remove invalid file '/var/lib/postgresql/15/demo/backup_label.old'",
-                     "P00 DETAIL: remove invalid file '/var/lib/postgresql/15/demo/base/1/pg_internal.init'",
+                     "P00   INFO: remove invalid files/links/paths from '/var/lib/postgresql/16/demo'",
+                     "P00 DETAIL: remove invalid file '/var/lib/postgresql/16/demo/backup_label.old'",
+                     "P00 DETAIL: remove invalid file '/var/lib/postgresql/16/demo/base/1/pg_internal.init'",
                      "       [filtered 134 lines of output]",
-                     "P01 DETAIL: restore file /var/lib/postgresql/15/demo/base/1/113 - exists and matches backup (bundle 20240527-001220F/1/58424, 8KB, 5.94%) checksum 9c6671806c84144652aa7a1e989bc2cfe3d9bd40",
-                     "P01 DETAIL: restore file /var/lib/postgresql/15/demo/base/1/112 - exists and matches backup (bundle 20240527-001220F/1/58512, 8KB, 5.98%) checksum 9890dd22d170e0de4f4d9404aba2557a33b9909b",
-                     "P01 DETAIL: restore file /var/lib/postgresql/15/demo/PG_VERSION - exists and matches backup (bundle 20240527-001220F/1/58600, 3B, 5.98%) checksum 587b596f04f7db9c2cad3d6b87dd2b3a05de4f35",
-                     "P01 DETAIL: restore file /var/lib/postgresql/15/demo/global/2695 - exists and matches backup (bundle 20240527-001220F/1/58624, 16KB, 6.05%) checksum 843d45d7c839660378249350bae98ab512a70e30",
-                     "P01 DETAIL: restore file /var/lib/postgresql/15/demo/global/2694 - exists and matches backup (bundle 20240527-001220F/1/58832, 16KB, 6.12%) checksum 88e1fb6d0708cf9fa40378bf8a02d167d4f3f7e9",
+                     "P01 DETAIL: restore file /var/lib/postgresql/16/demo/base/1/113 - exists and matches backup (bundle 20240527-001220F/1/58424, 8KB, 5.94%) checksum 9c6671806c84144652aa7a1e989bc2cfe3d9bd40",
+                     "P01 DETAIL: restore file /var/lib/postgresql/16/demo/base/1/112 - exists and matches backup (bundle 20240527-001220F/1/58512, 8KB, 5.98%) checksum 9890dd22d170e0de4f4d9404aba2557a33b9909b",
+                     "P01 DETAIL: restore file /var/lib/postgresql/16/demo/PG_VERSION - exists and matches backup (bundle 20240527-001220F/1/58600, 3B, 5.98%) checksum 587b596f04f7db9c2cad3d6b87dd2b3a05de4f35",
+                     "P01 DETAIL: restore file /var/lib/postgresql/16/demo/global/2695 - exists and matches backup (bundle 20240527-001220F/1/58624, 16KB, 6.05%) checksum 843d45d7c839660378249350bae98ab512a70e30",
+                     "P01 DETAIL: restore file /var/lib/postgresql/16/demo/global/2694 - exists and matches backup (bundle 20240527-001220F/1/58832, 16KB, 6.12%) checksum 88e1fb6d0708cf9fa40378bf8a02d167d4f3f7e9",
                      "       [filtered 866 lines of output]"
                   ]
                }
@@ -2142,7 +2140,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo start"
+                     "sudo pg_ctlcluster 16 demo start"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2275,7 +2273,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres du -sh /var/lib/postgresql/15/demo/base/32768"
+                     "sudo -u postgres du -sh /var/lib/postgresql/16/demo/base/32768"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2285,7 +2283,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "7.3M\t/var/lib/postgresql/15/demo/base/32768"
+                     "7.3M\t/var/lib/postgresql/16/demo/base/32768"
                   ]
                }
             },
@@ -2340,7 +2338,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo stop"
+                     "sudo pg_ctlcluster 16 demo stop"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2367,7 +2365,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo start"
+                     "sudo pg_ctlcluster 16 demo start"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2440,7 +2438,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres du -sh /var/lib/postgresql/15/demo/base/32768"
+                     "sudo -u postgres du -sh /var/lib/postgresql/16/demo/base/32768"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2450,7 +2448,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "8.0K\t/var/lib/postgresql/15/demo/base/32768"
+                     "8.0K\t/var/lib/postgresql/16/demo/base/32768"
                   ]
                }
             },
@@ -2679,7 +2677,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo stop"
+                     "sudo pg_ctlcluster 16 demo stop"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2707,7 +2705,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo rm /var/log/postgresql/postgresql-15-demo.log"
+                     "sudo rm /var/log/postgresql/postgresql-16-demo.log"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2720,7 +2718,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo start"
+                     "sudo pg_ctlcluster 16 demo start"
                   ],
                   "err-expect" : "1",
                   "highlight" : {
@@ -2767,7 +2765,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo rm /var/log/postgresql/postgresql-15-demo.log"
+                     "sudo rm /var/log/postgresql/postgresql-16-demo.log"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2780,7 +2778,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/lib/postgresql/15/demo/postgresql.auto.conf"
+                     "sudo -u postgres cat /var/lib/postgresql/16/demo/postgresql.auto.conf"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -2809,7 +2807,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo start"
+                     "sudo pg_ctlcluster 16 demo start"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2863,7 +2861,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/log/postgresql/postgresql-15-demo.log"
+                     "sudo -u postgres cat /var/log/postgresql/postgresql-16-demo.log"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -2902,7 +2900,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo stop"
+                     "sudo pg_ctlcluster 16 demo stop"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -2959,7 +2957,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: stanza-delete command begin 2.52: --exec-id=1454-9a0b7d7f --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --repo=1 --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
+                     "P00   INFO: stanza-delete command begin 2.52: --exec-id=1454-9a0b7d7f --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --repo=1 --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --stanza=demo",
                      "P00   INFO: stanza-delete command end: completed successfully"
                   ]
                }
@@ -2968,7 +2966,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo start"
+                     "sudo pg_ctlcluster 16 demo start"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -3011,7 +3009,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "process-max=4",
@@ -3082,7 +3080,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: stanza-create command begin 2.52: --exec-id=1519-ab9fe3da --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo2-type=azure --stanza=demo",
+                     "P00   INFO: stanza-create command begin 2.52: --exec-id=1519-ab9fe3da --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo2-type=azure --stanza=demo",
                      "P00   INFO: stanza-create for stanza 'demo' on repo1",
                      "P00   INFO: stanza-create for stanza 'demo' on repo2",
                      "P00   INFO: stanza-create command end: completed successfully"
@@ -3111,7 +3109,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: backup command begin 2.52: --exec-id=1527-86384be4 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --process-max=4 --repo=2 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo2-type=azure --stanza=demo --start-fast",
+                     "P00   INFO: backup command begin 2.52: --exec-id=1527-86384be4 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --process-max=4 --repo=2 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo2-type=azure --stanza=demo --start-fast",
                      "P00   WARN: no prior backup exists, incr backup has been changed to full",
                      "P00   INFO: execute non-exclusive backup start: backup begins after the requested immediate checkpoint completes",
                      "P00   INFO: backup start archive = 00000005000000000000001B, lsn = 0/1B000028",
@@ -3164,7 +3162,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "process-max=4",
@@ -3272,7 +3270,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: backup command begin 2.52: --exec-id=1585-94094bc8 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --process-max=4 --repo=3 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo3-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo3-retention-full=4 --repo3-s3-bucket=demo-bucket --repo3-s3-endpoint=s3.us-east-1.amazonaws.com --repo3-s3-key=<redacted> --repo3-s3-key-secret=<redacted> --repo3-s3-region=us-east-1 --repo2-type=azure --repo3-type=s3 --stanza=demo --start-fast",
+                     "P00   INFO: backup command begin 2.52: --exec-id=1585-94094bc8 --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --process-max=4 --repo=3 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo3-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo3-retention-full=4 --repo3-s3-bucket=demo-bucket --repo3-s3-endpoint=s3.us-east-1.amazonaws.com --repo3-s3-key=<redacted> --repo3-s3-key-secret=<redacted> --repo3-s3-region=us-east-1 --repo2-type=azure --repo3-type=s3 --stanza=demo --start-fast",
                      "P00   WARN: no prior backup exists, incr backup has been changed to full",
                      "P00   INFO: execute non-exclusive backup start: backup begins after the requested immediate checkpoint completes",
                      "P00   INFO: backup start archive = 00000005000000000000001C, lsn = 0/1C000028",
@@ -3325,7 +3323,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "process-max=4",
@@ -3508,7 +3506,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: backup command begin 2.52: --exec-id=1660-9aa2304e --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --process-max=4 --repo=4 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo4-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo3-path=/demo-repo --repo4-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo3-retention-full=4 --repo3-s3-bucket=demo-bucket --repo3-s3-endpoint=s3.us-east-1.amazonaws.com --repo3-s3-key=<redacted> --repo3-s3-key-secret=<redacted> --repo3-s3-region=us-east-1 --repo4-sftp-host=sftp-server --repo4-sftp-host-key-hash-type=sha1 --repo4-sftp-host-user=pgbackrest --repo4-sftp-private-key-file=/var/lib/postgresql/.ssh/id_rsa_sftp --repo4-sftp-public-key-file=/var/lib/postgresql/.ssh/id_rsa_sftp.pub --repo2-type=azure --repo3-type=s3 --repo4-type=sftp --stanza=demo --start-fast",
+                     "P00   INFO: backup command begin 2.52: --exec-id=1660-9aa2304e --log-level-console=info --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --process-max=4 --repo=4 --repo2-azure-account=<redacted> --repo2-azure-container=demo-container --repo2-azure-key=<redacted> --repo1-block --repo1-bundle --repo4-bundle --repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-path=/var/lib/pgbackrest --repo2-path=/demo-repo --repo3-path=/demo-repo --repo4-path=/demo-repo --repo1-retention-diff=2 --repo1-retention-full=2 --repo2-retention-full=4 --repo3-retention-full=4 --repo3-s3-bucket=demo-bucket --repo3-s3-endpoint=s3.us-east-1.amazonaws.com --repo3-s3-key=<redacted> --repo3-s3-key-secret=<redacted> --repo3-s3-region=us-east-1 --repo4-sftp-host=sftp-server --repo4-sftp-host-key-hash-type=sha1 --repo4-sftp-host-user=pgbackrest --repo4-sftp-private-key-file=/var/lib/postgresql/.ssh/id_rsa_sftp --repo4-sftp-public-key-file=/var/lib/postgresql/.ssh/id_rsa_sftp.pub --repo2-type=azure --repo3-type=s3 --repo4-type=sftp --stanza=demo --start-fast",
                      "P00   WARN: option 'repo4-retention-full' is not set for 'repo4-retention-full-type=count', the repository may run out of space",
                      "            HINT: to retain full backups indefinitely (without warning), set option 'repo4-retention-full' to the maximum.",
                      "P00   WARN: no prior backup exists, incr backup has been changed to full",
@@ -3552,7 +3550,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "process-max=4",
@@ -3601,7 +3599,7 @@
                   "id" : "repo1",
                   "image" : "pgbackrest/doc:debian",
                   "name" : "repository",
-                  "option" : "-m 512m -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
+                  "option" : "-m 512m",
                   "os" : "debian",
                   "update-hosts" : true
                },
@@ -3938,7 +3936,7 @@
                            "value" : "pg-primary"
                         },
                         "pg1-path" : {
-                           "value" : "/var/lib/postgresql/15/demo"
+                           "value" : "/var/lib/postgresql/16/demo"
                         }
                      },
                      "global" : {
@@ -3962,7 +3960,7 @@
                   "config" : [
                      "[demo]",
                      "pg1-host=pg-primary",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "repo1-path=/var/lib/pgbackrest",
@@ -3978,7 +3976,7 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/postgresql/15/demo"
+                           "value" : "/var/lib/postgresql/16/demo"
                         }
                      },
                      "global" : {
@@ -4002,7 +4000,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "log-level-file=detail",
@@ -4071,7 +4069,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo stop"
+                     "sudo pg_ctlcluster 16 demo stop"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -4097,7 +4095,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo start"
+                     "sudo pg_ctlcluster 16 demo start"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -4149,7 +4147,7 @@
                   "config" : [
                      "[demo]",
                      "pg1-host=pg-primary",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "process-max=3",
@@ -4345,7 +4343,7 @@
                   "id" : "pg2",
                   "image" : "pgbackrest/doc:debian",
                   "name" : "pg-standby",
-                  "option" : "-m 512m -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
+                  "option" : "-m 512m",
                   "os" : "debian",
                   "update-hosts" : true
                },
@@ -4580,7 +4578,7 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/postgresql/15/demo"
+                           "value" : "/var/lib/postgresql/16/demo"
                         }
                      },
                      "global" : {
@@ -4603,7 +4601,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "log-level-file=detail",
@@ -4615,7 +4613,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_createcluster 15 demo"
+                     "sudo pg_createcluster 16 demo"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -4641,7 +4639,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/lib/postgresql/15/demo/postgresql.auto.conf"
+                     "sudo -u postgres cat /var/lib/postgresql/16/demo/postgresql.auto.conf"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -4677,7 +4675,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "cat /root/postgresql.common.conf >> /etc/postgresql/15/demo/postgresql.conf"
+                     "cat /root/postgresql.common.conf >> /etc/postgresql/16/demo/postgresql.conf"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -4688,7 +4686,7 @@
             },
             {
                "key" : {
-                  "file" : "/etc/postgresql/15/demo/postgresql.conf",
+                  "file" : "/etc/postgresql/16/demo/postgresql.conf",
                   "host" : "pg-standby",
                   "option" : {
                      "archive_command" : {
@@ -4723,7 +4721,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo rm /var/log/postgresql/postgresql-15-demo.log"
+                     "sudo rm /var/log/postgresql/postgresql-16-demo.log"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -4736,7 +4734,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo start"
+                     "sudo pg_ctlcluster 16 demo start"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -4762,7 +4760,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/log/postgresql/postgresql-15-demo.log"
+                     "sudo -u postgres cat /var/log/postgresql/postgresql-16-demo.log"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -4922,7 +4920,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: check command begin 2.52: --exec-id=459-f166a274 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --repo1-host=repository --stanza=demo",
+                     "P00   INFO: check command begin 2.52: --exec-id=459-f166a274 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --repo1-host=repository --stanza=demo",
                      "P00   INFO: check repo1 (standby)",
                      "P00   INFO: switch wal not performed because this is a standby",
                      "P00   INFO: check command end: completed successfully"
@@ -4954,7 +4952,7 @@
                   "cmd" : [
                      "sudo -u postgres sh -c 'echo \\",
                      "    \"host    replication     replicator      172.17.0.8/32           md5\" \\",
-                     "    >> /etc/postgresql/15/demo/pg_hba.conf'"
+                     "    >> /etc/postgresql/16/demo/pg_hba.conf'"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -4967,7 +4965,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo reload"
+                     "sudo pg_ctlcluster 16 demo reload"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -4992,7 +4990,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "recovery-option=primary_conninfo=host=172.17.0.6 port=5432 user=replicator",
                      "",
                      "[global]",
@@ -5033,7 +5031,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo stop"
+                     "sudo pg_ctlcluster 16 demo stop"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -5059,7 +5057,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/lib/postgresql/15/demo/postgresql.auto.conf"
+                     "sudo -u postgres cat /var/lib/postgresql/16/demo/postgresql.auto.conf"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -5096,7 +5094,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo rm /var/log/postgresql/postgresql-15-demo.log"
+                     "sudo rm /var/log/postgresql/postgresql-16-demo.log"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -5109,7 +5107,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo start"
+                     "sudo pg_ctlcluster 16 demo start"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -5135,7 +5133,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres cat /var/log/postgresql/postgresql-15-demo.log"
+                     "sudo -u postgres cat /var/log/postgresql/postgresql-16-demo.log"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -5227,7 +5225,7 @@
                   "id" : "pgalt",
                   "image" : "pgbackrest/doc:debian",
                   "name" : "pg-alt",
-                  "option" : "-m 512m -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
+                  "option" : "-m 512m",
                   "os" : "debian",
                   "update-hosts" : true
                },
@@ -5462,7 +5460,7 @@
                   "option" : {
                      "demo-alt" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/postgresql/15/demo"
+                           "value" : "/var/lib/postgresql/16/demo"
                         }
                      },
                      "global" : {
@@ -5485,7 +5483,7 @@
                "value" : {
                   "config" : [
                      "[demo-alt]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "log-level-file=detail",
@@ -5503,7 +5501,7 @@
                            "value" : "pg-alt"
                         },
                         "pg1-path" : {
-                           "value" : "/var/lib/postgresql/15/demo"
+                           "value" : "/var/lib/postgresql/16/demo"
                         }
                      }
                   }
@@ -5513,11 +5511,11 @@
                   "config" : [
                      "[demo]",
                      "pg1-host=pg-primary",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[demo-alt]",
                      "pg1-host=pg-alt",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "process-max=3",
@@ -5531,8 +5529,8 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres /usr/lib/postgresql/15/bin/initdb \\",
-                     "    -D /var/lib/postgresql/15/demo -k -A peer"
+                     "sudo -u postgres /usr/lib/postgresql/16/bin/initdb \\",
+                     "    -D /var/lib/postgresql/16/demo -k -A peer"
                   ],
                   "host" : "pg-alt",
                   "load-env" : true,
@@ -5545,7 +5543,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_createcluster 15 demo"
+                     "sudo pg_createcluster 16 demo"
                   ],
                   "host" : "pg-alt",
                   "load-env" : true,
@@ -5555,9 +5553,9 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "Configuring already existing cluster (configuration: /etc/postgresql/15/demo, data: /var/lib/postgresql/15/demo, owner: 102:103)",
+                     "Configuring already existing cluster (configuration: /etc/postgresql/16/demo, data: /var/lib/postgresql/16/demo, owner: 102:103)",
                      "Ver Cluster Port Status Owner    Data directory              Log file",
-                     "15  demo    5432 down   postgres /var/lib/postgresql/15/demo /var/log/postgresql/postgresql-15-demo.log"
+                     "15  demo    5432 down   postgres /var/lib/postgresql/16/demo /var/log/postgresql/postgresql-16-demo.log"
                   ]
                }
             },
@@ -5565,7 +5563,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "cat /root/postgresql.common.conf >> /etc/postgresql/15/demo/postgresql.conf"
+                     "cat /root/postgresql.common.conf >> /etc/postgresql/16/demo/postgresql.conf"
                   ],
                   "host" : "pg-alt",
                   "load-env" : true,
@@ -5576,7 +5574,7 @@
             },
             {
                "key" : {
-                  "file" : "/etc/postgresql/15/demo/postgresql.conf",
+                  "file" : "/etc/postgresql/16/demo/postgresql.conf",
                   "host" : "pg-alt",
                   "option" : {
                      "archive_command" : {
@@ -5607,7 +5605,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo restart"
+                     "sudo pg_ctlcluster 16 demo restart"
                   ],
                   "host" : "pg-alt",
                   "load-env" : true,
@@ -5650,7 +5648,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: stanza-create command begin 2.52: --exec-id=359-b68a4769 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --repo1-host=repository --stanza=demo-alt",
+                     "P00   INFO: stanza-create command begin 2.52: --exec-id=359-b68a4769 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --repo1-host=repository --stanza=demo-alt",
                      "P00   INFO: stanza-create for stanza 'demo-alt' on repo1",
                      "P00   INFO: stanza-create command end: completed successfully"
                   ]
@@ -5801,7 +5799,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "archive-async=y",
@@ -5846,7 +5844,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "recovery-option=primary_conninfo=host=172.17.0.6 port=5432 user=replicator",
                      "",
                      "[global]",
@@ -5885,7 +5883,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo restart"
+                     "sudo pg_ctlcluster 16 demo restart"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -5946,7 +5944,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: check command begin 2.52: --exec-id=2232-1051b129 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --repo1-host=repository --stanza=demo",
+                     "P00   INFO: check command begin 2.52: --exec-id=2232-1051b129 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --repo1-host=repository --stanza=demo",
                      "P00   INFO: check repo1 configuration (primary)",
                      "P00   INFO: check repo1 archive for WAL (primary)",
                      "P00   INFO: WAL segment 00000006000000000000002F successfully archived to '/var/lib/pgbackrest/archive/demo/15-1/0000000600000000/00000006000000000000002F-4467eb538234746215502dace8cbd1877df60e3e.gz' on repo1",
@@ -5976,14 +5974,14 @@
                "value" : {
                   "output" : [
                      "-------------------PROCESS START-------------------",
-                     "P00   INFO: archive-push:async command begin 2.52: [/var/lib/postgresql/15/demo/pg_wal] --archive-async --exec-id=2218-2a6fe845 --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --process-max=2 --repo1-host=repository --spool-path=/var/spool/pgbackrest --stanza=demo",
+                     "P00   INFO: archive-push:async command begin 2.52: [/var/lib/postgresql/16/demo/pg_wal] --archive-async --exec-id=2218-2a6fe845 --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --process-max=2 --repo1-host=repository --spool-path=/var/spool/pgbackrest --stanza=demo",
                      "P00   INFO: push 2 WAL file(s) to archive: 00000006000000000000002A...00000006000000000000002B",
                      "P02 DETAIL: pushed WAL file '00000006000000000000002B' to the archive",
                      "P01 DETAIL: pushed WAL file '00000006000000000000002A' to the archive",
                      "P00   INFO: archive-push:async command end: completed successfully",
                      "",
                      "-------------------PROCESS START-------------------",
-                     "P00   INFO: archive-push:async command begin 2.52: [/var/lib/postgresql/15/demo/pg_wal] --archive-async --exec-id=2238-2fc0bba2 --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --process-max=2 --repo1-host=repository --spool-path=/var/spool/pgbackrest --stanza=demo",
+                     "P00   INFO: archive-push:async command begin 2.52: [/var/lib/postgresql/16/demo/pg_wal] --archive-async --exec-id=2238-2fc0bba2 --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --process-max=2 --repo1-host=repository --spool-path=/var/spool/pgbackrest --stanza=demo",
                      "P00   INFO: push 4 WAL file(s) to archive: 00000006000000000000002C...00000006000000000000002F",
                      "P02 DETAIL: pushed WAL file '00000006000000000000002D' to the archive",
                      "P01 DETAIL: pushed WAL file '00000006000000000000002C' to the archive",
@@ -6026,7 +6024,7 @@
                "value" : {
                   "output" : [
                      "-------------------PROCESS START-------------------",
-                     "P00   INFO: archive-get:async command begin 2.52: [000000060000000000000026, 000000060000000000000027, 000000060000000000000028, 000000060000000000000029, 00000006000000000000002A, 00000006000000000000002B, 00000006000000000000002C, 00000006000000000000002D] --archive-async --exec-id=661-1d27c864 --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --process-max=2 --repo1-host=repository --spool-path=/var/spool/pgbackrest --stanza=demo",
+                     "P00   INFO: archive-get:async command begin 2.52: [000000060000000000000026, 000000060000000000000027, 000000060000000000000028, 000000060000000000000029, 00000006000000000000002A, 00000006000000000000002B, 00000006000000000000002C, 00000006000000000000002D] --archive-async --exec-id=661-1d27c864 --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --process-max=2 --repo1-host=repository --spool-path=/var/spool/pgbackrest --stanza=demo",
                      "P00   INFO: get 8 WAL file(s) from archive: 000000060000000000000026...00000006000000000000002D",
                      "P02 DETAIL: found 000000060000000000000027 in the repo1: 15-1 archive",
                      "P01 DETAIL: found 000000060000000000000026 in the repo1: 15-1 archive",
@@ -6035,7 +6033,7 @@
                      "P00 DETAIL: unable to find 00000006000000000000002A in the archive",
                      "P00   INFO: archive-get:async command end: completed successfully",
                      "       [filtered 14 lines of output]",
-                     "P00   INFO: archive-get:async command begin 2.52: [00000006000000000000002A, 00000006000000000000002B, 00000006000000000000002C, 00000006000000000000002D, 00000006000000000000002E, 00000006000000000000002F, 000000060000000000000030, 000000060000000000000031] --archive-async --exec-id=711-c4d8825b --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/15/demo --process-max=2 --repo1-host=repository --spool-path=/var/spool/pgbackrest --stanza=demo",
+                     "P00   INFO: archive-get:async command begin 2.52: [00000006000000000000002A, 00000006000000000000002B, 00000006000000000000002C, 00000006000000000000002D, 00000006000000000000002E, 00000006000000000000002F, 000000060000000000000030, 000000060000000000000031] --archive-async --exec-id=711-c4d8825b --log-level-console=off --log-level-file=detail --log-level-stderr=off --no-log-timestamp --pg1-path=/var/lib/postgresql/16/demo --process-max=2 --repo1-host=repository --spool-path=/var/spool/pgbackrest --stanza=demo",
                      "P00   INFO: get 8 WAL file(s) from archive: 00000006000000000000002A...000000060000000000000031",
                      "P01 DETAIL: found 00000006000000000000002A in the repo1: 15-1 archive",
                      "P02 DETAIL: found 00000006000000000000002B in the repo1: 15-1 archive",
@@ -6077,7 +6075,7 @@
                            "value" : "pg-standby"
                         },
                         "pg2-path" : {
-                           "value" : "/var/lib/postgresql/15/demo"
+                           "value" : "/var/lib/postgresql/16/demo"
                         }
                      },
                      "global" : {
@@ -6092,13 +6090,13 @@
                   "config" : [
                      "[demo]",
                      "pg1-host=pg-primary",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "pg2-host=pg-standby",
-                     "pg2-path=/var/lib/postgresql/15/demo",
+                     "pg2-path=/var/lib/postgresql/16/demo",
                      "",
                      "[demo-alt]",
                      "pg1-host=pg-alt",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "backup-standby=y",
@@ -6136,9 +6134,9 @@
                      "P00   INFO: wait for replay on the standby to reach 0/31000028",
                      "P00   INFO: replay on the standby reached 0/31000028",
                      "P00   INFO: check archive for prior segment 000000060000000000000030",
-                     "P01 DETAIL: backup file pg-primary:/var/lib/postgresql/15/demo/global/pg_control (8KB, 0.53%) checksum 11d7c5ef859f173b0f65341dd0ef4740b5d4129c",
-                     "P01 DETAIL: match file from prior backup pg-primary:/var/lib/postgresql/15/demo/pg_logical/replorigin_checkpoint (8B, 0.53%) checksum 347fc8f2df71bd4436e38bd1516ccd7ea0d46532",
-                     "P02 DETAIL: backup file pg-standby:/var/lib/postgresql/15/demo/base/5/1249 (456KB, 31.18%) checksum da07d6e522b4e15858f0049de1de09b16d6ab144",
+                     "P01 DETAIL: backup file pg-primary:/var/lib/postgresql/16/demo/global/pg_control (8KB, 0.53%) checksum 11d7c5ef859f173b0f65341dd0ef4740b5d4129c",
+                     "P01 DETAIL: match file from prior backup pg-primary:/var/lib/postgresql/16/demo/pg_logical/replorigin_checkpoint (8B, 0.53%) checksum 347fc8f2df71bd4436e38bd1516ccd7ea0d46532",
+                     "P02 DETAIL: backup file pg-standby:/var/lib/postgresql/16/demo/base/5/1249 (456KB, 31.18%) checksum da07d6e522b4e15858f0049de1de09b16d6ab144",
                      "       [filtered 1276 lines of output]"
                   ]
                }
@@ -6147,7 +6145,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo stop"
+                     "sudo pg_ctlcluster 16 demo stop"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -6160,7 +6158,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 15 demo stop"
+                     "sudo pg_ctlcluster 16 demo stop"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -6173,8 +6171,8 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres /usr/lib/postgresql/16/bin/initdb \\",
-                     "    -D /var/lib/postgresql/16/demo -k -A peer"
+                     "sudo -u postgres /usr/lib/postgresql/17/bin/initdb \\",
+                     "    -D /var/lib/postgresql/17/demo -k -A peer"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -6187,7 +6185,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_createcluster 16 demo"
+                     "sudo pg_createcluster 17 demo"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -6201,13 +6199,13 @@
                   "bash-wrap" : true,
                   "cmd" : [
                      "sudo -u postgres sh -c 'cd /var/lib/postgresql && \\",
-                     "    /usr/lib/postgresql/16/bin/pg_upgrade \\",
-                     "    --old-bindir=/usr/lib/postgresql/15/bin \\",
-                     "    --new-bindir=/usr/lib/postgresql/16/bin \\",
-                     "    --old-datadir=/var/lib/postgresql/15/demo \\",
-                     "    --new-datadir=/var/lib/postgresql/16/demo \\",
-                     "    --old-options=\" -c config_file=/etc/postgresql/15/demo/postgresql.conf\" \\",
-                     "    --new-options=\" -c config_file=/etc/postgresql/16/demo/postgresql.conf\"'"
+                     "    /usr/lib/postgresql/17/bin/pg_upgrade \\",
+                     "    --old-bindir=/usr/lib/postgresql/16/bin \\",
+                     "    --new-bindir=/usr/lib/postgresql/17/bin \\",
+                     "    --old-datadir=/var/lib/postgresql/16/demo \\",
+                     "    --new-datadir=/var/lib/postgresql/17/demo \\",
+                     "    --old-options=\" -c config_file=/etc/postgresql/16/demo/postgresql.conf\" \\",
+                     "    --new-options=\" -c config_file=/etc/postgresql/17/demo/postgresql.conf\"'"
                   ],
                   "highlight" : {
                      "filter" : true,
@@ -6238,7 +6236,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "cat /root/postgresql.common.conf >> /etc/postgresql/16/demo/postgresql.conf"
+                     "cat /root/postgresql.common.conf >> /etc/postgresql/17/demo/postgresql.conf"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -6249,7 +6247,7 @@
             },
             {
                "key" : {
-                  "file" : "/etc/postgresql/16/demo/postgresql.conf",
+                  "file" : "/etc/postgresql/17/demo/postgresql.conf",
                   "host" : "pg-primary",
                   "option" : {
                      "archive_command" : {
@@ -6283,7 +6281,7 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/postgresql/16/demo"
+                           "value" : "/var/lib/postgresql/17/demo"
                         }
                      }
                   }
@@ -6292,7 +6290,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/16/demo",
+                     "pg1-path=/var/lib/postgresql/17/demo",
                      "",
                      "[global]",
                      "archive-async=y",
@@ -6315,7 +6313,7 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/postgresql/16/demo"
+                           "value" : "/var/lib/postgresql/17/demo"
                         }
                      }
                   }
@@ -6324,7 +6322,7 @@
                "value" : {
                   "config" : [
                      "[demo]",
-                     "pg1-path=/var/lib/postgresql/16/demo",
+                     "pg1-path=/var/lib/postgresql/17/demo",
                      "recovery-option=primary_conninfo=host=172.17.0.6 port=5432 user=replicator",
                      "",
                      "[global]",
@@ -6348,10 +6346,10 @@
                   "option" : {
                      "demo" : {
                         "pg1-path" : {
-                           "value" : "/var/lib/postgresql/16/demo"
+                           "value" : "/var/lib/postgresql/17/demo"
                         },
                         "pg2-path" : {
-                           "value" : "/var/lib/postgresql/16/demo"
+                           "value" : "/var/lib/postgresql/17/demo"
                         }
                      },
                      "global" : {
@@ -6366,13 +6364,13 @@
                   "config" : [
                      "[demo]",
                      "pg1-host=pg-primary",
-                     "pg1-path=/var/lib/postgresql/16/demo",
+                     "pg1-path=/var/lib/postgresql/17/demo",
                      "pg2-host=pg-standby",
-                     "pg2-path=/var/lib/postgresql/16/demo",
+                     "pg2-path=/var/lib/postgresql/17/demo",
                      "",
                      "[demo-alt]",
                      "pg1-host=pg-alt",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "backup-standby=n",
@@ -6387,8 +6385,8 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo cp /etc/postgresql/15/demo/pg_hba.conf \\",
-                     "    /etc/postgresql/16/demo/pg_hba.conf"
+                     "sudo cp /etc/postgresql/16/demo/pg_hba.conf \\",
+                     "    /etc/postgresql/17/demo/pg_hba.conf"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -6419,7 +6417,7 @@
                "type" : "exe",
                "value" : {
                   "output" : [
-                     "P00   INFO: stanza-upgrade command begin 2.52: --exec-id=2640-2293b514 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --no-online --pg1-path=/var/lib/postgresql/16/demo --repo1-host=repository --stanza=demo",
+                     "P00   INFO: stanza-upgrade command begin 2.52: --exec-id=2640-2293b514 --log-level-console=info --log-level-file=detail --log-level-stderr=off --no-log-timestamp --no-online --pg1-path=/var/lib/postgresql/17/demo --repo1-host=repository --stanza=demo",
                      "P00   INFO: stanza-upgrade for stanza 'demo' on repo1",
                      "P00   INFO: stanza-upgrade command end: completed successfully"
                   ]
@@ -6429,7 +6427,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 16 demo start"
+                     "sudo pg_ctlcluster 17 demo start"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -6442,7 +6440,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo -u postgres pg_lsclusters"
+                     "sudo pg_lsclusters"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -6468,7 +6466,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_dropcluster 15 demo"
+                     "sudo pg_dropcluster 16 demo"
                   ],
                   "host" : "pg-primary",
                   "load-env" : true,
@@ -6481,7 +6479,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_dropcluster 15 demo"
+                     "sudo pg_dropcluster 16 demo"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -6494,7 +6492,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_createcluster 16 demo"
+                     "sudo pg_createcluster 17 demo"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -6550,7 +6548,7 @@
             },
             {
                "key" : {
-                  "file" : "/etc/postgresql/16/demo/postgresql.conf",
+                  "file" : "/etc/postgresql/17/demo/postgresql.conf",
                   "host" : "pg-standby",
                   "option" : {
                      "hot_standby" : {
@@ -6569,7 +6567,7 @@
                "key" : {
                   "bash-wrap" : true,
                   "cmd" : [
-                     "sudo pg_ctlcluster 16 demo start"
+                     "sudo pg_ctlcluster 17 demo start"
                   ],
                   "host" : "pg-standby",
                   "load-env" : true,
@@ -6621,13 +6619,13 @@
                   "config" : [
                      "[demo]",
                      "pg1-host=pg-primary",
-                     "pg1-path=/var/lib/postgresql/16/demo",
+                     "pg1-path=/var/lib/postgresql/17/demo",
                      "pg2-host=pg-standby",
-                     "pg2-path=/var/lib/postgresql/16/demo",
+                     "pg2-path=/var/lib/postgresql/17/demo",
                      "",
                      "[demo-alt]",
                      "pg1-host=pg-alt",
-                     "pg1-path=/var/lib/postgresql/15/demo",
+                     "pg1-path=/var/lib/postgresql/16/demo",
                      "",
                      "[global]",
                      "backup-standby=y",
@@ -6679,7 +6677,7 @@
                   "id" : "sftp",
                   "image" : "pgbackrest/doc:rhel",
                   "name" : "sftp-server",
-                  "option" : "-m 512m -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
+                  "option" : "-m 512m",
                   "os" : "rhel",
                   "update-hosts" : true
                },
@@ -6775,7 +6773,7 @@
                   "id" : "pg1",
                   "image" : "pgbackrest/doc:rhel",
                   "name" : "pg-primary",
-                  "option" : "-m 512m -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
+                  "option" : "-m 512m",
                   "os" : "rhel",
                   "update-hosts" : true
                },
@@ -9938,7 +9936,7 @@
                   "id" : "repo1",
                   "image" : "pgbackrest/doc:rhel",
                   "name" : "repository",
-                  "option" : "-m 512m -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
+                  "option" : "-m 512m",
                   "os" : "rhel",
                   "update-hosts" : true
                },
@@ -10912,7 +10910,7 @@
                   "id" : "pg2",
                   "image" : "pgbackrest/doc:rhel",
                   "name" : "pg-standby",
-                  "option" : "-m 512m -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
+                  "option" : "-m 512m",
                   "os" : "rhel",
                   "update-hosts" : true
                },
@@ -11902,7 +11900,7 @@
                   "id" : "pgalt",
                   "image" : "pgbackrest/doc:rhel",
                   "name" : "pg-alt",
-                  "option" : "-m 512m -v /sys/fs/cgroup:/sys/fs/cgroup:rw -v /tmp/$(mktemp -d):/run",
+                  "option" : "-m 512m",
                   "os" : "rhel",
                   "update-hosts" : true
                },
