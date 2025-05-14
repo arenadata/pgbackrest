@@ -144,7 +144,7 @@ rm -rf "${MIRROR1:?}/"* "${MIRROR2:?}/"* "${MIRROR3:?}/"* "$DATADIR/standby/"*
 echo "[]" >> "$PGBACKREST_TEST_DIR/$TEST_NAME/empty_filter.json"
 for i in -1 0 1 2
 do
-    pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath $PGBACKREST_TEST_DIR/$TEST_NAME/empty_filter.json)" restore
+    pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath "$PGBACKREST_TEST_DIR/$TEST_NAME/empty_filter.json")" restore
 done
 
 gpstart -am
@@ -178,7 +178,7 @@ rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
 # Restore only tables t1, t3, t3 and t6
 for i in -1 0 1 2
 do
-    pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath $PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg$i.json)" restore
+    pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg$i.json")" restore
 done
 gpstart -am
 gpinitstandby -ar

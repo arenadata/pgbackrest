@@ -272,17 +272,14 @@ getRelFileNodes(XLogRecordGPDB7 *const record)
 
         uint16 data_len;
         COPY_HEADER_FIELD(data_len);
-        /* cross-check that the HAS_DATA flag is set iff data_length > 0 */
+        /* cross-check that the HAS_DATA flag is set if data_length > 0 */
         if (fork_flags & BKPBLOCK_HAS_DATA)
         {
             if (data_len == 0)
                 THROW_FMT(FormatError, "BKPBLOCK_HAS_DATA set, but no data included");
         }
-        else
-        {
-            if (data_len != 0)
-                THROW_FMT(FormatError, "BKPBLOCK_HAS_DATA not set, but data length is %" PRIu16, data_len);
-        }
+        else if (data_len != 0)
+            THROW_FMT(FormatError, "BKPBLOCK_HAS_DATA not set, but data length is %" PRIu16, data_len);
 
         datatotal += data_len;
 

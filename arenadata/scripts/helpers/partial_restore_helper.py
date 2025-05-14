@@ -1,3 +1,5 @@
+    # This code is used in partial restore integration tests.
+    # We use a single indentation because the code will be passed to psql as it is.
     import json
 
     database_info = plpy.execute('select oid, datname from pg_database where datname = current_database();')[0]
