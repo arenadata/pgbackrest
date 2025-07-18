@@ -21,6 +21,7 @@ Verify contents of the repository.
 #include "common/io/io.h"
 #include "common/log.h"
 #include "common/regExp.h"
+#include "common/type/json.h"
 #include "config/config.h"
 #include "info/infoArchive.h"
 #include "info/infoBackup.h"
@@ -30,7 +31,6 @@ Verify contents of the repository.
 #include "protocol/helper.h"
 #include "protocol/parallel.h"
 #include "storage/helper.h"
-#include "common/type/json.h"
 
 /***********************************************************************************************************************************
 Constants
@@ -154,18 +154,17 @@ typedef struct VerifyJobData
     bool enableArchiveFilter;                                       // Only check archives in the specified range
     const String *archiveStart;                                     // Start of the WAL range to be verified
     const String *archiveStop;                                      // End of the WAL range to be verified
-    VariantList *errorList;                                                // List of errors that occurred during the job
+    VariantList *errorList;                                         // List of errors that occurred during the job
 } VerifyJobData;
 
 /***********************************************************************************************************************************
 Helper function to add a string with log level to an error list
 ***********************************************************************************************************************************/
-
 static void
 verifyErrorNew(VariantList *errorList, const LogLevel logLevel, const String *const message)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);
+        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);              // Error list to add to
         FUNCTION_LOG_PARAM(ENUM, logLevel);                        // Log level
         FUNCTION_TEST_PARAM(STRING, message);                      // Error message
     FUNCTION_TEST_END();
@@ -197,14 +196,13 @@ verifyErrorNew(VariantList *errorList, const LogLevel logLevel, const String *co
 /**********************************************************************************************************************************
 Helper function to add a string with log level and process id to an error list
 ***********************************************************************************************************************************/
-
 static void
 verifyErrorPidNew(VariantList *errorList, const LogLevel logLevel, const unsigned int pid, const String *const message)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);
-        FUNCTION_LOG_PARAM(ENUM, logLevel);                        // Log level
-        FUNCTION_TEST_PARAM(UINT, pid);                              // Process id
+        FUNCTION_LOG_PARAM(ENUM, logLevel);                         // Log level
+        FUNCTION_TEST_PARAM(UINT, pid);                             // Process id
         FUNCTION_TEST_PARAM(STRING, message);                       // Error message
     FUNCTION_TEST_END();
 
@@ -387,9 +385,7 @@ verifyArchiveInfoFile(VariantList *const errorList)
                 // If the info and info.copy checksums don't match each other than one (or both) of the files could be corrupt so
                 // log a warning but must trust main
                 if (!strEq(verifyArchiveInfo.checksum, verifyArchiveInfoCopy.checksum))
-                {
                     verifyErrorNew(errorList, logLevelDetail, strNewZ("archive.info.copy does not match archive.info"));
-                }
             }
         }
         else
@@ -445,9 +441,7 @@ verifyBackupInfoFile(VariantList *const errorList)
                 // If the info and info.copy checksums don't match each other than one (or both) of the files could be corrupt so
                 // log a warning but must trust main
                 if (!strEq(verifyBackupInfo.checksum, verifyBackupInfoCopy.checksum))
-                {
                     verifyErrorNew(errorList, logLevelDetail, strNewZ("backup.info.copy does not match backup.info"));
-                }
             }
         }
         else
@@ -664,6 +658,7 @@ verifyCreateArchiveIdRange(
         FUNCTION_TEST_PARAM_P(VERIFY_ARCHIVE_RESULT, archiveIdResult);  // The result set for the archive Id being processed
         FUNCTION_TEST_PARAM(STRING_LIST, walFileList);                  // Sorted (ascending) list of WAL files in a timeline
         FUNCTION_TEST_PARAM_P(UINT, jobErrorTotal);                     // Pointer to the overall job error total
+        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);                   // List of errors that occurred during the job
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
@@ -1396,7 +1391,6 @@ verifyLogInvalidResult(
         FUNCTION_TEST_RETURN(UINT, 0);
     }
 
-
     MEM_CONTEXT_TEMP_BEGIN();
     {
         String *errorMsg = strNewFmt("%s '%s'", verifyErrorMsg(verifyResult), strZ(filePathName));
@@ -1421,6 +1415,7 @@ verifySetBackupCheckArchive(
         FUNCTION_TEST_PARAM(STRING_LIST, archiveIdList);            // List of archiveIds in the archive directory
         FUNCTION_TEST_PARAM(INFO_PG, pgHistory);                    // Pointer to InfoPg of archive.info for accessing PG history
         FUNCTION_TEST_PARAM_P(UINT, jobErrorTotal);                 // Pointer to overall job error total
+        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);               // List of errors that occurred during the job
     FUNCTION_TEST_END();
 
     String *result = NULL;
@@ -1568,6 +1563,7 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
         FUNCTION_TEST_PARAM(LIST, backupResultList);                // Result list for all backups in the repo
         FUNCTION_TEST_PARAM(BOOL, verboseText);                     // Is verbose output requested?
         FUNCTION_TEST_PARAM(KEY_VALUE, jsonKv);                     // Is JSON output requested?
+        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);               // List of errors that occurred during the job
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
@@ -1587,9 +1583,7 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
     }
 
     if (jsonKv == NULL && verboseText && lstEmpty(archiveIdResultList))
-    {
         strCatZ(result, "\n  archiveId: none found");
-    }
     else
     {
         for (unsigned int archiveIdx = 0; archiveIdx < lstSize(archiveIdResultList); archiveIdx++)
@@ -1606,11 +1600,9 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
                     kvPut(archiveKv, KEY_VALID_VAR, VARUINT(archiveIdResult->totalValidWal));
                 }
                 else
-                {
                     strCatFmt(
                         result, "\n  archiveId: %s, total WAL checked: %u, total valid WAL: %u", strZ(archiveIdResult->archiveId),
                         archiveIdResult->totalWalFile, archiveIdResult->totalValidWal);
-                }
             }
 
             unsigned int errMissing = 0;
@@ -1721,7 +1713,6 @@ verifyRender(const List *const archiveIdResultList, const List *const backupResu
 
             if (backupResult->totalFileVerify > 0)
             {
-
                 for (unsigned int invalidIdx = 0; invalidIdx < lstSize(backupResult->invalidFileList); invalidIdx++)
                 {
                     const VerifyInvalidFile *const invalidFile = lstGet(backupResult->invalidFileList, invalidIdx);
@@ -1777,13 +1768,13 @@ verifyProcess(const bool verboseText)
     FUNCTION_LOG_END();
 
     String *const result = strNew();
-    KeyValue * resultKv = NULL;
     bool json = cfgOptionStrId(cfgOptOutput) == CFGOPTVAL_OUTPUT_JSON;
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
         unsigned int errorTotal = 0;
         String *resultStr = strNew();
+        KeyValue *resultKv = NULL;
         VariantList *errorList = varLstNew();
 
         // Get the repo storage in case it is remote and encryption settings need to be pulled down
@@ -1792,9 +1783,8 @@ verifyProcess(const bool verboseText)
         // Get a usable backup info file
         const InfoBackup *const backupInfo = verifyBackupInfoFile(errorList);
 
-        if (json) {
+        if (json)
             resultKv = kvNew();
-        }
 
         // If a usable backup.info file is not found, then report an error in the log
         if (backupInfo == NULL)
@@ -1898,7 +1888,7 @@ verifyProcess(const bool verboseText)
             {
                 // Warn if there are no archives or there are no backups in the repo so that the callback need not try to
                 // distinguish between having processed all of the list or if the list was missing in the first place
-                if (strLstEmpty(jobData.archiveIdList) || strLstEmpty(jobData.backupList)) {
+                if (strLstEmpty(jobData.archiveIdList) || strLstEmpty(jobData.backupList)){
                     String *errorMsg = strNewFmt("no %s exist in the repo", strLstEmpty(jobData.archiveIdList) ? "archives" : "backups");
                     verifyErrorNew(errorList, logLevelDetail, errorMsg);
                 }
@@ -2060,14 +2050,16 @@ verifyProcess(const bool verboseText)
             kvPut(resultKv, KEY_ERRORS_VAR, varNewVarLst(errorList));
 
             strCat(result, jsonFromVar(varNewKv(resultKv)));
-        } else {
+        }
+        else
+        {
             for (unsigned int errIdx = 0; errIdx < varLstSize(errorList); errIdx++)
             {
                 const KeyValue *const msg = varKv(varLstGet(errorList, errIdx));
                 const LogLevel logLevel = (LogLevel)varUInt(kvGet(msg, VERIFY_MSG_KEY_LEVEL));
 
                 // Print messages which did not got logged yet
-                if (logLevel == logLevelOff) {
+                if (logLevel == logLevelOff){
                     const String *const message = varStr(kvGet(msg, VERIFY_MSG_KEY_MESSAGE));
                     strCatFmt(resultStr, "\n  %s", strZ(message));
                 }

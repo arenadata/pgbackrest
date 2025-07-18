@@ -263,17 +263,17 @@ testRun(void)
         TEST_RESULT_UINT(varLstSize(errorList), 2, "error list size");
 
         TEST_RESULT_STR(jsonFromVar(varNewVarLst(errorList)), STR("["
-            "{"
-                "\"level\":5,"
-                "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest.copy' for read\""
-            "},"
-            "{"
-                "\"level\":4,"
-                "\"message\":\"'20181119-152138F' may not be recoverable - PG data (id 1, version 9.6, system-id " HRN_PG_SYSTEMID_95_Z ") is not in the backup.info history, skipping\""
-            "}"
-        "]"),
-            "errorList does not match"
-        );
+                                                                  "{"
+                                                                  "\"level\":5,"
+                                                                  "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest.copy' for read\""
+                                                                  "},"
+                                                                  "{"
+                                                                  "\"level\":4,"
+                                                                  "\"message\":\"'20181119-152138F' may not be recoverable - PG data (id 1, version 9.6, system-id " HRN_PG_SYSTEMID_95_Z ") is not in the backup.info history, skipping\""
+                                                                  "}"
+                                                                  "]"),
+                        "errorList does not match"
+                        );
 
         TEST_RESULT_LOG(
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest.copy'"
@@ -952,7 +952,7 @@ testRun(void)
         // Restore normal stdout
         dup2(stdoutSave, STDOUT_FILENO);
 
-#define EXPECTED_OUTPUT_JSON "{" \
+        #define EXPECTED_OUTPUT_JSON "{"\
                 "\"errors\":[" \
                     "{"\
                     "\"level\":5,"\
@@ -980,8 +980,8 @@ testRun(void)
 
         // Check output of verify command stored in file
         TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
-            EXPECTED_OUTPUT_JSON "\n",
-            .remove = true);
+                         EXPECTED_OUTPUT_JSON "\n",
+                         .remove = true);
 
         TEST_RESULT_LOG(
             "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS'"
@@ -990,7 +990,7 @@ testRun(void)
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info' for read\n"
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read\n"
             "P00   INFO: " EXPECTED_OUTPUT_JSON
-        );
+            );
 #undef EXPECTED_OUTPUT_JSON
 
         // -------------------------------------------------------------------------------------------------------------------------
@@ -1021,7 +1021,7 @@ testRun(void)
         // Restore normal stdout
         dup2(stdoutSave, STDOUT_FILENO);
 
-#define EXPECTED_OUTPUT_JSON "{"\
+        #define EXPECTED_OUTPUT_JSON "{"\
         "\"errors\":["\
           "{"\
             "\"level\":5,"\
@@ -1041,7 +1041,7 @@ testRun(void)
 
         // Check output of verify command stored in file
         TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
-                        EXPECTED_OUTPUT_JSON "\n",
+                         EXPECTED_OUTPUT_JSON "\n",
                          .remove = true);
 
         /* Consume log */
@@ -1052,7 +1052,7 @@ testRun(void)
             "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS'"
             " <REPO:ARCHIVE>/archive.info.copy\n"
             "P00   INFO: " EXPECTED_OUTPUT_JSON
-        );
+            );
 #undef EXPECTED_OUTPUT_JSON
 
         // -------------------------------------------------------------------------------------------------------------------------
@@ -1075,7 +1075,7 @@ testRun(void)
         // Restore normal stdout
         dup2(stdoutSave, STDOUT_FILENO);
 
-#define EXPECTED_OUTPUT_JSON "{"\
+        #define EXPECTED_OUTPUT_JSON "{"\
   "\"errors\":["\
     "{"\
       "\"level\":5,"\
@@ -1093,7 +1093,7 @@ testRun(void)
 
         // Check output of verify command stored in file
         TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
-                        EXPECTED_OUTPUT_JSON "\n",
+                         EXPECTED_OUTPUT_JSON "\n",
                          .remove = true);
 
         /* Consume log */
@@ -1123,7 +1123,7 @@ testRun(void)
         // Restore normal stdout
         dup2(stdoutSave, STDOUT_FILENO);
 
-#define EXPECTED_OUTPUT_JSON "{"\
+        #define EXPECTED_OUTPUT_JSON "{"\
   "\"errors\":["\
     "{"\
       "\"level\":5,"\
@@ -1135,14 +1135,14 @@ testRun(void)
 "}"
 
         TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
-                        EXPECTED_OUTPUT_JSON "\n",
+                         EXPECTED_OUTPUT_JSON "\n",
                          .remove = true);
 
         /* Consume log */
         TEST_RESULT_LOG(
             "P00 DETAIL: archive.info.copy does not match archive.info\n"
             "P00   INFO: " EXPECTED_OUTPUT_JSON
-        );
+            );
 
 #undef EXPECTED_OUTPUT_JSON
 
@@ -1162,7 +1162,7 @@ testRun(void)
         // Restore normal stdout
         dup2(stdoutSave, STDOUT_FILENO);
 
-#define EXPECTED_OUTPUT_JSON "{"\
+        #define EXPECTED_OUTPUT_JSON "{"\
   "\"errors\":["\
     "{"\
       "\"level\":5,"\
@@ -1178,7 +1178,7 @@ testRun(void)
 "}"
 
         TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
-                        EXPECTED_OUTPUT_JSON "\n",
+                         EXPECTED_OUTPUT_JSON "\n",
                          .remove = true);
 
         /* Consume log */
@@ -1211,15 +1211,15 @@ testRun(void)
         // Restore normal stdout
         dup2(stdoutSave, STDOUT_FILENO);
 
-#define EXPECTED_OUTPUT_JSON "{"\
+        #define EXPECTED_OUTPUT_JSON "{"\
   "\"errors\":["\
     "{"\
       "\"level\":5,"\
-      "\"message\":\"unable to open missing file '/home/denis/arena/pgbackrest/test/test-0/repo/backup/db/backup.info' for read\""\
+      "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info' for read\""\
     "},"\
     "{"\
       "\"level\":5,"\
-      "\"message\":\"unable to open missing file '/home/denis/arena/pgbackrest/test/test-0/repo/backup/db/backup.info.copy' for read\""\
+      "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\""\
     "},"\
     "{"\
       "\"level\":0,"\
@@ -1231,7 +1231,7 @@ testRun(void)
 "}"
 
         TEST_STORAGE_GET(storageTest, strZ(stdoutFile),
-                        EXPECTED_OUTPUT_JSON "\n",
+                         EXPECTED_OUTPUT_JSON "\n",
                          .remove = true);
 
         /* Consume log */
@@ -1239,7 +1239,7 @@ testRun(void)
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info' for read\n"
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\n"
             "P00   INFO: " EXPECTED_OUTPUT_JSON
-        );
+            );
 #undef EXPECTED_OUTPUT_JSON
         harnessLogLevelReset();
     }
@@ -1420,7 +1420,7 @@ testRun(void)
         hrnCfgArgRawZ(argListJSON, cfgOptOutput, "json");
         HRN_CFG_LOAD(cfgCmdVerify, argListJSON);
 
-#define EXPECTED_OUTPUT_JSON "{"\
+        #define EXPECTED_OUTPUT_JSON "{"\
   "\"archives\":["\
     "{"\
       "\"archiveId\":\"9.5-1\","\
@@ -1476,7 +1476,7 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
-                EXPECTED_OUTPUT_JSON,
+            EXPECTED_OUTPUT_JSON,
             "verifyProcess() json, no verbose");
 
 #undef EXPECTED_OUTPUT_JSON
@@ -1518,58 +1518,58 @@ testRun(void)
         // Verify text output, verbose, with verify failures
         TEST_RESULT_STR_Z(
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
-            "{"\
-            "\"archives\":["\
-                "{"\
-                "\"archiveId\":\"9.5-1\","\
-                "\"checked\":0,"\
-                "\"checksumInvalid\":0,"\
-                "\"missing\":0,"\
-                "\"other\":0,"\
-                "\"sizeInvalid\":0,"\
-                "\"valid\":0"\
-                "},"\
-                "{"\
-                "\"archiveId\":\"11-2\","\
-                "\"checked\":4,"\
-                "\"checksumInvalid\":1,"\
-                "\"missing\":0,"\
-                "\"other\":0,"\
-                "\"sizeInvalid\":1,"\
-                "\"valid\":2"\
-                "}"\
-            "],"\
-            "\"backups\":[],"\
-            "\"errors\":["\
-                "{"\
-                "\"level\":5,"\
-                "\"message\":\"no backups exist in the repo\""\
-                "},"\
-                "{"\
-                "\"level\":5,"\
-                "\"message\":\"archive path '9.5-1' is empty\""\
-                "},"\
-                "{"\
-                "\"level\":5,"\
-                "\"message\":\"path '11-2/0000000100000000' does not contain any valid WAL to be processed\""\
-                "},"\
-                "{"\
-                "\"level\":4,"\
-                "\"message\":\"invalid checksum '11-2/0000000200000007/000000020000000700000FFD-a6e1a64f0813352bc2e97f116a1800377e17d2e4.gz'\","\
-                "\"pid\":1"\
-                "},"\
-                "{"\
-                "\"level\":4,"\
-                "\"message\":\"invalid size '11-2/0000000200000007/000000020000000700000FFF-ee161f898c9012dd0c28b3fd1e7140b9cf411306'\","\
-                "\"pid\":1"\
-                "},"\
-                "{"\
-                "\"level\":5,"\
-                "\"message\":\"archiveId: 11-2, wal start: 000000020000000700000FFD, wal stop: 000000020000000800000000\""\
-                "}"\
-            "],"\
-            "\"stanza\":\"db\","\
-            "\"status\":\"error\""\
+            "{" \
+            "\"archives\":[" \
+            "{" \
+            "\"archiveId\":\"9.5-1\"," \
+            "\"checked\":0," \
+            "\"checksumInvalid\":0," \
+            "\"missing\":0," \
+            "\"other\":0," \
+            "\"sizeInvalid\":0," \
+            "\"valid\":0" \
+            "}," \
+            "{" \
+            "\"archiveId\":\"11-2\"," \
+            "\"checked\":4," \
+            "\"checksumInvalid\":1," \
+            "\"missing\":0," \
+            "\"other\":0," \
+            "\"sizeInvalid\":1," \
+            "\"valid\":2" \
+            "}" \
+            "]," \
+            "\"backups\":[]," \
+            "\"errors\":[" \
+            "{" \
+            "\"level\":5," \
+            "\"message\":\"no backups exist in the repo\"" \
+            "}," \
+            "{" \
+            "\"level\":5," \
+            "\"message\":\"archive path '9.5-1' is empty\"" \
+            "}," \
+            "{" \
+            "\"level\":5," \
+            "\"message\":\"path '11-2/0000000100000000' does not contain any valid WAL to be processed\"" \
+            "}," \
+            "{" \
+            "\"level\":4," \
+            "\"message\":\"invalid checksum '11-2/0000000200000007/000000020000000700000FFD-a6e1a64f0813352bc2e97f116a1800377e17d2e4.gz'\"," \
+            "\"pid\":1" \
+            "}," \
+            "{" \
+            "\"level\":4," \
+            "\"message\":\"invalid size '11-2/0000000200000007/000000020000000700000FFF-ee161f898c9012dd0c28b3fd1e7140b9cf411306'\"," \
+            "\"pid\":1" \
+            "}," \
+            "{" \
+            "\"level\":5," \
+            "\"message\":\"archiveId: 11-2, wal start: 000000020000000700000FFD, wal stop: 000000020000000800000000\"" \
+            "}" \
+            "]," \
+            "\"stanza\":\"db\"," \
+            "\"status\":\"error\"" \
             "}",
             "JSON verbose, with failures");
         TEST_RESULT_LOG(
@@ -1922,41 +1922,41 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
-                "{"\
-                "\"archives\":[],"\
-                "\"backups\":["\
-                    "{"\
-                    "\"checked\":0,"\
-                    "\"checksumInvalid\":0,"\
-                    "\"label\":\"20181119-152800F\","\
-                    "\"missing\":0,"\
-                    "\"other\":0,"\
-                    "\"sizeInvalid\":0,"\
-                    "\"status\":\"in-progress\","\
-                    "\"valid\":0"\
-                    "}"\
-                "],"\
-                "\"errors\":["\
-                    "{"\
-                    "\"level\":5,"\
-                    "\"message\":\"unable to open missing file '/home/denis/arena/pgbackrest/test/test-0/repo/backup/db/backup.info.copy' for read\""\
-                    "},"\
-                    "{"\
-                    "\"level\":5,"\
-                    "\"message\":\"no archives exist in the repo\""\
-                    "},"\
-                    "{"\
-                    "\"level\":5,"\
-                    "\"message\":\"unable to open missing file '/home/denis/arena/pgbackrest/test/test-0/repo/backup/db/20181119-152800F/backup.manifest' for read\""\
-                    "},"\
-                    "{"\
-                    "\"level\":4,"\
-                    "\"message\":\"backup '20181119-152800F' appears to be in progress, skipping\""\
-                    "}"\
-                "],"\
-                "\"stanza\":\"db\","\
-                "\"status\":\"ok\""\
-                "}",
+            "{" \
+            "\"archives\":[]," \
+            "\"backups\":[" \
+            "{" \
+            "\"checked\":0," \
+            "\"checksumInvalid\":0," \
+            "\"label\":\"20181119-152800F\"," \
+            "\"missing\":0," \
+            "\"other\":0," \
+            "\"sizeInvalid\":0," \
+            "\"status\":\"in-progress\"," \
+            "\"valid\":0" \
+            "}" \
+            "]," \
+            "\"errors\":[" \
+            "{" \
+            "\"level\":5," \
+            "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\"" \
+            "}," \
+            "{" \
+            "\"level\":5," \
+            "\"message\":\"no archives exist in the repo\"" \
+            "}," \
+            "{" \
+            "\"level\":5," \
+            "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152800F/backup.manifest' for read\"" \
+            "}," \
+            "{" \
+            "\"level\":4," \
+            "\"message\":\"backup '20181119-152800F' appears to be in progress, skipping\"" \
+            "}" \
+            "]," \
+            "\"stanza\":\"db\"," \
+            "\"status\":\"ok\"" \
+            "}",
             "verifyProcess() JSON missing no total file verify");
 
         TEST_RESULT_LOG(
@@ -2491,48 +2491,48 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
-            "{"\
-            "\"archives\":[],"\
-            "\"backups\":["\
-                "{"\
-                "\"checked\":2,"\
-                "\"checksumInvalid\":2,"\
-                "\"label\":\"20181119-152900F\","\
-                "\"missing\":0,"\
-                "\"other\":0,"\
-                "\"sizeInvalid\":0,"\
-                "\"status\":\"invalid\","\
-                "\"valid\":0"\
-                "},"\
-                "{"\
-                "\"checked\":2,"\
-                "\"checksumInvalid\":1,"\
-                "\"label\":\"20181119-152900F_20181119-152909D\","\
-                "\"missing\":0,"\
-                "\"other\":0,"\
-                "\"sizeInvalid\":0,"\
-                "\"status\":\"invalid\","\
-                "\"valid\":1"\
-                "}"\
-            "],"\
-            "\"errors\":["\
-                "{"\
-                "\"level\":5,"\
-                "\"message\":\"no archives exist in the repo\""\
-                "},"\
-                "{"\
-                "\"level\":4,"\
-                "\"message\":\"invalid checksum '20181119-152900F/pg_data/PG_VERSION'\","\
-                "\"pid\":1"\
-                "},"\
-                "{"\
-                "\"level\":4,"\
-                "\"message\":\"invalid checksum '20181119-152900F/pg_data/biind.pgbi'\","\
-                "\"pid\":1"\
-                "}"\
-            "],"\
-            "\"stanza\":\"db\","\
-            "\"status\":\"error\""\
+            "{" \
+            "\"archives\":[]," \
+            "\"backups\":[" \
+            "{" \
+            "\"checked\":2," \
+            "\"checksumInvalid\":2," \
+            "\"label\":\"20181119-152900F\"," \
+            "\"missing\":0," \
+            "\"other\":0," \
+            "\"sizeInvalid\":0," \
+            "\"status\":\"invalid\"," \
+            "\"valid\":0" \
+            "}," \
+            "{" \
+            "\"checked\":2," \
+            "\"checksumInvalid\":1," \
+            "\"label\":\"20181119-152900F_20181119-152909D\"," \
+            "\"missing\":0," \
+            "\"other\":0," \
+            "\"sizeInvalid\":0," \
+            "\"status\":\"invalid\"," \
+            "\"valid\":1" \
+            "}" \
+            "]," \
+            "\"errors\":[" \
+            "{" \
+            "\"level\":5," \
+            "\"message\":\"no archives exist in the repo\"" \
+            "}," \
+            "{" \
+            "\"level\":4," \
+            "\"message\":\"invalid checksum '20181119-152900F/pg_data/PG_VERSION'\"," \
+            "\"pid\":1" \
+            "}," \
+            "{" \
+            "\"level\":4," \
+            "\"message\":\"invalid checksum '20181119-152900F/pg_data/biind.pgbi'\"," \
+            "\"pid\":1" \
+            "}" \
+            "]," \
+            "\"stanza\":\"db\"," \
+            "\"status\":\"error\"" \
             "}",
             "verifyProcess() verbose JSON");
 
