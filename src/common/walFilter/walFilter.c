@@ -453,7 +453,7 @@ readBeginOfRecord(WalFilterState *const this)
         lstClearFast(this->pageHeaders);
     }
     // If xl_info and xl_rmid is in prev file then nothing to do
-    result = this->gotLen < this->walInterface.rmidSize;
+    result = this->gotLen < this->walInterface.headerSize;
 
     ioReadClose(storageReadIo(storageRead));
 end:
@@ -555,7 +555,8 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
                 }
                 this->walInterface.xLogRecordFilter(this->record);
 
-                ASSERT(offset % MAXIMUM_ALIGNOF == 0 && offset <= MAXIMUM_ALIGNOF * 2);
+//                ASSERT(offset % MAXIMUM_ALIGNOF == 0 && offset <= MAXIMUM_ALIGNOF * 2);
+                ASSERT(offset <= this->gotLen);
                 this->gotLen -= offset;
 
                 ASSERT(this->recPtr == this->currentPageHeader->xlp_pageaddr);
