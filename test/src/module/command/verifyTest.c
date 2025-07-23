@@ -262,18 +262,20 @@ testRun(void)
         TEST_RESULT_UINT(backupResult.status, backupInvalid, "manifest unusable - backup invalid");
         TEST_RESULT_UINT(varLstSize(errorList), 2, "error list size");
 
-        TEST_RESULT_STR(jsonFromVar(varNewVarLst(errorList)), STR("["
-                                                                  "{"
-                                                                  "\"level\":5,"
-                                                                  "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest.copy' for read\""
-                                                                  "},"
-                                                                  "{"
-                                                                  "\"level\":4,"
-                                                                  "\"message\":\"'20181119-152138F' may not be recoverable - PG data (id 1, version 9.6, system-id " HRN_PG_SYSTEMID_95_Z ") is not in the backup.info history, skipping\""
-                                                                  "}"
-                                                                  "]"),
-                        "errorList does not match"
-                        );
+        TEST_RESULT_STR_Z(
+            jsonFromVar(varNewVarLst(errorList)),
+            "["
+            "{"
+            "\"level\":5,"
+            "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest.copy' for read\""
+            "},"
+            "{"
+            "\"level\":4,"
+            "\"message\":\"'20181119-152138F' may not be recoverable - PG data (id 1, version 9.6, system-id " HRN_PG_SYSTEMID_95_Z ") is not in the backup.info history, skipping\""
+            "}"
+            "]",
+            "errorList does not match"
+            );
 
         TEST_RESULT_LOG(
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest.copy'"
@@ -312,6 +314,23 @@ testRun(void)
         TEST_ASSIGN(manifest, verifyManifestFile(&backupResult, NULL, false, infoPg, &jobErrorTotal, errorList), "verify manifest");
         TEST_RESULT_PTR(manifest, NULL, "manifest not set - pg system-id mismatch");
         TEST_RESULT_UINT(backupResult.status, backupInvalid, "manifest unusable - backup invalid");
+
+        TEST_RESULT_STR_Z(
+            jsonFromVar(varNewVarLst(errorList)),
+            "["
+            "{"
+            "\"level\":5,"
+            "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest' for read\""
+            "},"
+            "{\"level\":5,\"message\":\"20181119-152138F/backup.manifest is missing or unusable, using copy\"},"
+            "{"
+            "\"level\":4,"
+            "\"message\":\"'20181119-152138F' may not be recoverable - PG data (id 1, version 9.5, system-id 0) is not in the backup.info history, skipping\""
+            "}"
+            "]",
+            "errorList does not match"
+            );
+
         TEST_RESULT_LOG(
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest' for read\n"
             "P00 DETAIL: 20181119-152138F/backup.manifest is missing or unusable, using copy\n"
@@ -347,6 +366,23 @@ testRun(void)
         TEST_ASSIGN(manifest, verifyManifestFile(&backupResult, NULL, false, infoPg, &jobErrorTotal, errorList), "verify manifest");
         TEST_RESULT_PTR(manifest, NULL, "manifest not set - pg db-id mismatch");
         TEST_RESULT_UINT(backupResult.status, backupInvalid, "manifest unusable - backup invalid");
+
+        TEST_RESULT_STR_Z(
+            jsonFromVar(varNewVarLst(errorList)),
+            "["
+            "{"
+            "\"level\":5,"
+            "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest' for read\""
+            "},"
+            "{\"level\":5,\"message\":\"20181119-152138F/backup.manifest is missing or unusable, using copy\"},"
+            "{"
+            "\"level\":4,"
+            "\"message\":\"'20181119-152138F' may not be recoverable - PG data (id 0, version 9.5, system-id " HRN_PG_SYSTEMID_95_Z ") is not in the backup.info history, skipping\""
+            "}"
+            "]",
+            "errorList does not match"
+            );
+
         TEST_RESULT_LOG(
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest' for read\n"
             "P00 DETAIL: 20181119-152138F/backup.manifest is missing or unusable, using copy\n"
@@ -364,6 +400,19 @@ testRun(void)
 
         TEST_ASSIGN(manifest, verifyManifestFile(&backupResult, NULL, false, infoPg, &jobErrorTotal, errorList), "verify manifest");
         TEST_RESULT_UINT(backupResult.status, backupInvalid, "manifest unusable - backup invalid");
+
+        TEST_RESULT_STR_Z(
+            jsonFromVar(varNewVarLst(errorList)),
+            "["
+            "{"
+            "\"level\":5,"
+            "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest' for read\""
+            "},"
+            "{\"level\":5,\"message\":\"invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:BACKUP>/20181119-152138F/backup.manifest.copy\"}"
+            "]",
+            "errorList does not match"
+            );
+
         TEST_RESULT_LOG(
             "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/20181119-152138F/backup.manifest' for read\n"
             "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS'"
@@ -380,6 +429,16 @@ testRun(void)
         TEST_ASSIGN(manifest, verifyManifestFile(&backupResult, NULL, true, infoPg, &jobErrorTotal, errorList), "verify manifest");
         TEST_RESULT_PTR(manifest, NULL, "manifest not set");
         TEST_RESULT_UINT(backupResult.status, backupInvalid, "manifest unusable - backup invalid");
+
+        TEST_RESULT_STR_Z(
+            jsonFromVar(varNewVarLst(errorList)),
+            "["
+            "{\"level\":5,\"message\":\"invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:BACKUP>/20181119-152138F/backup.manifest\"},"
+            "{\"level\":5,\"message\":\"invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:BACKUP>/20181119-152138F/backup.manifest.copy\"}"
+            "]",
+            "errorList does not match"
+            );
+
         TEST_RESULT_LOG(
             "P00 DETAIL: invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS'"
             " <REPO:BACKUP>/20181119-152138F/backup.manifest\n"
@@ -407,6 +466,15 @@ testRun(void)
         TEST_ASSIGN(manifest, verifyManifestFile(&backupResult, NULL, true, infoPg, &jobErrorTotal, errorList), "verify manifest");
         TEST_RESULT_PTR_NE(manifest, NULL, "manifest set");
         TEST_RESULT_UINT(backupResult.status, backupValid, "manifest usable");
+
+        TEST_RESULT_STR_Z(
+            jsonFromVar(varNewVarLst(errorList)),
+            "["
+            "{\"level\":5,\"message\":\"backup '20181119-152138F' manifest.copy does not match manifest\"}"
+            "]",
+            "errorList does not match"
+            );
+
         TEST_RESULT_LOG("P00 DETAIL: backup '20181119-152138F' manifest.copy does not match manifest");
 
         harnessLogLevelReset();
@@ -445,6 +513,11 @@ testRun(void)
             "get range");
         TEST_RESULT_STR_Z(walRangeResult->start, "000000020000000200000000", "start range");
         TEST_RESULT_STR_Z(walRangeResult->stop, "000000020000000200000000", "stop range");
+        TEST_RESULT_STR_Z(
+            jsonFromVar(varNewVarLst(errorList)),
+            "[]",
+            "errorList does not match"
+            );
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("Duplicate WAL only - no range, all removed from list");
@@ -641,6 +714,15 @@ testRun(void)
         TEST_RESULT_UINT(
             verifyLogInvalidResult(STORAGE_REPO_ARCHIVE_STR, verifyFileMissing, 0, STRDEF("missingfilename"), errorList),
             0, "file missing message");
+        TEST_RESULT_STR_Z(
+            jsonFromVar(varNewVarLst(errorList)),
+            "["
+            "{\"level\":4,\"message\":\"archiveIds '12-3, 13-4' are not in the archive.info history list\"},"
+            "{\"level\":3,\"message\":\"file missing 'missingfilename'\",\"pid\":0}"
+            "]",
+            "errorList does not match"
+            );
+
         TEST_RESULT_LOG("P00   WARN: file missing 'missingfilename'");
 
         // -------------------------------------------------------------------------------------------------------------------------
