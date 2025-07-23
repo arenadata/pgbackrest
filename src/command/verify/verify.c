@@ -51,7 +51,7 @@ VARIANT_STRDEF_STATIC(KEY_OTHER_VAR,                         "other");
 VARIANT_STRDEF_STATIC(KEY_BACKUPS_VAR,                       "backups");
 VARIANT_STRDEF_STATIC(BACKUPS_KEY_LABEL_VAR,                 "label");
 VARIANT_STRDEF_STATIC(KEY_STATUS_VAR,                        "status");
-VARIANT_STRDEF_STATIC(BACKUPS_KEY_CHECKED_VAR,                "checked");
+VARIANT_STRDEF_STATIC(BACKUPS_KEY_CHECKED_VAR,               "checked");
 VARIANT_STRDEF_STATIC(KEY_ERRORS_VAR,                        "errors");
 VARIANT_STRDEF_STATIC(VERIFY_KEY_STANZA_VAR,                 "stanza");
 VARIANT_STRDEF_STATIC(VERIFY_KEY_STATUS_ERROR,               "error");
@@ -79,11 +79,15 @@ Data Types and Structures
 #define FUNCTION_LOG_VERIFY_MESSAGE_PRINT_FORMAT(value, buffer, bufferSize)                                                        \
     objNameToLog(&value, "VerifyMessagePrint", buffer, bufferSize)
 
+// Enum to specify if message should be printed on standard output
 typedef enum VerifyMessagePrint
 {
-    printNever,
-    printAtVerbose,
-    printAlways
+    printNever,                                                     // Message will not be printed to standard output but going to
+                                                                    // appear in JSON
+    printAtVerbose,                                                 // Message will be printed to standard output only at verbose
+                                                                    // level
+    printAlways                                                     // Message will be printed to standard output regarless of
+                                                                    // verbose level
 } VerifyMessagePrint;
 
 // Structure for verifying repository info files
@@ -178,9 +182,9 @@ static void
 verifyErrorNew(VariantList *errorList, const LogLevel logLevel, const String *const message)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);              // Error list to add to
-        FUNCTION_LOG_PARAM(ENUM, logLevel);                        // Log level
-        FUNCTION_TEST_PARAM(STRING, message);                      // Error message
+        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);               // Error list to add to
+        FUNCTION_LOG_PARAM(ENUM, logLevel);                         // Log level
+        FUNCTION_TEST_PARAM(STRING, message);                       // Error message
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
@@ -196,6 +200,8 @@ verifyErrorNew(VariantList *errorList, const LogLevel logLevel, const String *co
 
         varLstAdd(errorList, varNewKv(errorMsg));
 
+        // Duplicate the message to the log as soon as in appears.
+        // Perhaps user may want to see it immediately.
         LOG(logLevel, 0, strZ(message));
     }
 
@@ -211,7 +217,7 @@ static void
 verifyErrorPidNew(VariantList *errorList, const LogLevel logLevel, const unsigned int pid, const String *const message)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);
+        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);               // Error list to add to
         FUNCTION_LOG_PARAM(ENUM, logLevel);                         // Log level
         FUNCTION_TEST_PARAM(UINT, pid);                             // Process id
         FUNCTION_TEST_PARAM(STRING, message);                       // Error message
@@ -519,7 +525,7 @@ verifyManifestFile(
         FUNCTION_LOG_PARAM(BOOL, currentBackup);                    // Is this possibly a backup currently in progress?
         FUNCTION_LOG_PARAM(INFO_PG, pgHistory);                     // Database history
         FUNCTION_LOG_PARAM_P(UINT, jobErrorTotal);                  // Pointer to the overall job error total
-        FUNCTION_TEST_PARAM(LIST, errorList);                        // List of errors
+        FUNCTION_TEST_PARAM(LIST, errorList);                       // List of errors
     FUNCTION_LOG_END();
 
     Manifest *result = NULL;
