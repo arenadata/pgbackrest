@@ -1582,8 +1582,8 @@ testRun(void)
             "\"level\":5," \
             "\"message\":\"archiveId: 11-2, wal start: 000000020000000700000FFD, wal stop: 000000020000000800000000\"" \
             "}," \
-            "{\"message\":\"archiveId: 11-2, total WAL checked: 4, total valid WAL: 2\\n    missing: 0, checksum invalid: 1, size invalid: 1, other: 0\",\"whenPrint\":2},"\
-            "{\"message\":\"backup: none found\",\"whenPrint\":1}"\
+            "{\"message\":\"archiveId: 11-2, total WAL checked: 4, total valid WAL: 2\\n    missing: 0, checksum invalid: 1, size invalid: 1, other: 0\",\"whenPrint\":2}," \
+            "{\"message\":\"backup: none found\",\"whenPrint\":1}" \
             "]," \
             "\"stanza\":\"db\"," \
             "\"status\":\"error\"" \
@@ -1970,7 +1970,7 @@ testRun(void)
             "\"level\":4," \
             "\"message\":\"backup '20181119-152800F' appears to be in progress, skipping\"" \
             "}," \
-            "{\"message\":\"archiveId: none found\",\"whenPrint\":1}"\
+            "{\"message\":\"archiveId: none found\",\"whenPrint\":1}" \
             "]," \
             "\"stanza\":\"db\"," \
             "\"status\":\"ok\"" \
@@ -2515,7 +2515,7 @@ testRun(void)
             "{" \
             "\"checked\":2," \
             "\"checksumInvalid\":2," \
-            "\"fileErrors\":{\"checksumInvalid\":2,\"missing\":0,\"other\":0,\"sizeInvalid\":0},"\
+            "\"fileErrors\":{\"checksumInvalid\":2,\"missing\":0,\"other\":0,\"sizeInvalid\":0}," \
             "\"label\":\"20181119-152900F\"," \
             "\"missing\":0," \
             "\"other\":0," \
@@ -2526,7 +2526,7 @@ testRun(void)
             "{" \
             "\"checked\":2," \
             "\"checksumInvalid\":1," \
-            "\"fileErrors\":{\"checksumInvalid\":1,\"missing\":0,\"other\":0,\"sizeInvalid\":0},"\
+            "\"fileErrors\":{\"checksumInvalid\":1,\"missing\":0,\"other\":0,\"sizeInvalid\":0}," \
             "\"label\":\"20181119-152900F_20181119-152909D\"," \
             "\"missing\":0," \
             "\"other\":0," \
@@ -2550,9 +2550,9 @@ testRun(void)
             "\"message\":\"invalid checksum '20181119-152900F/pg_data/biind.pgbi'\"," \
             "\"pid\":1" \
             "}," \
-            "{\"message\":\"archiveId: none found\",\"whenPrint\":1},"\
-            "{\"message\":\"backup: 20181119-152900F, status: invalid, total files checked: 2, total valid files: 0\\n    missing: 0, checksum invalid: 2, size invalid: 0, other: 0\",\"whenPrint\":2},"\
-            "{\"message\":\"backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 2, total valid files: 1\\n    missing: 0, checksum invalid: 1, size invalid: 0, other: 0\",\"whenPrint\":2}"\
+            "{\"message\":\"archiveId: none found\",\"whenPrint\":1}," \
+            "{\"message\":\"backup: 20181119-152900F, status: invalid, total files checked: 2, total valid files: 0\\n    missing: 0, checksum invalid: 2, size invalid: 0, other: 0\",\"whenPrint\":2}," \
+            "{\"message\":\"backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 2, total valid files: 1\\n    missing: 0, checksum invalid: 1, size invalid: 0, other: 0\",\"whenPrint\":2}" \
             "]," \
             "\"stanza\":\"db\"," \
             "\"status\":\"error\"" \
