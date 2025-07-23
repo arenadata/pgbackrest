@@ -49,9 +49,9 @@ VARIANT_STRDEF_STATIC(KEY_CHECKSUMINVALID_VAR,               "checksumInvalid");
 VARIANT_STRDEF_STATIC(KEY_SIZEINVALID_VAR,                   "sizeInvalid");
 VARIANT_STRDEF_STATIC(KEY_OTHER_VAR,                         "other");
 VARIANT_STRDEF_STATIC(KEY_BACKUPS_VAR,                       "backups");
-VARIANT_STRDEF_STATIC(BACKUP_KEY_LABEL_VAR,                  "label");
+VARIANT_STRDEF_STATIC(BACKUPS_KEY_LABEL_VAR,                 "label");
 VARIANT_STRDEF_STATIC(KEY_STATUS_VAR,                        "status");
-VARIANT_STRDEF_STATIC(BACKUP_KEY_CHECKED_VAR,                "checked");
+VARIANT_STRDEF_STATIC(BACKUPS_KEY_CHECKED_VAR,                "checked");
 VARIANT_STRDEF_STATIC(KEY_ERRORS_VAR,                        "errors");
 VARIANT_STRDEF_STATIC(VERIFY_KEY_STANZA_VAR,                 "stanza");
 VARIANT_STRDEF_STATIC(VERIFY_KEY_STATUS_ERROR,               "error");
@@ -1760,9 +1760,9 @@ verifyPrepareResult(const List *const archiveIdResultList, const List *const bac
                 }
             }
 
-            kvPut(backupKv, BACKUP_KEY_LABEL_VAR, VARSTR(backupResult->backupLabel));
+            kvPut(backupKv, BACKUPS_KEY_LABEL_VAR, VARSTR(backupResult->backupLabel));
             kvPut(backupKv, KEY_STATUS_VAR, VARSTRZ(status));
-            kvPut(backupKv, BACKUP_KEY_CHECKED_VAR, VARUINT(backupResult->totalFileVerify));
+            kvPut(backupKv, BACKUPS_KEY_CHECKED_VAR, VARUINT(backupResult->totalFileVerify));
             kvPut(backupKv, KEY_VALID_VAR, VARUINT(backupResult->totalFileValid));
 
             // Prepare the message
