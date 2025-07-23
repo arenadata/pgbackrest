@@ -513,8 +513,8 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
 
     if (input == NULL)
     {
-        // We have an incomplete record at the end
-        if (this->currentStep != noStep)
+        // We have an incomplete record at the end, and we have already read something
+        if (this->currentStep != noStep && this->currentStep != stepBeginOfRecord)
         {
             getEndOfRecord(this);
             this->walInterface.xLogRecordFilter(this->record);
