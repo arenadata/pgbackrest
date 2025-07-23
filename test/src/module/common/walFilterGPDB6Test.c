@@ -600,23 +600,10 @@ testRun(void)
         filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
-            // LPH - long page header (40 bytes)
-            // SPH - short page header (24 bytes)
-            // RH  - record header (32 bytes)
-            // RM  - remaining data from prev page (var len)
-            // B   - record body (var len)
-            // layout of the second file:
-            // 40  32 16384 32 16280 |
-            // LPH RH   B   RH   B   |
-            record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE / 2);
-            insertXRecord(wal1, record, NO_FLAGS);
-
-            record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
-            insertXRecord(wal1, record, INCOMPLETE_RECORD);
-
+            memset(bufPtr(wal1), 0, bufUsed(wal1));
             HRN_STORAGE_PUT(
                 storageRepoWrite(),
-                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000021-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
                 wal1);
         }
 
@@ -701,23 +688,10 @@ testRun(void)
         filter = walFilterNew(pgControl, &archiveInfo);
         {
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
-            // LPH - long page header (40 bytes)
-            // SPH - short page header (24 bytes)
-            // RH  - record header (32 bytes)
-            // RM  - remaining data from prev page (var len)
-            // B   - record body (var len)
-            // layout of the second file:
-            // 40  32 16384 32 16280 |
-            // LPH RH   B   RH   B   |
-            record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE / 2);
-            insertXRecord(wal1, record, NO_FLAGS);
-
-            record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
-            insertXRecord(wal1, record, INCOMPLETE_RECORD);
-
+            memset(bufPtr(wal1), 0, bufUsed(wal1));
             HRN_STORAGE_PUT(
                 storageRepoWrite(),
-                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000011-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
                 wal1);
         }
 
@@ -742,7 +716,7 @@ testRun(void)
         insertWalSwitchXRecord(wal2);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
-        TEST_ERROR(testFilter(filter, wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE, 1024 * 1024), FormatError, "0/8000000 - record is too big");
+        TEST_ERROR(testFilter(filter, wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE, 1024 * 1024), FormatError, "0/8008000 - record is too big");
 
         HRN_STORAGE_REMOVE(
             storageRepoWrite(),

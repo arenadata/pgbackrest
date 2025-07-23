@@ -1248,9 +1248,9 @@ testRun(void)
             // B   - record body (var len)
             // P   - padding
             // layout of the second file:
-            // 40  24 32680 24 |
-            // LPH RH   B   RH |
-            record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .main_data_size = 32668);
+            // 40  24 32673 7 24 |
+            // LPH RH   B   P RH |
+            record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .main_data_size = 32673 - 1 - 4);
             insertXRecord(wal1, record, NO_FLAGS, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .backupBlocks = backupBlocks);
             insertXRecord(wal1, record, INCOMPLETE_RECORD, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
@@ -1291,9 +1291,9 @@ testRun(void)
             // B   - record body (var len)
             // P   - padding
             // layout of the second file:
-            // 40  24 32680 24 |
-            // LPH RH   B   RH |
-            record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .main_data_size = 32668);
+            // 40  24 32673 7 24 |
+            // LPH RH   B   P RH |
+            record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .main_data_size = 32673 - 1 - 4);
             insertXRecord(wal1_expected, record, NO_FLAGS, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .backupBlocks = backupBlocks);
             overrideXLogRecordBody((XLogRecordGPDB7 *) record);
