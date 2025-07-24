@@ -1776,20 +1776,20 @@ verifyRenderText(const KeyValue *const resultKv, const bool verboseText)
     String *const result = strNew();
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        const VariantList *const messageList = kvGetList(resultKv, KEY_MESSAGES_VAR);        
+        const VariantList *const messageList = kvGetList(resultKv, KEY_MESSAGES_VAR);
         String *resultStr = strNew();
 
         const Variant *const varStatus = kvGet(resultKv, KEY_STATUS_VAR);
 
         // Show stanza and status if we completed all verifyProcess
-        if (varStatus != NULL)        
+        if (varStatus != NULL)
             strCatFmt(
-                    resultStr, "stanza: %s\nstatus: %s", strZ(cfgOptionStr(cfgOptStanza)),
-                    strZ(varStr(varStatus)));
-               
+                resultStr, "stanza: %s\nstatus: %s", strZ(cfgOptionStr(cfgOptStanza)),
+                strZ(varStr(varStatus)));
+
         const VariantList *const archivesList = kvGetList(resultKv, KEY_ARCHIVES_VAR);
 
-        if (verboseText && varLstEmpty(archivesList)) 
+        if (verboseText && varLstEmpty(archivesList))
             strCatZ(resultStr, "\n  archiveId: none found");
         else
         {
@@ -1806,7 +1806,7 @@ verifyRenderText(const KeyValue *const resultKv, const bool verboseText)
                 if (verboseText || varUInt(totalWalFile) - varUInt(totalValidWAL) != 0)
                 {
                     strCatFmt(resultStr,"\n  archiveId: %s, total WAL checked: %u, total valid WAL: %u",
-                            strZ(varStr(archiveId)), varUInt(totalWalFile), varUInt(totalValidWAL));
+                              strZ(varStr(archiveId)), varUInt(totalWalFile), varUInt(totalValidWAL));
                 }
 
                 unsigned int errMissing = varUInt(kvGet(varKv(archiveKv), KEY_MISSING_VAR));
@@ -1824,7 +1824,7 @@ verifyRenderText(const KeyValue *const resultKv, const bool verboseText)
 
         const VariantList *const backupsList = kvGetList(resultKv, KEY_BACKUPS_VAR);
 
-        if (verboseText && varLstEmpty(backupsList)) 
+        if (verboseText && varLstEmpty(backupsList))
             strCatZ(resultStr, "\n  backup: none found");
         else
         {
@@ -1844,8 +1844,8 @@ verifyRenderText(const KeyValue *const resultKv, const bool verboseText)
                 if (verboseText || (strcmp(status, "valid") != 0 && strcmp(status, "in-progress") != 0))
                 {
                     strCatFmt(resultStr,
-                            "\n  backup: %s, status: %s, total files checked: %u, total valid files: %u",
-                            strZ(varStr(varLabel)), status, varUInt(varTotalFileVerify), varUInt(varTotalFileValid));
+                              "\n  backup: %s, status: %s, total files checked: %u, total valid files: %u",
+                              strZ(varStr(varLabel)), status, varUInt(varTotalFileVerify), varUInt(varTotalFileValid));
                 }
 
                 unsigned int errMissing = varUInt(kvGet(varKv(backupKv), KEY_MISSING_VAR));
@@ -1853,10 +1853,10 @@ verifyRenderText(const KeyValue *const resultKv, const bool verboseText)
                 unsigned int errSize = varUInt(kvGet(varKv(backupKv), KEY_SIZEINVALID_VAR));
                 unsigned int errOther = varUInt(kvGet(varKv(backupKv), KEY_OTHER_VAR));
 
-                if (varUInt(varTotalFileVerify) > 0 &&  (verboseText || errMissing + errChecksum + errSize + errOther > 0))
+                if (varUInt(varTotalFileVerify) > 0 && (verboseText || errMissing + errChecksum + errSize + errOther > 0))
                 {
-                    strCat(resultStr, 
-                        verifyCreateFileErrorsStr(errMissing, errChecksum, errSize, errOther, verboseText));
+                    strCat(resultStr,
+                           verifyCreateFileErrorsStr(errMissing, errChecksum, errSize, errOther, verboseText));
                 }
             }
         }
@@ -1915,7 +1915,6 @@ verifyProcess(const bool verboseText)
     {
         unsigned int errorTotal = 0;
         KeyValue *resultKv = kvNew();
-;
         VariantList *errorList = varLstNew();
 
         // Get the repo storage in case it is remote and encryption settings need to be pulled down
@@ -2191,7 +2190,7 @@ verifyProcess(const bool verboseText)
             VariantList *const resultMessagesList = varVarLst(resultMessages);
             for (unsigned int errIdx = 0; errIdx < varLstSize(resultMessagesList); errIdx++)
             {
-                Variant *item = varLstGet(resultMessagesList, errIdx);                
+                Variant *item = varLstGet(resultMessagesList, errIdx);
                 varLstAdd(errorList, varDup(item));
             }
         }
