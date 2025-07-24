@@ -747,7 +747,8 @@ testRun(void)
         lstAdd(archiveIdResult.walRangeList, &walRange);
         lstAdd(archiveIdResultList, &archiveIdResult);
 
-        KeyValue *resultKv = verifyPrepareResult(archiveIdResultList, backupResultList);
+        KeyValue *resultKv = kvNew();
+        verifyPrepareResult(archiveIdResultList, backupResultList, resultKv);
 
         TEST_RESULT_STR_Z(
             verifyRenderText(resultKv, cfgOptionBool(cfgOptVerbose)),
@@ -768,7 +769,7 @@ testRun(void)
             "}"
             "],"
             "\"backups\":[],"
-            "\"errors\":["
+            "\"messages\":["
             "{\"level\":5,\"message\":\"archiveId: 9.6-1, wal start: 0, wal stop: 2\"}"
             "]}",
             "archive: no invalid file list");
@@ -790,7 +791,8 @@ testRun(void)
         lstAdd(backupResult.invalidFileList, &invalidFile);
         lstAdd(backupResultList, &backupResult);
 
-        resultKv = verifyPrepareResult(archiveIdResultList, backupResultList);
+        resultKv = kvNew();
+        verifyPrepareResult(archiveIdResultList, backupResultList, resultKv);
 
         TEST_RESULT_STR_Z(
             verifyRenderText(resultKv, cfgOptionBool(cfgOptVerbose)),
@@ -827,7 +829,7 @@ testRun(void)
             "\"status\":\"invalid\","
             "\"valid\":0"
             "}],"
-            "\"errors\":["
+            "\"messages\":["
             "{\"level\":5,\"message\":\"archiveId: 9.6-1, wal start: 0, wal stop: 2\"}"
             "]"
             "}",
@@ -1040,7 +1042,7 @@ testRun(void)
         dup2(stdoutSave, STDOUT_FILENO);
 
         #define EXPECTED_OUTPUT_JSON "{"\
-                "\"errors\":[" \
+                "\"messages\":[" \
                     "{"\
                     "\"level\":5,"\
                     "\"message\":\"invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:BACKUP>/backup.info\""\
@@ -1107,7 +1109,7 @@ testRun(void)
         dup2(stdoutSave, STDOUT_FILENO);
 
         #define EXPECTED_OUTPUT_JSON "{"\
-        "\"errors\":["\
+        "\"messages\":["\
           "{"\
             "\"level\":5,"\
             "\"message\":\"invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:BACKUP>/backup.info\""\
@@ -1161,7 +1163,7 @@ testRun(void)
         dup2(stdoutSave, STDOUT_FILENO);
 
         #define EXPECTED_OUTPUT_JSON "{"\
-  "\"errors\":["\
+  "\"messages\":["\
     "{"\
       "\"level\":5,"\
       "\"message\":\"backup.info.copy does not match backup.info\""\
@@ -1209,7 +1211,7 @@ testRun(void)
         dup2(stdoutSave, STDOUT_FILENO);
 
         #define EXPECTED_OUTPUT_JSON "{"\
-  "\"errors\":["\
+  "\"messages\":["\
     "{"\
       "\"level\":5,"\
       "\"message\":\"archive.info.copy does not match archive.info\""\
@@ -1249,7 +1251,7 @@ testRun(void)
         dup2(stdoutSave, STDOUT_FILENO);
 
         #define EXPECTED_OUTPUT_JSON "{"\
-  "\"errors\":["\
+  "\"messages\":["\
     "{"\
       "\"level\":5,"\
       "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\""\
@@ -1299,7 +1301,7 @@ testRun(void)
         dup2(stdoutSave, STDOUT_FILENO);
 
         #define EXPECTED_OUTPUT_JSON "{"\
-  "\"errors\":["\
+  "\"messages\":["\
     "{"\
       "\"level\":5,"\
       "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info' for read\""\
@@ -1529,7 +1531,7 @@ testRun(void)
     "}"\
   "],"\
   "\"backups\":[],"\
-  "\"errors\":["\
+  "\"messages\":["\
     "{"\
       "\"level\":5,"\
       "\"message\":\"no backups exist in the repo\""\
@@ -1628,7 +1630,7 @@ testRun(void)
             "}" \
             "]," \
             "\"backups\":[]," \
-            "\"errors\":[" \
+            "\"messages\":[" \
             "{" \
             "\"level\":5," \
             "\"message\":\"no backups exist in the repo\"" \
@@ -2024,7 +2026,7 @@ testRun(void)
             "\"valid\":0" \
             "}" \
             "]," \
-            "\"errors\":[" \
+            "\"messages\":[" \
             "{" \
             "\"level\":5," \
             "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\"" \
@@ -2605,7 +2607,7 @@ testRun(void)
             "\"valid\":1" \
             "}" \
             "]," \
-            "\"errors\":[" \
+            "\"messages\":[" \
             "{" \
             "\"level\":5," \
             "\"message\":\"no archives exist in the repo\"" \

@@ -52,7 +52,7 @@ VARIANT_STRDEF_STATIC(KEY_BACKUPS_VAR,                       "backups");
 VARIANT_STRDEF_STATIC(BACKUPS_KEY_LABEL_VAR,                 "label");
 VARIANT_STRDEF_STATIC(KEY_STATUS_VAR,                        "status");
 VARIANT_STRDEF_STATIC(BACKUPS_KEY_CHECKED_VAR,               "checked");
-VARIANT_STRDEF_STATIC(KEY_ERRORS_VAR,                        "errors");
+VARIANT_STRDEF_STATIC(KEY_MESSAGES_VAR,                      "messages");
 VARIANT_STRDEF_STATIC(VERIFY_KEY_STANZA_VAR,                 "stanza");
 VARIANT_STRDEF_STATIC(VERIFY_KEY_STATUS_ERROR,               "error");
 VARIANT_STRDEF_STATIC(VERIFY_KEY_STATUS_OK,                  "ok");
@@ -1606,12 +1606,13 @@ verifyCreateFileErrorsKv(
 /***********************************************************************************************************************************
 Render the results of the verify command
 ***********************************************************************************************************************************/
-static KeyValue *
-verifyPrepareResult(const List *const archiveIdResultList, const List *const backupResultList)
+static void
+verifyPrepareResult(const List *const archiveIdResultList, const List *const backupResultList, KeyValue *resultKv)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(LIST, archiveIdResultList);             // Result list for all archive Ids in the repo
         FUNCTION_TEST_PARAM(LIST, backupResultList);                // Result list for all backups in the repo
+        FUNCTION_TEST_PARAM(KEY_VALUE, resultKv);                   // Result key-value pair
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
@@ -1619,12 +1620,10 @@ verifyPrepareResult(const List *const archiveIdResultList, const List *const bac
     ASSERT(archiveIdResultList != NULL);
     ASSERT(backupResultList != NULL);
 
-    KeyValue *resultKv = kvNew();
-
     // Prepare archive results
     VariantList *archivesList = varLstNew();
     VariantList *backupsList = varLstNew();
-    VariantList *errorList = varLstNew();
+    VariantList *messageList = varLstNew();
 
     if (!lstEmpty(archiveIdResultList))
     {
@@ -1651,7 +1650,7 @@ verifyPrepareResult(const List *const archiveIdResultList, const List *const bac
                     String *errorMsg = strNewFmt(
                         "archiveId: %s, wal start: %s, wal stop: %s", strZ(archiveIdResult->archiveId), strZ(walRange->start),
                         strZ(walRange->stop));
-                    verifyErrorNew(errorList, logLevelDetail, errorMsg);
+                    verifyErrorNew(messageList, logLevelDetail, errorMsg);
 
                     unsigned int invalidIdx = 0;
 
@@ -1756,9 +1755,9 @@ verifyPrepareResult(const List *const archiveIdResultList, const List *const bac
 
     kvPut(resultKv, KEY_ARCHIVES_VAR, varNewVarLst(archivesList));
     kvPut(resultKv, KEY_BACKUPS_VAR, varNewVarLst(backupsList));
-    kvPut(resultKv, KEY_ERRORS_VAR, varNewVarLst(errorList));
+    kvPut(resultKv, KEY_MESSAGES_VAR, varNewVarLst(messageList));
 
-    FUNCTION_TEST_RETURN(KEY_VALUE, resultKv);
+    FUNCTION_TEST_RETURN_VOID();
 }
 
 /***********************************************************************************************************************************
@@ -1777,7 +1776,7 @@ verifyRenderText(const KeyValue *const resultKv, const bool verboseText)
     String *const result = strNew();
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        const VariantList *const errorList = kvGetList(resultKv, KEY_ERRORS_VAR);        
+        const VariantList *const messageList = kvGetList(resultKv, KEY_MESSAGES_VAR);        
         String *resultStr = strNew();
 
         const Variant *const varStatus = kvGet(resultKv, KEY_STATUS_VAR);
@@ -1863,9 +1862,9 @@ verifyRenderText(const KeyValue *const resultKv, const bool verboseText)
         }
 
         // Render messages which does not have a log level
-        for (unsigned int errIdx = 0; errIdx < varLstSize(errorList); errIdx++)
+        for (unsigned int errIdx = 0; errIdx < varLstSize(messageList); errIdx++)
         {
-            const KeyValue *const msg = varKv(varLstGet(errorList, errIdx));
+            const KeyValue *const msg = varKv(varLstGet(messageList, errIdx));
             const String *const message = varStr(kvGet(msg, VERIFY_MSG_KEY_MESSAGE));
             const Variant *varLevel = kvGet(msg, VERIFY_MSG_KEY_LEVEL);
 
@@ -1915,7 +1914,8 @@ verifyProcess(const bool verboseText)
     MEM_CONTEXT_TEMP_BEGIN()
     {
         unsigned int errorTotal = 0;
-        KeyValue *resultKv = NULL;
+        KeyValue *resultKv = kvNew();
+;
         VariantList *errorList = varLstNew();
 
         // Get the repo storage in case it is remote and encryption settings need to be pulled down
@@ -2172,7 +2172,7 @@ verifyProcess(const bool verboseText)
                 // ??? Need to do the final reconciliation - checking backup required WAL against, valid WAL
 
                 // Prepare results KV
-                resultKv = verifyPrepareResult(jobData.archiveIdResultList, jobData.backupResultList);
+                verifyPrepareResult(jobData.archiveIdResultList, jobData.backupResultList, resultKv);
             }
             else if (!backupLabelInvalid)
             {
@@ -2182,25 +2182,21 @@ verifyProcess(const bool verboseText)
             errorTotal += jobData.jobErrorTotal;
         }
 
-        if (resultKv == NULL)
-            resultKv = kvNew();
-
         kvPut(resultKv, VERIFY_KEY_STANZA_VAR, VARSTR(cfgOptionStr(cfgOptStanza)));
         kvPut(resultKv, KEY_STATUS_VAR, errorTotal > 0 ? VERIFY_KEY_STATUS_ERROR : VERIFY_KEY_STATUS_OK);
 
-        const Variant *resultError = kvGet(resultKv, KEY_ERRORS_VAR);
-        if (resultError != NULL)
+        const Variant *resultMessages = kvGet(resultKv, KEY_MESSAGES_VAR);
+        if (resultMessages != NULL)
         {
-            VariantList *const resultErrorList = varVarLst(resultError);
-            for (unsigned int errIdx = 0; errIdx < varLstSize(resultErrorList); errIdx++)
+            VariantList *const resultMessagesList = varVarLst(resultMessages);
+            for (unsigned int errIdx = 0; errIdx < varLstSize(resultMessagesList); errIdx++)
             {
-                Variant *item = varLstGet(resultErrorList, errIdx);
-                Variant *dup = varDup(item);
-                varLstAdd(errorList, dup);
+                Variant *item = varLstGet(resultMessagesList, errIdx);                
+                varLstAdd(errorList, varDup(item));
             }
         }
 
-        kvPut(resultKv, KEY_ERRORS_VAR, varNewVarLst(errorList));
+        kvPut(resultKv, KEY_MESSAGES_VAR, varNewVarLst(errorList));
 
         if (json)
         {
