@@ -58,7 +58,6 @@ VARIANT_STRDEF_STATIC(VERIFY_KEY_STATUS_ERROR,               "error");
 VARIANT_STRDEF_STATIC(VERIFY_KEY_STATUS_OK,                  "ok");
 VARIANT_STRDEF_STATIC(VERIFY_MSG_KEY_LEVEL,                  "level");
 VARIANT_STRDEF_STATIC(VERIFY_MSG_KEY_MESSAGE,                "message");
-VARIANT_STRDEF_STATIC(VERIFY_MSG_KEY_MESSAGE_PRINT,          "whenPrint");
 VARIANT_STRDEF_STATIC(VERIFY_MSG_KEY_PID,                    "pid");
 
 /***********************************************************************************************************************************
@@ -73,22 +72,6 @@ Data Types and Structures
     VerifyBackupResult
 #define FUNCTION_LOG_VERIFY_BACKUP_RESULT_FORMAT(value, buffer, bufferSize)                                                        \
     objNameToLog(&value, "VerifyBackupResult", buffer, bufferSize)
-
-#define FUNCTION_LOG_VERIFY_MESSAGE_PRINT_TYPE                                                                                     \
-    VerifyMessagePrint
-#define FUNCTION_LOG_VERIFY_MESSAGE_PRINT_FORMAT(value, buffer, bufferSize)                                                        \
-    objNameToLog(&value, "VerifyMessagePrint", buffer, bufferSize)
-
-// Enum to specify if message should be printed on standard output
-typedef enum VerifyMessagePrint
-{
-    printNever,                                                     // Message will not be printed to standard output but going to
-                                                                    // appear in JSON
-    printAtVerbose,                                                 // Message will be printed to standard output only at verbose
-                                                                    // level
-    printAlways                                                     // Message will be printed to standard output regarless of
-                                                                    // verbose level
-} VerifyMessagePrint;
 
 // Structure for verifying repository info files
 typedef struct VerifyInfoFile
@@ -247,11 +230,10 @@ verifyErrorPidNew(VariantList *errorList, const LogLevel logLevel, const unsigne
 Helper function to add a message going to stdout to the message list.
 ***********************************************************************************************************************************/
 static void
-verifyMessageNew(VariantList *messageList, const VerifyMessagePrint whenToPrint, const String *const message)
+verifyMessageNew(VariantList *messageList, const String *const message)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(VARIANT_LIST, messageList);              // Error list to add to
-        FUNCTION_LOG_PARAM(VERIFY_MESSAGE_PRINT, whenToPrint);       // When this message should be rendered to text
         FUNCTION_TEST_PARAM(STRING, message);                        // Error message
     FUNCTION_TEST_END();
 
@@ -262,10 +244,7 @@ verifyMessageNew(VariantList *messageList, const VerifyMessagePrint whenToPrint,
     MEM_CONTEXT_BEGIN(lstMemContext((List *)messageList))
     {
         KeyValue *const errorMsg = kvNew();
-
-        kvPut(errorMsg, VERIFY_MSG_KEY_MESSAGE_PRINT, VARUINT(whenToPrint));
         kvPut(errorMsg, VERIFY_MSG_KEY_MESSAGE, VARSTR(strDup(message)));
-
         varLstAdd(messageList, varNewKv(errorMsg));
     }
 
@@ -1628,12 +1607,11 @@ verifyCreateFileErrorsKv(
 Render the results of the verify command
 ***********************************************************************************************************************************/
 static KeyValue *
-verifyPrepareResult(const List *const archiveIdResultList, const List *const backupResultList, bool verboseText)
+verifyPrepareResult(const List *const archiveIdResultList, const List *const backupResultList)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(LIST, archiveIdResultList);             // Result list for all archive Ids in the repo
         FUNCTION_TEST_PARAM(LIST, backupResultList);                // Result list for all backups in the repo
-        FUNCTION_TEST_PARAM(BOOL, verboseText);                     // Is verbose output requested?
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
@@ -1648,29 +1626,16 @@ verifyPrepareResult(const List *const archiveIdResultList, const List *const bac
     VariantList *backupsList = varLstNew();
     VariantList *errorList = varLstNew();
 
-    if (lstEmpty(archiveIdResultList))
-        verifyMessageNew(errorList, printAtVerbose, strNewZ("archiveId: none found"));
-    else
+    if (!lstEmpty(archiveIdResultList))
     {
         for (unsigned int archiveIdx = 0; archiveIdx < lstSize(archiveIdResultList); archiveIdx++)
         {
             const VerifyArchiveResult *const archiveIdResult = lstGet(archiveIdResultList, archiveIdx);
             KeyValue *const archiveKv = kvNew();
 
-            // Prepare the message
-            String *archiveMessage = NULL;
-
             kvPut(archiveKv, ARCHIVE_KEY_ARCHIVEID_VAR, VARSTR(archiveIdResult->archiveId));
             kvPut(archiveKv, ARCHIVE_KEY_CHECKED_VAR, VARUINT(archiveIdResult->totalWalFile));
             kvPut(archiveKv, KEY_VALID_VAR, VARUINT(archiveIdResult->totalValidWal));
-
-            if (verboseText || archiveIdResult->totalWalFile - archiveIdResult->totalValidWal != 0)
-            {
-                archiveMessage = strNew();
-                strCatFmt(archiveMessage,
-                          "archiveId: %s, total WAL checked: %u, total valid WAL: %u", strZ(archiveIdResult->archiveId),
-                          archiveIdResult->totalWalFile, archiveIdResult->totalValidWal);
-            }
 
             unsigned int errMissing = 0;
             unsigned int errChecksum = 0;
@@ -1709,20 +1674,7 @@ verifyPrepareResult(const List *const archiveIdResultList, const List *const bac
 
                 KeyValue *const fileErrorsKv = verifyCreateFileErrorsKv(errMissing, errChecksum, errSize, errOther);
                 kvPut(archiveKv, KEY_FILEERRORS_VAR, varNewKv(fileErrorsKv));
-
-                // Create/append file errors string
-                if (verboseText || errMissing + errChecksum + errSize + errOther > 0)
-                {
-                    ASSERT(archiveMessage != NULL);
-
-                    strCat(archiveMessage,
-                           verifyCreateFileErrorsStr(errMissing, errChecksum, errSize, errOther, verboseText));
-                }
             }
-
-            // Put the messsage to messages list
-            if (archiveMessage != NULL)
-                verifyMessageNew(errorList, printAlways, archiveMessage);
 
             kvPut(archiveKv, KEY_MISSING_VAR, VARUINT(errMissing));
             kvPut(archiveKv, KEY_CHECKSUMINVALID_VAR, VARUINT(errChecksum));
@@ -1733,9 +1685,7 @@ verifyPrepareResult(const List *const archiveIdResultList, const List *const bac
         }
     }
     // Prepare backup results
-    if (lstEmpty(backupResultList))
-        verifyMessageNew(errorList, printAtVerbose, strNewZ("backup: none found"));
-    else
+    if (!lstEmpty(backupResultList))
     {
         for (unsigned int backupIdx = 0; backupIdx < lstSize(backupResultList); backupIdx++)
         {
@@ -1771,16 +1721,6 @@ verifyPrepareResult(const List *const archiveIdResultList, const List *const bac
             kvPut(backupKv, BACKUPS_KEY_CHECKED_VAR, VARUINT(backupResult->totalFileVerify));
             kvPut(backupKv, KEY_VALID_VAR, VARUINT(backupResult->totalFileValid));
 
-            // Prepare the message
-            String *backupMessage = NULL;
-            if (verboseText || (strcmp(status, "valid") != 0 && strcmp(status, "in-progress") != 0))
-            {
-                backupMessage = strNew();
-                strCatFmt(backupMessage,
-                          "backup: %s, status: %s, total files checked: %u, total valid files: %u",
-                          strZ(backupResult->backupLabel), status, backupResult->totalFileVerify, backupResult->totalFileValid);
-            }
-
             unsigned int errMissing = 0;
             unsigned int errChecksum = 0;
             unsigned int errSize = 0;
@@ -1804,18 +1744,7 @@ verifyPrepareResult(const List *const archiveIdResultList, const List *const bac
 
                 KeyValue *const fileErrorsKv = verifyCreateFileErrorsKv(errMissing, errChecksum, errSize, errOther);
                 kvPut(backupKv, KEY_FILEERRORS_VAR, varNewKv(fileErrorsKv));
-
-                // Create/append file errors string
-                if (verboseText || errMissing + errChecksum + errSize + errOther > 0)
-                {
-                    ASSERT(backupMessage != NULL);
-                    strCat(backupMessage, verifyCreateFileErrorsStr(errMissing, errChecksum, errSize, errOther, verboseText));
-                }
             }
-
-            // Put the messsage to messages list
-            if (backupMessage != NULL)
-                verifyMessageNew(errorList, printAlways, backupMessage);
 
             kvPut(backupKv, KEY_MISSING_VAR, VARUINT(errMissing));
             kvPut(backupKv, KEY_CHECKSUMINVALID_VAR, VARUINT(errChecksum));
@@ -1848,25 +1777,102 @@ verifyRenderText(const KeyValue *const resultKv, const bool verboseText)
     String *const result = strNew();
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        const VariantList *const errorList = kvGetList(resultKv, KEY_ERRORS_VAR);
-        unsigned int errorTotal = varLstSize(errorList);
+        const VariantList *const errorList = kvGetList(resultKv, KEY_ERRORS_VAR);        
         String *resultStr = strNew();
 
-        for (unsigned int errIdx = 0; errIdx < errorTotal; errIdx++)
+        const Variant *const varStatus = kvGet(resultKv, KEY_STATUS_VAR);
+
+        // Show stanza and status if we completed all verifyProcess
+        if (varStatus != NULL)        
+            strCatFmt(
+                    resultStr, "stanza: %s\nstatus: %s", strZ(cfgOptionStr(cfgOptStanza)),
+                    strZ(varStr(varStatus)));
+               
+        const VariantList *const archivesList = kvGetList(resultKv, KEY_ARCHIVES_VAR);
+
+        if (verboseText && varLstEmpty(archivesList)) 
+            strCatZ(resultStr, "\n  archiveId: none found");
+        else
+        {
+            for (unsigned int archiveIdx = 0; archiveIdx < varLstSize(archivesList); archiveIdx++)
+            {
+                Variant *const archiveKv = varLstGet(archivesList, archiveIdx);
+                if (archiveKv == NULL)
+                    continue;
+
+                const Variant *const archiveId = kvGet(varKv(archiveKv), ARCHIVE_KEY_ARCHIVEID_VAR);
+                const Variant *const totalWalFile = kvGet(varKv(archiveKv), ARCHIVE_KEY_CHECKED_VAR);
+                const Variant *const totalValidWAL = kvGet(varKv(archiveKv), KEY_VALID_VAR);
+
+                if (verboseText || varUInt(totalWalFile) - varUInt(totalValidWAL) != 0)
+                {
+                    strCatFmt(resultStr,"\n  archiveId: %s, total WAL checked: %u, total valid WAL: %u",
+                            strZ(varStr(archiveId)), varUInt(totalWalFile), varUInt(totalValidWAL));
+                }
+
+                unsigned int errMissing = varUInt(kvGet(varKv(archiveKv), KEY_MISSING_VAR));
+                unsigned int errChecksum = varUInt(kvGet(varKv(archiveKv), KEY_CHECKSUMINVALID_VAR));
+                unsigned int errSize = varUInt(kvGet(varKv(archiveKv), KEY_SIZEINVALID_VAR));
+                unsigned int errOther = varUInt(kvGet(varKv(archiveKv), KEY_OTHER_VAR));
+
+                if (varUInt(totalWalFile) > 0 && (verboseText || errMissing + errChecksum + errSize + errOther > 0))
+                {
+                    strCat(resultStr,
+                           verifyCreateFileErrorsStr(errMissing, errChecksum, errSize, errOther, verboseText));
+                }
+            }
+        }
+
+        const VariantList *const backupsList = kvGetList(resultKv, KEY_BACKUPS_VAR);
+
+        if (verboseText && varLstEmpty(backupsList)) 
+            strCatZ(resultStr, "\n  backup: none found");
+        else
+        {
+            for (unsigned int backupIdx = 0; backupIdx < varLstSize(backupsList); backupIdx++)
+            {
+                Variant *const backupKv = varLstGet(backupsList, backupIdx);
+                if (backupKv == NULL)
+                    continue;
+
+                const Variant *const varLabel = kvGet(varKv(backupKv), BACKUPS_KEY_LABEL_VAR);
+                const Variant *const varStatus = kvGet(varKv(backupKv), KEY_STATUS_VAR);
+                const Variant *const varTotalFileVerify = kvGet(varKv(backupKv), BACKUPS_KEY_CHECKED_VAR);
+                const Variant *const varTotalFileValid = kvGet(varKv(backupKv), KEY_VALID_VAR);
+
+                const char *const status = strZ(varStr(varStatus));
+
+                if (verboseText || (strcmp(status, "valid") != 0 && strcmp(status, "in-progress") != 0))
+                {
+                    strCatFmt(resultStr,
+                            "\n  backup: %s, status: %s, total files checked: %u, total valid files: %u",
+                            strZ(varStr(varLabel)), status, varUInt(varTotalFileVerify), varUInt(varTotalFileValid));
+                }
+
+                unsigned int errMissing = varUInt(kvGet(varKv(backupKv), KEY_MISSING_VAR));
+                unsigned int errChecksum = varUInt(kvGet(varKv(backupKv), KEY_CHECKSUMINVALID_VAR));
+                unsigned int errSize = varUInt(kvGet(varKv(backupKv), KEY_SIZEINVALID_VAR));
+                unsigned int errOther = varUInt(kvGet(varKv(backupKv), KEY_OTHER_VAR));
+
+                if (varUInt(varTotalFileVerify) > 0 &&  (verboseText || errMissing + errChecksum + errSize + errOther > 0))
+                {
+                    strCat(resultStr, 
+                        verifyCreateFileErrorsStr(errMissing, errChecksum, errSize, errOther, verboseText));
+                }
+            }
+        }
+
+        // Render messages which does not have a log level
+        for (unsigned int errIdx = 0; errIdx < varLstSize(errorList); errIdx++)
         {
             const KeyValue *const msg = varKv(varLstGet(errorList, errIdx));
             const String *const message = varStr(kvGet(msg, VERIFY_MSG_KEY_MESSAGE));
-            const Variant *varMessagePrint = kvGet(msg, VERIFY_MSG_KEY_MESSAGE_PRINT);
-            if (varMessagePrint == NULL)
+            const Variant *varLevel = kvGet(msg, VERIFY_MSG_KEY_LEVEL);
+
+            if (varLevel != NULL)
                 continue;
 
-            const VerifyMessagePrint whenPrint = (VerifyMessagePrint)varUInt(varMessagePrint);
-
-            // Print messages which were addressed to the stdout
-            if ((verboseText && (whenPrint == printAtVerbose)) || whenPrint == printAlways)
-            {
-                strCatFmt(resultStr, "\n  %s", strZ(message));
-            }
+            strCatFmt(resultStr, "\n  %s", strZ(message));
         }
         strCat(result, resultStr);
     }
@@ -1909,7 +1915,6 @@ verifyProcess(const bool verboseText)
     MEM_CONTEXT_TEMP_BEGIN()
     {
         unsigned int errorTotal = 0;
-        String *resultStr = strNew();
         KeyValue *resultKv = NULL;
         VariantList *errorList = varLstNew();
 
@@ -1922,8 +1927,7 @@ verifyProcess(const bool verboseText)
         // If a usable backup.info file is not found, then report an error in the log
         if (backupInfo == NULL)
         {
-            strCatZ(resultStr, "\n  No usable backup.info file");
-            verifyMessageNew(errorList, printNever, strNewZ("No usable backup.info file"));
+            verifyMessageNew(errorList, strNewZ("No usable backup.info file"));
             errorTotal++;
         }
 
@@ -1933,8 +1937,7 @@ verifyProcess(const bool verboseText)
         // If a usable archive.info file is not found, then report an error in the log
         if (archiveInfo == NULL)
         {
-            strCatZ(resultStr, "\n  No usable archive.info file");
-            verifyMessageNew(errorList, printNever, strNewZ("No usable archive.info file"));
+            verifyMessageNew(errorList, strNewZ("No usable archive.info file"));
             errorTotal++;
         }
 
@@ -1948,8 +1951,7 @@ verifyProcess(const bool verboseText)
             }
             CATCH_ANY()
             {
-                strCatFmt(resultStr, "\n  %s", errorMessage());
-                verifyMessageNew(errorList, printNever, strNewZ(errorMessage()));
+                verifyMessageNew(errorList, strNewZ(errorMessage()));
                 errorTotal++;
             }
             TRY_END();
@@ -1981,9 +1983,7 @@ verifyProcess(const bool verboseText)
             {
                 if (!regExpMatchOne(backupRegExpStr, backupLabel))
                 {
-                    strCatFmt(resultStr, "\n  '%s' is not a valid backup label format", strZ(backupLabel));
-
-                    verifyMessageNew(errorList, printNever, strNewFmt("'%s' is not a valid backup label format", strZ(backupLabel)));
+                    verifyMessageNew(errorList, strNewFmt("'%s' is not a valid backup label format", strZ(backupLabel)));
 
                     backupLabelInvalid = true;
                     errorTotal++;
@@ -2001,8 +2001,7 @@ verifyProcess(const bool verboseText)
 
             if (!backupLabelInvalid && backupLabel != NULL && strLstEmpty(jobData.backupList))
             {
-                strCatFmt(resultStr, "\n  backup set %s is not valid", strZ(backupLabel));
-                verifyMessageNew(errorList, printNever, strNewFmt("backup set %s is not valid", strZ(backupLabel)));
+                verifyMessageNew(errorList, strNewFmt("backup set %s is not valid", strZ(backupLabel)));
 
                 backupLabelInvalid = true;
                 errorTotal++;
@@ -2173,13 +2172,11 @@ verifyProcess(const bool verboseText)
                 // ??? Need to do the final reconciliation - checking backup required WAL against, valid WAL
 
                 // Prepare results KV
-                resultKv = verifyPrepareResult(jobData.archiveIdResultList, jobData.backupResultList, verboseText);
+                resultKv = verifyPrepareResult(jobData.archiveIdResultList, jobData.backupResultList);
             }
             else if (!backupLabelInvalid)
             {
-                strCatZ(resultStr, "\n    no archives or backups exist in the repo");
-                verifyMessageNew(errorList, printNever,
-                                 strNewZ("no archives or backups exist in the repo"));
+                verifyMessageNew(errorList, strNewZ("no archives or backups exist in the repo"));
             }
 
             errorTotal += jobData.jobErrorTotal;
@@ -2213,11 +2210,7 @@ verifyProcess(const bool verboseText)
         else if (verboseText || errorTotal > 0)
         {
             // Render the results as text
-            strCatFmt(
-                result, "stanza: %s\nstatus: %s%s%s", strZ(cfgOptionStr(cfgOptStanza)),
-                errorTotal > 0 ? VERIFY_STATUS_ERROR : VERIFY_STATUS_OK,
-                strZ(resultStr),
-                strZ(verifyRenderText(resultKv, verboseText)));
+            strCat(result, verifyRenderText(resultKv, verboseText));
         }
     }
     MEM_CONTEXT_TEMP_END();

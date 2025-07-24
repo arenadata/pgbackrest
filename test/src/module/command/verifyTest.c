@@ -747,7 +747,7 @@ testRun(void)
         lstAdd(archiveIdResult.walRangeList, &walRange);
         lstAdd(archiveIdResultList, &archiveIdResult);
 
-        KeyValue *resultKv = verifyPrepareResult(archiveIdResultList, backupResultList, cfgOptionBool(cfgOptVerbose));
+        KeyValue *resultKv = verifyPrepareResult(archiveIdResultList, backupResultList);
 
         TEST_RESULT_STR_Z(
             verifyRenderText(resultKv, cfgOptionBool(cfgOptVerbose)),
@@ -769,12 +769,9 @@ testRun(void)
             "],"
             "\"backups\":[],"
             "\"errors\":["
-            "{\"level\":5,\"message\":\"archiveId: 9.6-1, wal start: 0, wal stop: 2\"},"
-            "{\"message\":\"archiveId: 9.6-1, total WAL checked: 1, total valid WAL: 0\",\"whenPrint\":2},"
-            "{\"message\":\"backup: none found\",\"whenPrint\":1}]}",
+            "{\"level\":5,\"message\":\"archiveId: 9.6-1, wal start: 0, wal stop: 2\"}"
+            "]}",
             "archive: no invalid file list");
-
-        // kvFree(resultKv);
 
         VerifyInvalidFile invalidFile =
         {
@@ -793,7 +790,7 @@ testRun(void)
         lstAdd(backupResult.invalidFileList, &invalidFile);
         lstAdd(backupResultList, &backupResult);
 
-        resultKv = verifyPrepareResult(archiveIdResultList, backupResultList, cfgOptionBool(cfgOptVerbose));
+        resultKv = verifyPrepareResult(archiveIdResultList, backupResultList);
 
         TEST_RESULT_STR_Z(
             verifyRenderText(resultKv, cfgOptionBool(cfgOptVerbose)),
@@ -831,13 +828,10 @@ testRun(void)
             "\"valid\":0"
             "}],"
             "\"errors\":["
-            "{\"level\":5,\"message\":\"archiveId: 9.6-1, wal start: 0, wal stop: 2\"},"
-            "{\"message\":\"archiveId: 9.6-1, total WAL checked: 1, total valid WAL: 0\\n    missing: 1\",\"whenPrint\":2},"
-            "{\"message\":\"backup: test-backup-label, status: invalid, total files checked: 1, total valid files: 0\\n    missing: 1\",\"whenPrint\":2}]"
+            "{\"level\":5,\"message\":\"archiveId: 9.6-1, wal start: 0, wal stop: 2\"}"
+            "]"
             "}",
             "archive file missing, backup file missing, no text, no verbose, json output");
-
-        // kvFree(resultKv);
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("verifyAddInvalidWalFile() - file missing (coverage test)");
@@ -1054,7 +1048,7 @@ testRun(void)
                     "\"level\":5,"\
                     "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\""\
                     "},{"\
-                    "\"message\":\"No usable backup.info file\",\"whenPrint\":0"\
+                    "\"message\":\"No usable backup.info file\""\
                     "},{"\
                     "\"level\":5,"\
                     "\"message\":\"unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info' for read\""\
@@ -1062,7 +1056,7 @@ testRun(void)
                     "\"level\":5,"\
                     "\"message\":\"unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read\""\
                     "},{"\
-                    "\"message\":\"No usable archive.info file\",\"whenPrint\":0"\
+                    "\"message\":\"No usable archive.info file\""\
                     "}"\
                 "],"\
                 "\"stanza\":\"db\","\
@@ -1123,7 +1117,7 @@ testRun(void)
           "},{"\
             "\"level\":5,\"message\":\"invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:ARCHIVE>/archive.info.copy\""\
           "},{"\
-            "\"message\":\"No usable archive.info file\",\"whenPrint\":0"\
+            "\"message\":\"No usable archive.info file\""\
           "}"\
         "],"\
         "\"stanza\":\"db\","\
@@ -1175,7 +1169,7 @@ testRun(void)
       "\"level\":5,"\
       "\"message\":\"invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:ARCHIVE>/archive.info\""\
     "},{"\
-      "\"message\":\"backup info file and archive info file do not match\\narchive: id = 1, version = 9.5, system-id = 10000000000000090500\\nbackup : id = 2, version = 11, system-id = 10000000000000110000\\nHINT: this may be a symptom of repository corruption!\",\"whenPrint\":0"\
+      "\"message\":\"backup info file and archive info file do not match\\narchive: id = 1, version = 9.5, system-id = 10000000000000090500\\nbackup : id = 2, version = 11, system-id = 10000000000000110000\\nHINT: this may be a symptom of repository corruption!\""\
     "}"\
   "],"\
   "\"stanza\":\"db\","\
@@ -1220,7 +1214,7 @@ testRun(void)
       "\"level\":5,"\
       "\"message\":\"archive.info.copy does not match archive.info\""\
     "},"\
-    "{\"message\":\"no archives or backups exist in the repo\",\"whenPrint\":0}"\
+    "{\"message\":\"no archives or backups exist in the repo\"}"\
   "],"\
   "\"stanza\":\"db\","\
   "\"status\":\"ok\""\
@@ -1264,7 +1258,7 @@ testRun(void)
       "\"level\":5,"\
       "\"message\":\"unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read\""\
     "},"\
-    "{\"message\":\"no archives or backups exist in the repo\",\"whenPrint\":0}"\
+    "{\"message\":\"no archives or backups exist in the repo\"}"\
   "],"\
   "\"stanza\":\"db\","\
   "\"status\":\"ok\""\
@@ -1315,7 +1309,7 @@ testRun(void)
       "\"message\":\"unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\""\
     "},"\
     "{"\
-      "\"message\":\"No usable backup.info file\",\"whenPrint\":0"\
+      "\"message\":\"No usable backup.info file\""\
     "}"\
   "],"\
   "\"stanza\":\"db\","\
@@ -1561,9 +1555,7 @@ testRun(void)
     "{"\
       "\"level\":5,"\
       "\"message\":\"archiveId: 11-2, wal start: 000000020000000700000FFD, wal stop: 000000020000000800000000\""\
-    "},"\
-    "{\"message\":\"archiveId: 11-2, total WAL checked: 4, total valid WAL: 2\\n    checksum invalid: 1, size invalid: 1\",\"whenPrint\":2},"\
-    "{\"message\":\"backup: none found\",\"whenPrint\":1}"\
+    "}"\
   "],"\
   "\"stanza\":\"db\","\
   "\"status\":\"error\""\
@@ -1659,13 +1651,10 @@ testRun(void)
             "\"message\":\"invalid size '11-2/0000000200000007/000000020000000700000FFF-ee161f898c9012dd0c28b3fd1e7140b9cf411306'\"," \
             "\"pid\":1" \
             "}," \
-            "{\"message\":\"archiveId: 9.5-1, total WAL checked: 0, total valid WAL: 0\",\"whenPrint\":2}," \
             "{" \
             "\"level\":5," \
             "\"message\":\"archiveId: 11-2, wal start: 000000020000000700000FFD, wal stop: 000000020000000800000000\"" \
-            "}," \
-            "{\"message\":\"archiveId: 11-2, total WAL checked: 4, total valid WAL: 2\\n    missing: 0, checksum invalid: 1, size invalid: 1, other: 0\",\"whenPrint\":2}," \
-            "{\"message\":\"backup: none found\",\"whenPrint\":1}" \
+            "}" \
             "]," \
             "\"stanza\":\"db\"," \
             "\"status\":\"error\"" \
@@ -2051,8 +2040,7 @@ testRun(void)
             "{" \
             "\"level\":4," \
             "\"message\":\"backup '20181119-152800F' appears to be in progress, skipping\"" \
-            "}," \
-            "{\"message\":\"archiveId: none found\",\"whenPrint\":1}" \
+            "}" \
             "]," \
             "\"stanza\":\"db\"," \
             "\"status\":\"ok\"" \
@@ -2631,10 +2619,7 @@ testRun(void)
             "\"level\":4," \
             "\"message\":\"invalid checksum '20181119-152900F/pg_data/biind.pgbi'\"," \
             "\"pid\":1" \
-            "}," \
-            "{\"message\":\"archiveId: none found\",\"whenPrint\":1}," \
-            "{\"message\":\"backup: 20181119-152900F, status: invalid, total files checked: 2, total valid files: 0\\n    missing: 0, checksum invalid: 2, size invalid: 0, other: 0\",\"whenPrint\":2}," \
-            "{\"message\":\"backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 2, total valid files: 1\\n    missing: 0, checksum invalid: 1, size invalid: 0, other: 0\",\"whenPrint\":2}" \
+            "}" \
             "]," \
             "\"stanza\":\"db\"," \
             "\"status\":\"error\"" \
