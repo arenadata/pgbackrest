@@ -155,17 +155,17 @@ typedef struct VerifyJobData
     bool enableArchiveFilter;                                       // Only check archives in the specified range
     const String *archiveStart;                                     // Start of the WAL range to be verified
     const String *archiveStop;                                      // End of the WAL range to be verified
-    VariantList *errorList;                                         // List of errors that occurred during the job
+    VariantList *messageList;                                         // List of errors that occurred during the job
 } VerifyJobData;
 
 /***********************************************************************************************************************************
 Helper function to add a string with log level to an error list
 ***********************************************************************************************************************************/
 static void
-verifyErrorNew(VariantList *errorList, const LogLevel logLevel, const String *const message)
+verifyErrorNew(VariantList *messageList, const LogLevel logLevel, const String *const message)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);               // Error list to add to
+        FUNCTION_TEST_PARAM(VARIANT_LIST, messageList);               // Error list to add to
         FUNCTION_LOG_PARAM(ENUM, logLevel);                         // Log level
         FUNCTION_TEST_PARAM(STRING, message);                       // Error message
     FUNCTION_TEST_END();
@@ -174,14 +174,14 @@ verifyErrorNew(VariantList *errorList, const LogLevel logLevel, const String *co
 
     ASSERT(message != NULL);
 
-    MEM_CONTEXT_BEGIN(lstMemContext((List *)errorList))
+    MEM_CONTEXT_BEGIN(lstMemContext((List *)messageList))
     {
         KeyValue *errorMsg = kvNew();
 
         kvPut(errorMsg, VERIFY_MSG_KEY_LEVEL, VARUINT(logLevel));
         kvPut(errorMsg, VERIFY_MSG_KEY_MESSAGE, VARSTR(strDup(message)));
 
-        varLstAdd(errorList, varNewKv(errorMsg));
+        varLstAdd(messageList, varNewKv(errorMsg));
 
         // Duplicate the message to the log as soon as in appears.
         // Perhaps user may want to see it immediately.
@@ -197,10 +197,10 @@ verifyErrorNew(VariantList *errorList, const LogLevel logLevel, const String *co
 Helper function to add a string with log level and process id to an error list
 ***********************************************************************************************************************************/
 static void
-verifyErrorPidNew(VariantList *errorList, const LogLevel logLevel, const unsigned int pid, const String *const message)
+verifyErrorPidNew(VariantList *messageList, const LogLevel logLevel, const unsigned int pid, const String *const message)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);               // Error list to add to
+        FUNCTION_TEST_PARAM(VARIANT_LIST, messageList);               // Error list to add to
         FUNCTION_LOG_PARAM(ENUM, logLevel);                         // Log level
         FUNCTION_TEST_PARAM(UINT, pid);                             // Process id
         FUNCTION_TEST_PARAM(STRING, message);                       // Error message
@@ -210,7 +210,7 @@ verifyErrorPidNew(VariantList *errorList, const LogLevel logLevel, const unsigne
 
     ASSERT(message != NULL);
 
-    MEM_CONTEXT_BEGIN(lstMemContext((List *)errorList))
+    MEM_CONTEXT_BEGIN(lstMemContext((List *)messageList))
     {
         KeyValue *const errorMsg = kvNew();
 
@@ -218,7 +218,7 @@ verifyErrorPidNew(VariantList *errorList, const LogLevel logLevel, const unsigne
         kvPut(errorMsg, VERIFY_MSG_KEY_MESSAGE, VARSTR(strDup(message)));
         kvPut(errorMsg, VERIFY_MSG_KEY_PID, VARUINT(pid));
 
-        varLstAdd(errorList, varNewKv(errorMsg));
+        varLstAdd(messageList, varNewKv(errorMsg));
     }
     LOG_PID(logLevel, pid, 0, strZ(message));
     MEM_CONTEXT_END();
@@ -317,13 +317,13 @@ verifyFileLoad(const String *const pathFileName, const String *const cipherPass)
 Get status of info files in the repository
 ***********************************************************************************************************************************/
 static VerifyInfoFile
-verifyInfoFile(const String *const pathFileName, const bool keepFile, const String *const cipherPass, VariantList *const errorList)
+verifyInfoFile(const String *const pathFileName, const bool keepFile, const String *const cipherPass, VariantList *const messageList)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(STRING, pathFileName);                   // Fully qualified path/file name
         FUNCTION_LOG_PARAM(BOOL, keepFile);                         // Should the file be kept in memory?
         FUNCTION_TEST_PARAM(STRING, cipherPass);                    // Password to open file if encrypted
-        FUNCTION_TEST_PARAM(LIST, errorList);                       // List of errors
+        FUNCTION_TEST_PARAM(LIST, messageList);                       // List of errors
     FUNCTION_LOG_END();
 
     FUNCTION_AUDIT_STRUCT();
@@ -368,7 +368,7 @@ verifyInfoFile(const String *const pathFileName, const bool keepFile, const Stri
             if (result.errorCode == errorTypeCode(&ChecksumError))
                 strCat(errorMsg, strNewFmt(" %s", strZ(pathFileName)));
 
-            verifyErrorNew(errorList, logLevelDetail, errorMsg);
+            verifyErrorNew(messageList, logLevelDetail, errorMsg);
         }
         TRY_END();
     }
@@ -381,10 +381,10 @@ verifyInfoFile(const String *const pathFileName, const bool keepFile, const Stri
 Get the archive.info file
 ***********************************************************************************************************************************/
 static InfoArchive *
-verifyArchiveInfoFile(VariantList *const errorList)
+verifyArchiveInfoFile(VariantList *const messageList)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
-        FUNCTION_TEST_PARAM(LIST, errorList);                       // List of errors
+        FUNCTION_TEST_PARAM(LIST, messageList);                       // List of errors
     FUNCTION_LOG_END();
 
     InfoArchive *result = NULL;
@@ -394,7 +394,7 @@ verifyArchiveInfoFile(VariantList *const errorList)
         // Get the main info file
         const VerifyInfoFile verifyArchiveInfo = verifyInfoFile(
             INFO_ARCHIVE_PATH_FILE_STR, true, cfgOptionStrNull(cfgOptRepoCipherPass),
-            errorList);
+            messageList);
 
         // If the main file did not error, then report on the copy's status and check checksums
         if (verifyArchiveInfo.errorCode == 0)
@@ -404,7 +404,7 @@ verifyArchiveInfoFile(VariantList *const errorList)
 
             // Attempt to load the copy and report on it's status but don't keep it in memory
             const VerifyInfoFile verifyArchiveInfoCopy = verifyInfoFile(
-                INFO_ARCHIVE_PATH_FILE_COPY_STR, false, cfgOptionStrNull(cfgOptRepoCipherPass), errorList);
+                INFO_ARCHIVE_PATH_FILE_COPY_STR, false, cfgOptionStrNull(cfgOptRepoCipherPass), messageList);
 
             // If the copy loaded successfully, then check the checksums
             if (verifyArchiveInfoCopy.errorCode == 0)
@@ -412,14 +412,14 @@ verifyArchiveInfoFile(VariantList *const errorList)
                 // If the info and info.copy checksums don't match each other than one (or both) of the files could be corrupt so
                 // log a warning but must trust main
                 if (!strEq(verifyArchiveInfo.checksum, verifyArchiveInfoCopy.checksum))
-                    verifyErrorNew(errorList, logLevelDetail, strNewZ("archive.info.copy does not match archive.info"));
+                    verifyErrorNew(messageList, logLevelDetail, strNewZ("archive.info.copy does not match archive.info"));
             }
         }
         else
         {
             // Attempt to load the copy
             const VerifyInfoFile verifyArchiveInfoCopy = verifyInfoFile(
-                INFO_ARCHIVE_PATH_FILE_COPY_STR, true, cfgOptionStrNull(cfgOptRepoCipherPass), errorList);
+                INFO_ARCHIVE_PATH_FILE_COPY_STR, true, cfgOptionStrNull(cfgOptRepoCipherPass), messageList);
 
             // If loaded successfully, then return the copy as usable
             if (verifyArchiveInfoCopy.errorCode == 0)
@@ -438,10 +438,10 @@ verifyArchiveInfoFile(VariantList *const errorList)
 Get the backup.info file
 ***********************************************************************************************************************************/
 static InfoBackup *
-verifyBackupInfoFile(VariantList *const errorList)
+verifyBackupInfoFile(VariantList *const messageList)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
-        FUNCTION_TEST_PARAM(LIST, errorList);                        // List of errors
+        FUNCTION_TEST_PARAM(LIST, messageList);                        // List of errors
     FUNCTION_LOG_END();
 
     InfoBackup *result = NULL;
@@ -450,7 +450,7 @@ verifyBackupInfoFile(VariantList *const errorList)
     {
         // Get the main info file
         const VerifyInfoFile verifyBackupInfo = verifyInfoFile(
-            INFO_BACKUP_PATH_FILE_STR, true, cfgOptionStrNull(cfgOptRepoCipherPass), errorList);
+            INFO_BACKUP_PATH_FILE_STR, true, cfgOptionStrNull(cfgOptRepoCipherPass), messageList);
 
         // If the main file did not error, then report on the copy's status and check checksums
         if (verifyBackupInfo.errorCode == 0)
@@ -460,7 +460,7 @@ verifyBackupInfoFile(VariantList *const errorList)
 
             // Attempt to load the copy and report on it's status but don't keep it in memory
             const VerifyInfoFile verifyBackupInfoCopy = verifyInfoFile(
-                INFO_BACKUP_PATH_FILE_COPY_STR, false, cfgOptionStrNull(cfgOptRepoCipherPass), errorList);
+                INFO_BACKUP_PATH_FILE_COPY_STR, false, cfgOptionStrNull(cfgOptRepoCipherPass), messageList);
 
             // If the copy loaded successfully, then check the checksums
             if (verifyBackupInfoCopy.errorCode == 0)
@@ -468,14 +468,14 @@ verifyBackupInfoFile(VariantList *const errorList)
                 // If the info and info.copy checksums don't match each other than one (or both) of the files could be corrupt so
                 // log a warning but must trust main
                 if (!strEq(verifyBackupInfo.checksum, verifyBackupInfoCopy.checksum))
-                    verifyErrorNew(errorList, logLevelDetail, strNewZ("backup.info.copy does not match backup.info"));
+                    verifyErrorNew(messageList, logLevelDetail, strNewZ("backup.info.copy does not match backup.info"));
             }
         }
         else
         {
             // Attempt to load the copy
             const VerifyInfoFile verifyBackupInfoCopy = verifyInfoFile(
-                INFO_BACKUP_PATH_FILE_COPY_STR, true, cfgOptionStrNull(cfgOptRepoCipherPass), errorList);
+                INFO_BACKUP_PATH_FILE_COPY_STR, true, cfgOptionStrNull(cfgOptRepoCipherPass), messageList);
 
             // If loaded successfully, then return the copy as usable
             if (verifyBackupInfoCopy.errorCode == 0)
@@ -496,7 +496,7 @@ Get the manifest file
 static Manifest *
 verifyManifestFile(
     VerifyBackupResult *const backupResult, const String *const cipherPass, bool currentBackup, const InfoPg *const pgHistory,
-    unsigned int *const jobErrorTotal, VariantList *const errorList)
+    unsigned int *const jobErrorTotal, VariantList *const messageList)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM_P(VERIFY_BACKUP_RESULT, backupResult);   // The result set for the backup being processed
@@ -504,7 +504,7 @@ verifyManifestFile(
         FUNCTION_LOG_PARAM(BOOL, currentBackup);                    // Is this possibly a backup currently in progress?
         FUNCTION_LOG_PARAM(INFO_PG, pgHistory);                     // Database history
         FUNCTION_LOG_PARAM_P(UINT, jobErrorTotal);                  // Pointer to the overall job error total
-        FUNCTION_TEST_PARAM(LIST, errorList);                       // List of errors
+        FUNCTION_TEST_PARAM(LIST, messageList);                       // List of errors
     FUNCTION_LOG_END();
 
     Manifest *result = NULL;
@@ -514,7 +514,7 @@ verifyManifestFile(
         const String *const fileName = strNewFmt(STORAGE_REPO_BACKUP "/%s/" BACKUP_MANIFEST_FILE, strZ(backupResult->backupLabel));
 
         // Get the main manifest file
-        const VerifyInfoFile verifyManifestInfo = verifyInfoFile(fileName, true, cipherPass, errorList);
+        const VerifyInfoFile verifyManifestInfo = verifyInfoFile(fileName, true, cipherPass, messageList);
 
         // If the main file did not error, then report on the copy's status and check checksums
         if (verifyManifestInfo.errorCode == 0)
@@ -528,7 +528,7 @@ verifyManifestFile(
 
             // Attempt to load the copy and report on it's status but don't keep it in memory
             const VerifyInfoFile verifyManifestInfoCopy = verifyInfoFile(
-                strNewFmt("%s%s", strZ(fileName), INFO_COPY_EXT), false, cipherPass, errorList);
+                strNewFmt("%s%s", strZ(fileName), INFO_COPY_EXT), false, cipherPass, messageList);
 
             // If the copy loaded successfully, then check the checksums
             if (verifyManifestInfoCopy.errorCode == 0)
@@ -538,7 +538,7 @@ verifyManifestFile(
                 if (!strEq(verifyManifestInfo.checksum, verifyManifestInfoCopy.checksum))
                 {
                     String *errorMsg = strNewFmt("backup '%s' manifest.copy does not match manifest", strZ(backupResult->backupLabel));
-                    verifyErrorNew(errorList, logLevelDetail, errorMsg);
+                    verifyErrorNew(messageList, logLevelDetail, errorMsg);
                 }
             }
         }
@@ -552,13 +552,13 @@ verifyManifestFile(
                 currentBackup = false;
 
                 const VerifyInfoFile verifyManifestInfoCopy = verifyInfoFile(
-                    strNewFmt("%s%s", strZ(fileName), INFO_COPY_EXT), true, cipherPass, errorList);
+                    strNewFmt("%s%s", strZ(fileName), INFO_COPY_EXT), true, cipherPass, messageList);
 
                 // If loaded successfully, then return the copy as usable
                 if (verifyManifestInfoCopy.errorCode == 0)
                 {
                     String *errorMsg = strNewFmt("%s/backup.manifest is missing or unusable, using copy", strZ(backupResult->backupLabel));
-                    verifyErrorNew(errorList, logLevelDetail, errorMsg);
+                    verifyErrorNew(messageList, logLevelDetail, errorMsg);
 
                     result = verifyManifestInfoCopy.manifest;
                 }
@@ -568,7 +568,7 @@ verifyManifestFile(
                     backupResult->status = backupMissingManifest;
 
                     String *errorMsg = strNewFmt("manifest missing for '%s' - backup may have expired", strZ(backupResult->backupLabel));
-                    verifyErrorNew(errorList, logLevelDetail, errorMsg);
+                    verifyErrorNew(messageList, logLevelDetail, errorMsg);
                 }
             }
             else
@@ -576,7 +576,7 @@ verifyManifestFile(
                 backupResult->status = backupInProgress;
 
                 String *errorMsg = strNewFmt("backup '%s' appears to be in progress, skipping", strZ(backupResult->backupLabel));
-                verifyErrorNew(errorList, logLevelInfo, errorMsg);
+                verifyErrorNew(messageList, logLevelInfo, errorMsg);
             }
         }
 
@@ -607,7 +607,7 @@ verifyManifestFile(
                     " history, skipping",
                     strZ(backupResult->backupLabel), manData->pgId, strZ(pgVersionToStr(manData->pgVersion)), manData->pgSystemId);
 
-                verifyErrorNew(errorList, logLevelInfo, errorMsg);
+                verifyErrorNew(messageList, logLevelInfo, errorMsg);
 
                 manifestFree(result);
                 result = NULL;
@@ -679,13 +679,13 @@ Populate the WAL ranges from the provided, sorted, WAL files list for a given ar
 ***********************************************************************************************************************************/
 static void
 verifyCreateArchiveIdRange(
-    const VerifyArchiveResult *const archiveIdResult, StringList *const walFileList, unsigned int *const jobErrorTotal, VariantList *const errorList)
+    const VerifyArchiveResult *const archiveIdResult, StringList *const walFileList, unsigned int *const jobErrorTotal, VariantList *const messageList)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM_P(VERIFY_ARCHIVE_RESULT, archiveIdResult);  // The result set for the archive Id being processed
         FUNCTION_TEST_PARAM(STRING_LIST, walFileList);                  // Sorted (ascending) list of WAL files in a timeline
         FUNCTION_TEST_PARAM_P(UINT, jobErrorTotal);                     // Pointer to the overall job error total
-        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);                   // List of errors that occurred during the job
+        FUNCTION_TEST_PARAM(VARIANT_LIST, messageList);                   // List of errors that occurred during the job
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_HELPER();
@@ -718,7 +718,7 @@ verifyCreateArchiveIdRange(
             if (strEq(walSegment, strSubN(strLstGet(walFileList, walFileIdx + 1), 0, WAL_SEGMENT_NAME_SIZE)))
             {
                 String *errorMsg = strNewFmt("duplicate WAL '%s' for '%s' exists, skipping", strZ(walSegment), strZ(archiveIdResult->archiveId));
-                verifyErrorNew(errorList, logLevelInfo, errorMsg);
+                verifyErrorNew(messageList, logLevelInfo, errorMsg);
 
                 (*jobErrorTotal)++;
 
@@ -986,7 +986,7 @@ verifyArchive(VerifyJobData *const jobData)
                             // log
                             archiveResult->totalWalFile += strLstSize(jobData->walFileList);
 
-                            verifyCreateArchiveIdRange(archiveResult, jobData->walFileList, &jobData->jobErrorTotal, jobData->errorList);
+                            verifyCreateArchiveIdRange(archiveResult, jobData->walFileList, &jobData->jobErrorTotal, jobData->messageList);
                         }
                     }
 
@@ -1032,7 +1032,7 @@ verifyArchive(VerifyJobData *const jobData)
                         String *errorMsg = strNewFmt(
                             "path '%s/%s' does not contain any valid WAL to be processed", strZ(archiveResult->archiveId),
                             strZ(walPath));
-                        verifyErrorNew(jobData->errorList, logLevelDetail, errorMsg);
+                        verifyErrorNew(jobData->messageList, logLevelDetail, errorMsg);
                         strLstRemoveIdx(jobData->walPathList, 0);
                     }
 
@@ -1054,7 +1054,7 @@ verifyArchive(VerifyJobData *const jobData)
             {
                 // Log that no WAL paths exist in the archive Id dir - remove the archive Id from the list (nothing to process)
                 String *errorMsg = strNewFmt("archive path '%s' is empty", strZ(strLstGet(jobData->archiveIdList, 0)));
-                verifyErrorNew(jobData->errorList, logLevelDetail, errorMsg);
+                verifyErrorNew(jobData->messageList, logLevelDetail, errorMsg);
                 strLstRemoveIdx(jobData->archiveIdList, 0);
             }
         }
@@ -1111,7 +1111,7 @@ verifyBackup(VerifyJobData *const jobData)
 
                 // Get a usable backup manifest file
                 Manifest *const manifest = verifyManifestFile(
-                    backupResult, jobData->manifestCipherPass, inProgressBackup, jobData->pgHistory, &jobData->jobErrorTotal, jobData->errorList);
+                    backupResult, jobData->manifestCipherPass, inProgressBackup, jobData->pgHistory, &jobData->jobErrorTotal, jobData->messageList);
 
                 // If a usable backup.manifest file is not found
                 if (manifest == NULL)
@@ -1301,7 +1301,7 @@ verifyBackup(VerifyJobData *const jobData)
                 // Nothing to process so report an error, free the manifest, set the status, and remove the backup from processing
                 // list
                 String *errorMsg = strNewFmt("backup '%s' manifest does not contain any target files to verify", strZ(backupResult->backupLabel));
-                verifyErrorNew(jobData->errorList, logLevelInfo, errorMsg);
+                verifyErrorNew(jobData->messageList, logLevelInfo, errorMsg);
 
                 jobData->jobErrorTotal++;
 
@@ -1392,14 +1392,14 @@ Helper function to output a log message based on job result that is not verifyOk
 ***********************************************************************************************************************************/
 static unsigned int
 verifyLogInvalidResult(
-    const String *const fileType, const VerifyResult verifyResult, const unsigned int processId, const String *const filePathName, VariantList *const errorList)
+    const String *const fileType, const VerifyResult verifyResult, const unsigned int processId, const String *const filePathName, VariantList *const messageList)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(STRING, fileType);                      // Indicates archive or backup file
         FUNCTION_TEST_PARAM(ENUM, verifyResult);                    // Result code from the verifyFile() function
         FUNCTION_TEST_PARAM(UINT, processId);                       // Process Id reporting the result
         FUNCTION_TEST_PARAM(STRING, filePathName);                  // File for which results are being reported
-        FUNCTION_TEST_PARAM(LIST, errorList);                       // List of error messages
+        FUNCTION_TEST_PARAM(LIST, messageList);                       // List of error messages
     FUNCTION_TEST_END();
 
     ASSERT(fileType != NULL);
@@ -1412,7 +1412,7 @@ verifyLogInvalidResult(
         MEM_CONTEXT_TEMP_BEGIN();
         {
             String *errorMsg = strNewFmt("%s '%s'", verifyErrorMsg(verifyResult), strZ(filePathName));
-            verifyErrorPidNew(errorList, logLevelWarn, processId, errorMsg);
+            verifyErrorPidNew(messageList, logLevelWarn, processId, errorMsg);
         }
         MEM_CONTEXT_TEMP_END();
         FUNCTION_TEST_RETURN(UINT, 0);
@@ -1421,7 +1421,7 @@ verifyLogInvalidResult(
     MEM_CONTEXT_TEMP_BEGIN();
     {
         String *errorMsg = strNewFmt("%s '%s'", verifyErrorMsg(verifyResult), strZ(filePathName));
-        verifyErrorPidNew(errorList, logLevelInfo, processId, errorMsg);
+        verifyErrorPidNew(messageList, logLevelInfo, processId, errorMsg);
     }
     MEM_CONTEXT_TEMP_END();
 
@@ -1434,7 +1434,7 @@ Helper function to set the currently processing backup label, if any, and check 
 static String *
 verifySetBackupCheckArchive(
     const StringList *const backupList, const InfoBackup *const backupInfo, const StringList *const archiveIdList,
-    const InfoPg *const pgHistory, unsigned int *const jobErrorTotal, VariantList *const errorList)
+    const InfoPg *const pgHistory, unsigned int *const jobErrorTotal, VariantList *const messageList)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(STRING_LIST, backupList);               // List of backup labels in the backup directory
@@ -1442,7 +1442,7 @@ verifySetBackupCheckArchive(
         FUNCTION_TEST_PARAM(STRING_LIST, archiveIdList);            // List of archiveIds in the archive directory
         FUNCTION_TEST_PARAM(INFO_PG, pgHistory);                    // Pointer to InfoPg of archive.info for accessing PG history
         FUNCTION_TEST_PARAM_P(UINT, jobErrorTotal);                 // Pointer to overall job error total
-        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);               // List of errors that occurred during the job
+        FUNCTION_TEST_PARAM(VARIANT_LIST, messageList);               // List of errors that occurred during the job
     FUNCTION_TEST_END();
 
     String *result = NULL;
@@ -1492,7 +1492,7 @@ verifySetBackupCheckArchive(
             if (!strEmpty(missingFromHistory))
             {
                 String *errorMsg = strNewFmt("archiveIds '%s' are not in the archive.info history list", strZ(missingFromHistory));
-                verifyErrorNew(errorList, logLevelInfo, errorMsg);
+                verifyErrorNew(messageList, logLevelInfo, errorMsg);
 
                 (*jobErrorTotal)++;
             }
@@ -1915,28 +1915,28 @@ verifyProcess(const bool verboseText)
     {
         unsigned int errorTotal = 0;
         KeyValue *resultKv = kvNew();
-        VariantList *errorList = varLstNew();
+        VariantList *messageList = varLstNew();
 
         // Get the repo storage in case it is remote and encryption settings need to be pulled down
         const Storage *const storage = storageRepo();
 
         // Get a usable backup info file
-        const InfoBackup *const backupInfo = verifyBackupInfoFile(errorList);
+        const InfoBackup *const backupInfo = verifyBackupInfoFile(messageList);
 
         // If a usable backup.info file is not found, then report an error in the log
         if (backupInfo == NULL)
         {
-            verifyMessageNew(errorList, strNewZ("No usable backup.info file"));
+            verifyMessageNew(messageList, strNewZ("No usable backup.info file"));
             errorTotal++;
         }
 
         // Get a usable archive info file
-        const InfoArchive *const archiveInfo = verifyArchiveInfoFile(errorList);
+        const InfoArchive *const archiveInfo = verifyArchiveInfoFile(messageList);
 
         // If a usable archive.info file is not found, then report an error in the log
         if (archiveInfo == NULL)
         {
-            verifyMessageNew(errorList, strNewZ("No usable archive.info file"));
+            verifyMessageNew(messageList, strNewZ("No usable archive.info file"));
             errorTotal++;
         }
 
@@ -1950,7 +1950,7 @@ verifyProcess(const bool verboseText)
             }
             CATCH_ANY()
             {
-                verifyMessageNew(errorList, strNewZ(errorMessage()));
+                verifyMessageNew(messageList, strNewZ(errorMessage()));
                 errorTotal++;
             }
             TRY_END();
@@ -1970,7 +1970,7 @@ verifyProcess(const bool verboseText)
                 .walCipherPass = infoPgCipherPass(infoArchivePg(archiveInfo)),
                 .archiveIdResultList = lstNewP(sizeof(VerifyArchiveResult), .comparator = archiveIdComparator),
                 .backupResultList = lstNewP(sizeof(VerifyBackupResult), .comparator = lstComparatorStr),
-                .errorList = errorList,
+                .messageList = messageList,
             };
 
             // Use backup label if specified via --set
@@ -1982,7 +1982,7 @@ verifyProcess(const bool verboseText)
             {
                 if (!regExpMatchOne(backupRegExpStr, backupLabel))
                 {
-                    verifyMessageNew(errorList, strNewFmt("'%s' is not a valid backup label format", strZ(backupLabel)));
+                    verifyMessageNew(messageList, strNewFmt("'%s' is not a valid backup label format", strZ(backupLabel)));
 
                     backupLabelInvalid = true;
                     errorTotal++;
@@ -2000,7 +2000,7 @@ verifyProcess(const bool verboseText)
 
             if (!backupLabelInvalid && backupLabel != NULL && strLstEmpty(jobData.backupList))
             {
-                verifyMessageNew(errorList, strNewFmt("backup set %s is not valid", strZ(backupLabel)));
+                verifyMessageNew(messageList, strNewFmt("backup set %s is not valid", strZ(backupLabel)));
 
                 backupLabelInvalid = true;
                 errorTotal++;
@@ -2027,7 +2027,7 @@ verifyProcess(const bool verboseText)
                 // distinguish between having processed all of the list or if the list was missing in the first place
                 if (strLstEmpty(jobData.archiveIdList) || strLstEmpty(jobData.backupList)){
                     String *errorMsg = strNewFmt("no %s exist in the repo", strLstEmpty(jobData.archiveIdList) ? "archives" : "backups");
-                    verifyErrorNew(errorList, logLevelDetail, errorMsg);
+                    verifyErrorNew(messageList, logLevelDetail, errorMsg);
                 }
 
                 // If there are no archives to process, then set the processing flag to skip to processing the backups
@@ -2036,7 +2036,7 @@ verifyProcess(const bool verboseText)
 
                 // Set current backup if there is one and verify the archive history on disk is in the database history
                 jobData.currentBackup = verifySetBackupCheckArchive(
-                    jobData.backupList, backupInfo, jobData.archiveIdList, jobData.pgHistory, &jobData.jobErrorTotal, errorList);
+                    jobData.backupList, backupInfo, jobData.archiveIdList, jobData.pgHistory, &jobData.jobErrorTotal, messageList);
 
                 // Create the parallel executor
                 ProtocolParallel *const parallelExec = protocolParallelNew(
@@ -2102,7 +2102,7 @@ verifyProcess(const bool verboseText)
                                     else
                                     {
                                         jobData.jobErrorTotal += verifyLogInvalidResult(
-                                            fileType, verifyResult, processId, filePathName, errorList);
+                                            fileType, verifyResult, processId, filePathName, messageList);
 
                                         // Add invalid file to the WAL range
                                         verifyAddInvalidWalFile(
@@ -2118,7 +2118,7 @@ verifyProcess(const bool verboseText)
                                     else
                                     {
                                         jobData.jobErrorTotal += verifyLogInvalidResult(
-                                            fileType, verifyResult, processId, filePathName, errorList);
+                                            fileType, verifyResult, processId, filePathName, messageList);
                                         backupResult->status = backupInvalid;
                                         verifyInvalidFileAdd(backupResult->invalidFileList, verifyResult, filePathName);
                                     }
@@ -2131,7 +2131,7 @@ verifyProcess(const bool verboseText)
                                 String *errorMsg = strNewFmt(
                                     "%s %s: [%d] %s", verifyErrorMsg(verifyOtherError), strZ(filePathName),
                                     protocolParallelJobErrorCode(job), strZ(protocolParallelJobErrorMessage(job)));
-                                verifyErrorPidNew(errorList, logLevelInfo, processId, errorMsg);
+                                verifyErrorPidNew(messageList, logLevelInfo, processId, errorMsg);
 
                                 jobData.jobErrorTotal++;
 
@@ -2175,7 +2175,7 @@ verifyProcess(const bool verboseText)
             }
             else if (!backupLabelInvalid)
             {
-                verifyMessageNew(errorList, strNewZ("no archives or backups exist in the repo"));
+                verifyMessageNew(messageList, strNewZ("no archives or backups exist in the repo"));
             }
 
             errorTotal += jobData.jobErrorTotal;
@@ -2191,11 +2191,11 @@ verifyProcess(const bool verboseText)
             for (unsigned int errIdx = 0; errIdx < varLstSize(resultMessagesList); errIdx++)
             {
                 Variant *item = varLstGet(resultMessagesList, errIdx);
-                varLstAdd(errorList, varDup(item));
+                varLstAdd(messageList, varDup(item));
             }
         }
 
-        kvPut(resultKv, KEY_MESSAGES_VAR, varNewVarLst(errorList));
+        kvPut(resultKv, KEY_MESSAGES_VAR, varNewVarLst(messageList));
 
         if (json)
         {
