@@ -264,6 +264,7 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             jsonFromVar(varNewVarLst(errorList)),
+            // {uncrustify_off - indentation}
             "["
                 "{"
                     "\"level\":5,"
@@ -274,6 +275,7 @@ testRun(void)
                     "\"message\":\"'20181119-152138F' may not be recoverable - PG data (id 1, version 9.6, system-id " HRN_PG_SYSTEMID_95_Z ") is not in the backup.info history, skipping\""
                 "}"
             "]",
+            // {uncrustify_on}
             "errorList does not match"
             );
 
@@ -317,6 +319,7 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             jsonFromVar(varNewVarLst(errorList)),
+            // {uncrustify_off - indentation}
             "["
                 "{"
                     "\"level\":5,"
@@ -328,6 +331,7 @@ testRun(void)
                     "\"message\":\"'20181119-152138F' may not be recoverable - PG data (id 1, version 9.5, system-id 0) is not in the backup.info history, skipping\""
                 "}"
             "]",
+            // {uncrustify_on}
             "errorList does not match"
             );
 
@@ -369,6 +373,7 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             jsonFromVar(varNewVarLst(errorList)),
+            // {uncrustify_off - indentation}
             "["
                 "{"
                     "\"level\":5,"
@@ -383,6 +388,7 @@ testRun(void)
                     "\"message\":\"'20181119-152138F' may not be recoverable - PG data (id 0, version 9.5, system-id " HRN_PG_SYSTEMID_95_Z ") is not in the backup.info history, skipping\""
                 "}"
             "]",
+            // {uncrustify_on}
             "errorList does not match"
             );
 
@@ -406,6 +412,7 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             jsonFromVar(varNewVarLst(errorList)),
+            // {uncrustify_off - indentation}
             "["
                 "{"
                     "\"level\":5,"
@@ -416,6 +423,7 @@ testRun(void)
                     "\"message\":\"invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:BACKUP>/20181119-152138F/backup.manifest.copy\""
                 "}"
             "]",
+            // {uncrustify_on}
             "errorList does not match"
             );
 
@@ -438,6 +446,7 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             jsonFromVar(varNewVarLst(errorList)),
+            // {uncrustify_off - indentation}
             "["
                 "{"
                     "\"level\":5,"
@@ -448,6 +457,7 @@ testRun(void)
                     "\"message\":\"invalid checksum, actual 'e056f784a995841fd4e2802b809299b8db6803a2' but expected 'BOGUS' <REPO:BACKUP>/20181119-152138F/backup.manifest.copy\""
                 "}"
             "]",
+            // {uncrustify_on}
             "errorList does not match"
             );
 
@@ -481,12 +491,14 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             jsonFromVar(varNewVarLst(errorList)),
+            // {uncrustify_off - indentation}
             "["
                 "{"
                     "\"level\":5,"
                     "\"message\":\"backup '20181119-152138F' manifest.copy does not match manifest\""
                 "}"
             "]",
+            // {uncrustify_on}
             "errorList does not match"
             );
 
@@ -731,6 +743,7 @@ testRun(void)
             0, "file missing message");
         TEST_RESULT_STR_Z(
             jsonFromVar(varNewVarLst(errorList)),
+            // {uncrustify_off - indentation}
             "["
                 "{"
                     "\"level\":4,"
@@ -742,6 +755,7 @@ testRun(void)
                     "\"pid\":0"
                 "}"
             "]",
+            // {uncrustify_on}
             "errorList does not match"
             );
 
@@ -778,6 +792,7 @@ testRun(void)
             "  archiveId: 9.6-1, total WAL checked: 1, total valid WAL: 0", "archive: no invalid file list");
         TEST_RESULT_STR_Z(
             verifyRenderJson(resultKv),
+            // {uncrustify_off - indentation}
             "{"
                 "\"archives\":["
                     "{"
@@ -796,6 +811,7 @@ testRun(void)
                     "{\"level\":5,\"message\":\"archiveId: 9.6-1, wal start: 0, wal stop: 2\"}"
                 "]"
             "}",
+            // {uncrustify_on}
             "archive: no invalid file list");
 
         VerifyInvalidFile invalidFile =
@@ -829,6 +845,7 @@ testRun(void)
         lstClear((List *)errorList);
         TEST_RESULT_STR_Z(
             verifyRenderJson(resultKv),
+            // {uncrustify_off - indentation}
             "{"
                 "\"archives\":["
                     "{"
@@ -859,6 +876,7 @@ testRun(void)
                     "{\"level\":5,\"message\":\"archiveId: 9.6-1, wal start: 0, wal stop: 2\"}"
                 "]"
             "}",
+            // {uncrustify_on}
             "archive file missing, backup file missing, no text, no verbose, json output");
 
         // -------------------------------------------------------------------------------------------------------------------------
@@ -1633,6 +1651,7 @@ testRun(void)
         // Verify text output, verbose, with verify failures
         TEST_RESULT_STR_Z(
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            // {uncrustify_off - indentation}
             "{" \
                 "\"archives\":[" \
                     "{" \
@@ -1687,6 +1706,7 @@ testRun(void)
                 "\"stanza\":\"db\"," \
                 "\"status\":\"error\"" \
             "}",
+            // {uncrustify_on}
             "JSON verbose, with failures");
         TEST_RESULT_LOG(
             "P01   INFO: invalid checksum"
@@ -2038,6 +2058,7 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            // {uncrustify_off - indentation}
             "{" \
                 "\"archives\":[]," \
                 "\"backups\":[" \
@@ -2073,6 +2094,7 @@ testRun(void)
                 "\"stanza\":\"db\"," \
                 "\"status\":\"ok\"" \
             "}",
+            // {uncrustify_on}
             "verifyProcess() JSON missing no total file verify");
 
         TEST_RESULT_LOG(
@@ -2607,6 +2629,7 @@ testRun(void)
 
         TEST_RESULT_STR_Z(
             verifyProcess(cfgOptionBool(cfgOptVerbose)),
+            // {uncrustify_off - indentation}
             "{" \
                 "\"archives\":[]," \
                 "\"backups\":[" \
@@ -2652,6 +2675,7 @@ testRun(void)
                 "\"stanza\":\"db\"," \
                 "\"status\":\"error\"" \
             "}",
+            // {uncrustify_on}
             "verifyProcess() verbose JSON");
 
         TEST_RESULT_LOG(
