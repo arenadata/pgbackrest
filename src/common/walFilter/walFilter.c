@@ -357,10 +357,17 @@ getNearWal (WalFilterState *const this, bool isNext)
 
     String *walDir = strNewFmt("%08X%08X", timeLine, (uint32) (segno / XLogSegmentsPerXLogId(this->segSize)));
 
+    const String *expression;
+    // The next file may be partial if the timeline has been switched.
+    if (isNext)
+        expression = strNewFmt("^%s(\\.partial)?-[0-f]{40}" COMPRESS_TYPE_REGEXP "{0,1}$", strZ(walName));
+    else
+        expression = strNewFmt("^%s-[0-f]{40}" COMPRESS_TYPE_REGEXP "{0,1}$", strZ(walName));
+
     const StringList *const segmentList = storageListP(
         storageRepoIdx(this->archiveInfo->repoIdx),
         strNewFmt(STORAGE_REPO_ARCHIVE "/%s/%s", strZ(this->archiveInfo->archiveId), strZ(walDir)),
-        .expression = strNewFmt("^%s-[0-f]{40}" COMPRESS_TYPE_REGEXP "{0,1}$", strZ(walName)));
+        .expression = expression);
 
     if (strLstEmpty(segmentList))
     {

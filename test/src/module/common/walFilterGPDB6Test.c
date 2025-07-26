@@ -223,6 +223,35 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
         MEM_CONTEXT_TEMP_END();
 
+        TEST_TITLE("prev file is partial");
+        MEM_CONTEXT_TEMP_BEGIN();
+        filter = walFilterNew(pgControl, &archiveInfo);
+        {
+            Buffer *zeros = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            memset(bufPtr(zeros), 0, bufUsed(zeros));
+
+            HRN_STORAGE_PUT(
+                storageRepoWrite(),
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001.partial-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                zeros);
+        }
+
+        wal2 = bufNew(1024 * 1024);
+        record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
+        hrnGpdbWalInsertXRecordP(wal2, record, NO_FLAGS, .segno = 2, .beginOffset = 132 - 8);
+        insertWalSwitchXRecord(wal2);
+
+        fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
+        result = testFilter(filter, wal2, bufSize(wal2), bufSize(wal2));
+        TEST_RESULT_BOOL(bufEq(wal2, result), true, "WAL not the same");
+
+        HRN_STORAGE_REMOVE(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001.partial-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+        archiveInfo.file = STRDEF(
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+        MEM_CONTEXT_TEMP_END();
+
         TEST_TITLE("prev file is in the another directory");
         MEM_CONTEXT_TEMP_BEGIN();
         archiveInfo.file = STRDEF(
@@ -949,7 +978,44 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
         MEM_CONTEXT_TEMP_END();
 
-        TEST_TITLE("next file in the auther directory");
+        TEST_TITLE("the next file is partial");
+        MEM_CONTEXT_TEMP_BEGIN();
+        PgControl testPgControl = pgControl;
+        testPgControl.walSegmentSize = DEFAULT_GDPB_XLOG_PAGE_SIZE;
+        filter = walFilterNew(testPgControl, &archiveInfo);
+        {
+            Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
+
+            record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
+            insertXRecord(wal1, record, 0, .beginOffset = 100);
+            fillLastPage(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE);
+
+            HRN_STORAGE_PUT(
+                storageRepoWrite(),
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001.partial-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                wal1);
+        }
+
+        wal2 = bufNew(1024 * 1024);
+        // Subtract SizeOfXLogRecord twice to leave exactly space at the end of the page for the header of the next record.
+        record = createXRecord(
+            RM_XLOG_ID,
+            XLOG_NOOP,
+            .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB6 - SizeOfXLogRecordGPDB6);
+        insertXRecord(wal2, record, NO_FLAGS);
+        record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
+        insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 1);
+
+        fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
+        result = testFilter(filter, wal2, bufSize(wal2), bufSize(wal2));
+        TEST_RESULT_BOOL(bufEq(wal2, result), true, "WAL not the same");
+
+        HRN_STORAGE_REMOVE(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001.partial-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+        MEM_CONTEXT_TEMP_END();
+
+        TEST_TITLE("next file in the another directory");
         archiveInfo.file = STRDEF("/9.4-1/0000000100000000/00000001000000000000003F-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
         MEM_CONTEXT_TEMP_BEGIN();
         filter = walFilterNew(pgControl, &archiveInfo);
