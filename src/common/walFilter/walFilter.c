@@ -40,8 +40,10 @@ typedef struct WalFilter
     uint32 segSize;
 
     bool isBegin;
+    // Are we reading remaining data of incomplete record?
     bool isReadOrphanedData;
 
+    // How many bytes of the record are in the previous file
     size_t beginOffset;
     size_t pageOffset;
     size_t inputOffset;
@@ -583,7 +585,6 @@ readOrphanedData:
                 while (this->currentPageHeader->xlp_rem_len > this->walPageSize - this->pageOffset);
                 this->isReadOrphanedData = false;
                 this->pageOffset += MAXALIGN(this->currentPageHeader->xlp_rem_len);
-                this->inputSame = true;
                 lstClearFast(this->pageHeaders);
             }
         }
