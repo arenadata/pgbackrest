@@ -497,7 +497,7 @@ testRun(void)
         insertWalSwitchXRecord(wal2);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
-        result = testFilter(filter, wal2, bufSize(wal2), bufSize(wal2));
+        result = testFilter(filter, wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         TEST_RESULT_BOOL(bufEq(wal2, result), true, "WAL not the same");
 
         HRN_STORAGE_REMOVE(
