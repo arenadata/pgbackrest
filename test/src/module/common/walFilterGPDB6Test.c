@@ -955,7 +955,7 @@ testRun(void)
 
             HRN_STORAGE_PUT(
                 storageRepoWrite(),
-                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
                 wal1);
         }
 
@@ -965,9 +965,9 @@ testRun(void)
             RM_XLOG_ID,
             XLOG_NOOP,
             .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB6 - SizeOfXLogRecordGPDB6);
-        insertXRecord(wal2, record, NO_FLAGS);
+        insertXRecord(wal2, record, NO_FLAGS, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
-        insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 1);
+        insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         result = testFilter(filter, wal2, bufSize(wal2), bufSize(wal2));
@@ -975,7 +975,7 @@ testRun(void)
 
         HRN_STORAGE_REMOVE(
             storageRepoWrite(),
-            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
         MEM_CONTEXT_TEMP_END();
 
         TEST_TITLE("the next file is partial");
@@ -1251,7 +1251,7 @@ testRun(void)
             bufResize(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
             HRN_STORAGE_PUT(
                 storageRepoWrite(),
-                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
                 wal1);
         }
 
@@ -1261,16 +1261,16 @@ testRun(void)
             RM_XLOG_ID,
             XLOG_NOOP,
             .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB6 - SizeOfXLogRecordGPDB6);
-        insertXRecord(wal2, record, NO_FLAGS);
+        insertXRecord(wal2, record, NO_FLAGS, .segno = 1);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = (DEFAULT_GDPB_XLOG_PAGE_SIZE * 2) - SizeOfXLogRecordGPDB6);
         insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 1);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
-        TEST_ERROR(testFilter(filter, wal2, bufSize(wal2), bufSize(wal2)), FormatError, "0/7fe0 - Unexpected WAL end");
+        TEST_ERROR(testFilter(filter, wal2, bufSize(wal2), bufSize(wal2)), FormatError, "0/4007fe0 - Unexpected WAL end");
 
         HRN_STORAGE_REMOVE(
             storageRepoWrite(),
-            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
         MEM_CONTEXT_TEMP_END();
 
         TEST_TITLE("usefully part of header in the next file");
@@ -1295,7 +1295,7 @@ testRun(void)
 
             HRN_STORAGE_PUT(
                 storageRepoWrite(),
-                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
                 wal1);
         }
 
@@ -1310,7 +1310,7 @@ testRun(void)
         // LPH RH   B   RH |
         record = createXRecord(
             RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB6 - 8);
-        insertXRecord(wal2, record, NO_FLAGS, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+        insertXRecord(wal2, record, NO_FLAGS, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE, .segno = 1);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
         insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
@@ -1320,7 +1320,7 @@ testRun(void)
 
         HRN_STORAGE_REMOVE(
             storageRepoWrite(),
-            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
         MEM_CONTEXT_TEMP_END();
 
         TEST_TITLE("compressed and encrypted WAL file");
