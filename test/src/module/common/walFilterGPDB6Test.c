@@ -2473,7 +2473,7 @@ testRun(void)
         TEST_TITLE("overwrite contrecord at the beginning of the next file in the second page");
         MEM_CONTEXT_TEMP_BEGIN();
         PgControl testPgControl = pgControl;
-        testPgControl.walSegmentSize = DEFAULT_GDPB_XLOG_PAGE_SIZE;
+        testPgControl.walSegmentSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2;
         RelFileNode node1 = {
             .dbNode = 30000,
             .spcNode = 1000,
@@ -2485,7 +2485,7 @@ testRun(void)
         *((RelFileNode *)bufRemainsPtr(bodyBuf)) = node1;
         bufUsedSet(bodyBuf, DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
 
-        Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
+        Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
         Buffer *wal2 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
 
         {
@@ -2496,12 +2496,12 @@ testRun(void)
             // B   - record body (var len)
             // P   - padding
             // layout of the first file:
-            // 40  32 32680 16 |
-            // LPH RH   B   RH |
-            record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 32680);
-            insertXRecord(wal1, record, NO_FLAGS, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            // 40  32 32696 |24  32728 16 |
+            // LPH RH   B   |SPH  RM   RH |
+            record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 32696 + 32728);
+            insertXRecord(wal1, record, NO_FLAGS, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
             record = createXRecord(RM6_HEAP_ID, XLOG_HEAP_INSERT, .body_size = (uint32) bufUsed(bodyBuf), .body = bufPtr(bodyBuf));
-            insertXRecord(wal1, record, INCOMPLETE_RECORD, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            insertXRecord(wal1, record, INCOMPLETE_RECORD, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
         }
 
         {
@@ -2516,9 +2516,9 @@ testRun(void)
             // LPH  RM   |SPH RH  B  RH
             // DEFAULT_GDPB_XLOG_PAGE_SIZE * 3 - 16 = 98288
             record = createXRecord(RM6_HEAP_ID, XLOG_HEAP_INSERT, .body_size = (uint32) bufUsed(bodyBuf), .body = bufPtr(bodyBuf));
-            insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 2, .beginOffset = 98288, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 2, .beginOffset = 98288, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
-            insertXRecord(wal2, record, OVERWRITE, .segno = 2, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            insertXRecord(wal2, record, OVERWRITE, .segno = 2, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
             insertWalSwitchXRecord(wal2);
             fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
             HRN_STORAGE_PUT(
