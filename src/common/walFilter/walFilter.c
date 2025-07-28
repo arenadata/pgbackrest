@@ -425,11 +425,11 @@ readBeginOfRecord(WalFilterState *const this)
     // There may be an unfinished record from the previous file at the beginning of the file. Just skip it.
     while (true)
     {
-#ifdef DEBUG
-        bool ret =
-#endif
-        getNextPage(this, buffer);
-        ASSERT(ret);
+        if (!getNextPage(this, buffer))
+        {
+            goto end;
+        }
+
         if (!(this->currentPageHeader->xlp_info & XLP_FIRST_IS_CONTRECORD) ||
             this->currentPageHeader->xlp_info & XLP_FIRST_IS_OVERWRITE_CONTRECORD)
         {
@@ -488,7 +488,8 @@ getEndOfRecord(WalFilterState *const this)
     {
         if (ioReadEof(storageReadIo(storageRead)))
         {
-            THROW_FMT(FormatError, "%s - Unexpected WAL end", strZ(pgLsnToStr(this->recPtr)));
+            getEndOfRecord(this);
+            break;
         }
 
         bufUsedZero(buffer);

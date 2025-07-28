@@ -128,6 +128,37 @@ testGetRelfilenode(uint8_t rmid, uint8_t info, bool expect_not_skip)
     memFree(record);
 }
 
+static uint32
+getRemainingLenOnPage(XLogRecordBase *record, uint32 targetPage, uint32 segSize, XLogRecPtr recPtr)
+{
+    uint32 leftLen = record->xl_tot_len;
+    uint32 pageOffset = recPtr % DEFAULT_GDPB_XLOG_PAGE_SIZE;
+    uint32 pageN = 0;
+    while (pageN != targetPage - 1)
+    {
+        uint32 spaceOnPage = DEFAULT_GDPB_XLOG_PAGE_SIZE;
+        if (pageOffset == 0)
+        {
+            if (recPtr % segSize == 0)
+            {
+                spaceOnPage -= (uint32) SizeOfXLogLongPHD;
+                recPtr += SizeOfXLogLongPHD;
+            }
+            else
+            {
+                spaceOnPage -= (uint32) SizeOfXLogShortPHD;
+                recPtr += SizeOfXLogShortPHD;
+            }
+        }
+        leftLen -= spaceOnPage;
+        recPtr += spaceOnPage;
+        pageN++;
+        pageOffset = 0;
+    }
+
+    return leftLen;
+}
+
 /***********************************************************************************************************************************
 Test Run
 ***********************************************************************************************************************************/
@@ -1265,7 +1296,7 @@ testRun(void)
         insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 1);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
-        TEST_ERROR(testFilter(filter, wal2, bufSize(wal2), bufSize(wal2)), FormatError, "0/4007fe0 - Unexpected WAL end");
+        TEST_ERROR(testFilter(filter, wal2, bufSize(wal2), bufSize(wal2)), FormatError, "The file with the end of the 0/4007fe0 record is missing");
 
         HRN_STORAGE_REMOVE(
             storageRepoWrite(),
@@ -1320,6 +1351,91 @@ testRun(void)
         HRN_STORAGE_REMOVE(
             storageRepoWrite(),
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+        MEM_CONTEXT_TEMP_END();
+
+        TEST_TITLE("WAL record larger then WAL segment");
+        // Test case when single WAL record is larger than WAL segment
+        MEM_CONTEXT_TEMP_BEGIN();
+        PgControl testPgControl = pgControl;
+        testPgControl.walSegmentSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2;
+        Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+        Buffer *wal2 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+        Buffer *wal3 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+        record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 4);
+
+        {
+            insertXRecord(
+                wal1,
+                record,
+                INCOMPLETE_RECORD,
+                .incompletePosition = 1,
+                .segno = 1,
+                .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+            HRN_STORAGE_PUT(
+                storageRepoWrite(),
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                wal1);
+        }
+
+        {
+            insertXRecord(
+                wal2,
+                record,
+                INCOMPLETE_RECORD,
+                .beginOffset = getRemainingLenOnPage(record, 3, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2, 0),
+                .incompletePosition = 1,
+                .segno = 2,
+                .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+            HRN_STORAGE_PUT(
+                storageRepoWrite(),
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                wal2);
+        }
+
+        {
+            insertXRecord(
+                wal3,
+                record,
+                NO_FLAGS,
+                .beginOffset = getRemainingLenOnPage(record, 5, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2, 0),
+                .segno = 3,
+                .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+            insertWalSwitchXRecord(wal3);
+            fillLastPage(wal3, DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            HRN_STORAGE_PUT(
+                storageRepoWrite(),
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000003-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                wal3);
+        }
+
+        {
+            filter = walFilterNew(testPgControl, &archiveInfo);
+            result = testFilter(filter, wal1, bufSize(wal1), bufSize(wal1));
+            TEST_RESULT_BOOL(bufEq(wal1, result), true, "WAL not the same");
+        }
+
+        {
+            filter = walFilterNew(testPgControl, &archiveInfo);
+            result = testFilter(filter, wal2, bufSize(wal2), bufSize(wal2));
+            TEST_RESULT_BOOL(bufEq(wal2, result), true, "WAL not the same");
+        }
+
+        {
+            filter = walFilterNew(testPgControl, &archiveInfo);
+            result = testFilter(filter, wal3, bufSize(wal3), bufSize(wal3));
+            TEST_RESULT_BOOL(bufEq(wal3, result), true, "WAL not the same");
+        }
+
+        HRN_STORAGE_REMOVE(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+        HRN_STORAGE_REMOVE(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+        HRN_STORAGE_REMOVE(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000003-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
+
         MEM_CONTEXT_TEMP_END();
 
         TEST_TITLE("compressed and encrypted WAL file");
