@@ -1297,18 +1297,20 @@ testRun(void)
                 wal1);
         }
 
-        wal2 = bufNew(1024 * 1024);
+        wal2 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
         // Subtract SizeOfXLogRecord twice to leave exactly space at the end of the page for the header of the next record.
         record = createXRecord(
             RM_XLOG_ID,
             XLOG_NOOP,
             .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE - SizeOfXLogLongPHD - SizeOfXLogRecordGPDB6 - SizeOfXLogRecordGPDB6);
-        insertXRecord(wal2, record, NO_FLAGS, .segno = 1);
+        insertXRecord(wal2, record, NO_FLAGS, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = (DEFAULT_GDPB_XLOG_PAGE_SIZE * 2) - SizeOfXLogRecordGPDB6);
-        insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 1);
+        insertXRecord(wal2, record, INCOMPLETE_RECORD, .segno = 1, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
-        TEST_ERROR(testFilter(filter, wal2, bufSize(wal2), bufSize(wal2)), FormatError, "The file with the end of the 0/4007fe0 record is missing");
+        result = testFilter(filter, wal2, bufSize(wal2), bufSize(wal2));
+        TEST_RESULT_BOOL(bufEq(wal2, result), true, "WAL not the same");
+        TEST_RESULT_LOG("P00   WARN: The file with the end of the 0/ffe0 record is missing. Has the timeline switch happened?");
 
         HRN_STORAGE_REMOVE(
             storageRepoWrite(),
