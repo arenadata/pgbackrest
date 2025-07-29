@@ -473,47 +473,38 @@ getEndOfRecord(WalFilterState *const this)
 {
     MEM_CONTEXT_TEMP_BEGIN();
 
-    const StorageRead *const storageRead = getNearWal(this, true);
+    ReadRecordStatus result = ReadRecordNeedBuffer;
 
-    if (storageRead == NULL)
+    while (result != ReadRecordSuccess)
     {
-        LOG_WARN_FMT(
-            "The file with the end of the %s record is missing. Has the timeline switch happened?", strZ(pgLsnToStr(this->recPtr)));
-        goto end;
-    }
+        const StorageRead *const storageRead = getNearWal(this, true);
 
-    ioReadOpen(storageReadIo(storageRead));
-
-    Buffer *const buffer = bufNew(this->walPageSize);
-    size_t size = ioRead(storageReadIo(storageRead), buffer);
-    bufUsedSet(buffer, size);
-    while (readRecord(this, buffer) == ReadRecordNeedBuffer)
-    {
-        if (ioReadEof(storageReadIo(storageRead)))
+        if (storageRead == NULL)
         {
-            // We need the data from the header to calculate the name of the next file. Let's keep the header in a longer-lived
-            // context.
-            MEM_CONTEXT_OBJ_BEGIN(this);
-            XLogPageHeaderData *tmpHeader = memNew(SizeOfXLogShortPHD);
-            *tmpHeader = *this->currentPageHeader;
-            this->currentPageHeader = tmpHeader;
-            MEM_CONTEXT_OBJ_END();
-
-            // We need to switch the context before entering recursion, since the number of nesting temporary memory contexts is
-            // limited.
-            ioReadClose(storageReadIo(storageRead));
-            memContextSwitchBack();
-            memContextDiscard();
-
-            getEndOfRecord(this);
-            return;
+            LOG_WARN_FMT(
+                "The file with the end of the %s record is missing. Has the timeline switch happened?",
+                strZ(pgLsnToStr(this->recPtr)));
+            goto end;
         }
 
-        bufUsedZero(buffer);
-        size = ioRead(storageReadIo(storageRead), buffer);
+        ioReadOpen(storageReadIo(storageRead));
+
+        Buffer *const buffer = bufNew(this->walPageSize);
+        size_t size = ioRead(storageReadIo(storageRead), buffer);
         bufUsedSet(buffer, size);
+        while ((result = readRecord(this, buffer)) == ReadRecordNeedBuffer)
+        {
+            if (ioReadEof(storageReadIo(storageRead)))
+            {
+                break;
+            }
+
+            bufUsedZero(buffer);
+            size = ioRead(storageReadIo(storageRead), buffer);
+            bufUsedSet(buffer, size);
+        }
+        ioReadClose(storageReadIo(storageRead));
     }
-    ioReadClose(storageReadIo(storageRead));
 end:
     MEM_CONTEXT_TEMP_END();
 }
@@ -541,7 +532,12 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         // We have an incomplete record at the end, and we have already read something
         if (this->currentStep != noStep && this->currentStep != stepBeginOfRecord)
         {
+            TRY_BEGIN()
             getEndOfRecord(this);
+            CATCH_ANY()
+            {
+            }
+            TRY_END();
             if (this->record->xl_tot_len == this->gotLen)
             {
                 this->walInterface.xLogRecordFilter(this->record);
