@@ -1274,7 +1274,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
         MEM_CONTEXT_TEMP_END();
 
-        TEST_TITLE("absent of end of record");
+        TEST_TITLE("absent of the end of record");
         MEM_CONTEXT_TEMP_BEGIN();
         filter = walFilterNew(pgControl, &archiveInfo);
         {
