@@ -488,8 +488,22 @@ getEndOfRecord(WalFilterState *const this)
     {
         if (ioReadEof(storageReadIo(storageRead)))
         {
+            // We need the data from the header to calculate the name of the next file. Let's keep the header in a longer-lived
+            // context.
+            MEM_CONTEXT_OBJ_BEGIN(this);
+            XLogPageHeaderData *tmpHeader = memNew(SizeOfXLogShortPHD);
+            *tmpHeader = *this->currentPageHeader;
+            this->currentPageHeader = tmpHeader;
+            MEM_CONTEXT_OBJ_END();
+
+            // We need to switch the context before entering recursion, since the number of nesting temporary memory contexts is
+            // limited.
+            ioReadClose(storageReadIo(storageRead));
+            memContextSwitchBack();
+            memContextDiscard();
+
             getEndOfRecord(this);
-            break;
+            return;
         }
 
         bufUsedZero(buffer);
@@ -518,9 +532,6 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
     // Avoid creating local variables before the record is fully read,
     // since if the input buffer is exhausted, we can exit the function.
 
-    if (this->isReadOrphanedData)
-        goto readOrphanedData;
-
     if (input == NULL)
     {
         // We have an incomplete record at the end, and we have already read something
@@ -536,6 +547,9 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         this->done = true;
         goto end;
     }
+
+    if (this->isReadOrphanedData)
+        goto readOrphanedData;
 
     if (this->isBegin)
     {

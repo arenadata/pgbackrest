@@ -131,12 +131,17 @@ testGetRelfilenode(uint8_t rmid, uint8_t info, bool expect_not_skip)
 static uint32
 getRemainingLenOnPage(XLogRecordBase *record, uint32 targetPage, uint32 segSize, XLogRecPtr recPtr)
 {
+    if (targetPage == 1)
+    {
+        return 0;
+    }
+
     uint32 leftLen = record->xl_tot_len;
     uint32 pageOffset = recPtr % DEFAULT_GDPB_XLOG_PAGE_SIZE;
     uint32 pageN = 0;
     while (pageN != targetPage - 1)
     {
-        uint32 spaceOnPage = DEFAULT_GDPB_XLOG_PAGE_SIZE;
+        uint32 spaceOnPage = DEFAULT_GDPB_XLOG_PAGE_SIZE - recPtr % DEFAULT_GDPB_XLOG_PAGE_SIZE;
         if (pageOffset == 0)
         {
             if (recPtr % segSize == 0)
@@ -1358,83 +1363,130 @@ testRun(void)
         MEM_CONTEXT_TEMP_BEGIN();
         PgControl testPgControl = pgControl;
         testPgControl.walSegmentSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2;
-        Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
-        Buffer *wal2 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
-        Buffer *wal3 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
-        record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 4);
+        Buffer *wals[] = {
+            bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2),
+            bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2),
+            bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2),
+            bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2),
+            bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2)
+        };
 
+        record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 9);
+
+        for (uint32 i = 0; i < LENGTH_OF(wals) - 1; i++)
         {
             insertXRecord(
-                wal1,
+                wals[i],
                 record,
                 INCOMPLETE_RECORD,
+                .beginOffset = getRemainingLenOnPage(record, i * 2 + 1, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2, 0),
                 .incompletePosition = 1,
-                .segno = 1,
+                .segno = i + 1,
                 .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+            String *walName = strNewFmt(
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/%s-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                strZ(xLogFileName(1, i + 1, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2)));
             HRN_STORAGE_PUT(
                 storageRepoWrite(),
-                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
-                wal1);
+                strZ(walName),
+                wals[i]);
         }
 
+        insertXRecord(
+            wals[4],
+            record,
+            NO_FLAGS,
+            .beginOffset = getRemainingLenOnPage(record, 9, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2, 0),
+            .segno = 5,
+            .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+        insertWalSwitchXRecord(wals[4]);
+        fillLastPage(wals[4], DEFAULT_GDPB_XLOG_PAGE_SIZE);
+        HRN_STORAGE_PUT(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000005-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+            wals[4]);
+
+        for (uint32 i = 0; i < LENGTH_OF(wals); i++)
+        {
+            filter = walFilterNew(testPgControl, &archiveInfo);
+            result = testFilter(filter, wals[i], bufSize(wals[i]), bufSize(wals[i]));
+            TEST_RESULT_BOOL(bufEq(wals[i], result), true, "WAL not the same");
+        }
+
+        for (uint32 i = 0; i < LENGTH_OF(wals); i++)
+        {
+            String *walName = strNewFmt(
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/%s-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                strZ(xLogFileName(1, i + 1, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2)));
+            HRN_STORAGE_REMOVE(storageRepoWrite(), strZ(walName));
+        }
+        MEM_CONTEXT_TEMP_END();
+
+        TEST_TITLE("read 64 next WAL files");
+        MEM_CONTEXT_TEMP_BEGIN();
+
+        // The maximum size of XLogRecord is 4 GB. Which, with a WAL segment size of 64 MB, gives somewhere between 64-65 file
+        // segments to store the maximum size record.
+        // In order not to create 4 GB of files during the tests, we simulate the same number of WAL files, but of a smaller size.
+        PgControl testPgControl = pgControl;
+        testPgControl.walSegmentSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2;
+
+        Buffer *wals[65];
+        for (uint32 i = 0; i < LENGTH_OF(wals); i++)
+        {
+            Buffer *wal = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+            wals[i] = wal;
+        }
+        record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 128);
+
+        for (uint32 i = 0; i < LENGTH_OF(wals) - 1; i++)
         {
             insertXRecord(
-                wal2,
+                wals[i],
                 record,
                 INCOMPLETE_RECORD,
-                .beginOffset = getRemainingLenOnPage(record, 3, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2, 0),
+                .beginOffset = getRemainingLenOnPage(record, i * 2 + 1, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2, 0),
                 .incompletePosition = 1,
-                .segno = 2,
+                .segno = i + 1,
                 .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+
+            String *walName = strNewFmt(
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/%s-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                strZ(xLogFileName(1, i + 1, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2)));
             HRN_STORAGE_PUT(
                 storageRepoWrite(),
-                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
-                wal2);
+                strZ(walName),
+                wals[i]);
         }
 
-        {
-            insertXRecord(
-                wal3,
-                record,
-                NO_FLAGS,
-                .beginOffset = getRemainingLenOnPage(record, 5, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2, 0),
-                .segno = 3,
-                .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
-            insertWalSwitchXRecord(wal3);
-            fillLastPage(wal3, DEFAULT_GDPB_XLOG_PAGE_SIZE);
-            HRN_STORAGE_PUT(
-                storageRepoWrite(),
-                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000003-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
-                wal3);
-        }
+        insertXRecord(
+            wals[64],
+            record,
+            NO_FLAGS,
+            .beginOffset = getRemainingLenOnPage(record, 129, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2, 0),
+            .segno = LENGTH_OF(wals) - 1,
+            .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
+        insertWalSwitchXRecord(wals[64]);
+        fillLastPage(wals[64], DEFAULT_GDPB_XLOG_PAGE_SIZE);
+        HRN_STORAGE_PUT(
+            storageRepoWrite(),
+            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000041-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+            wals[64]);
 
+        for (uint32 i = 0; i < LENGTH_OF(wals); i++)
         {
             filter = walFilterNew(testPgControl, &archiveInfo);
-            result = testFilter(filter, wal1, bufSize(wal1), bufSize(wal1));
-            TEST_RESULT_BOOL(bufEq(wal1, result), true, "WAL not the same");
+            result = testFilter(filter, wals[i], bufSize(wals[i]), bufSize(wals[i]));
+            TEST_RESULT_BOOL(bufEq(wals[i], result), true, "WAL not the same");
         }
 
+        for (uint32 i = 0; i < LENGTH_OF(wals); i++)
         {
-            filter = walFilterNew(testPgControl, &archiveInfo);
-            result = testFilter(filter, wal2, bufSize(wal2), bufSize(wal2));
-            TEST_RESULT_BOOL(bufEq(wal2, result), true, "WAL not the same");
+            String *walName = strNewFmt(
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/%s-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+                strZ(xLogFileName(1, i + 1, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2)));
+            HRN_STORAGE_REMOVE(storageRepoWrite(), strZ(walName));
         }
-
-        {
-            filter = walFilterNew(testPgControl, &archiveInfo);
-            result = testFilter(filter, wal3, bufSize(wal3), bufSize(wal3));
-            TEST_RESULT_BOOL(bufEq(wal3, result), true, "WAL not the same");
-        }
-
-        HRN_STORAGE_REMOVE(
-            storageRepoWrite(),
-            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000001-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
-        HRN_STORAGE_REMOVE(
-            storageRepoWrite(),
-            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
-        HRN_STORAGE_REMOVE(
-            storageRepoWrite(),
-            STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000003-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd");
 
         MEM_CONTEXT_TEMP_END();
 
