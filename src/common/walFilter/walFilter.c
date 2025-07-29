@@ -532,12 +532,7 @@ walFilterProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
         // We have an incomplete record at the end, and we have already read something
         if (this->currentStep != noStep && this->currentStep != stepBeginOfRecord)
         {
-            TRY_BEGIN()
             getEndOfRecord(this);
-            CATCH_ANY()
-            {
-            }
-            TRY_END();
             if (this->record->xl_tot_len == this->gotLen)
             {
                 this->walInterface.xLogRecordFilter(this->record);
