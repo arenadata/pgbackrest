@@ -459,12 +459,11 @@ filterRecordGPDB6(XLogRecordBase *const recordBase)
 
     XLogRecordGPDB6 *const record = (XLogRecordGPDB6 *const) recordBase;
 
-    if (record->xl_rmid != RM_XLOG_ID || (record->xl_info & ~XLR_INFO_MASK) != XLOG_PENDING_DELETE)
-    {
-        const RelFileNode *const node = getRelFileNode(record);
+    const RelFileNode *const node = getRelFileNode(record);
 
-        if (node == NULL || isRelationNeeded(node->dbNode, node->spcNode, node->relNode))
-            return;
+    if (node == NULL || isRelationNeeded(node->dbNode, node->spcNode, node->relNode))
+    {
+        return;
     }
 
     record->xl_rmid = RM_XLOG_ID;

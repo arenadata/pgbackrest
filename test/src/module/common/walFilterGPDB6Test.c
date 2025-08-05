@@ -2946,7 +2946,7 @@ testRun(void)
                 {RM_XLOG_ID, XLOG_NOOP,        sizeof(RelFileNode), &nodes[8]},
                 {RM6_HEAP_ID, XLOG_HEAP_INSERT, sizeof(RelFileNode), &nodes[9]},
                 {RM6_HEAP_ID, XLOG_HEAP_INSERT, sizeof(RelFileNode), &nodes[10]},
-                {RM_XLOG_ID, XLOG_NOOP,        100,                  NULL},
+                {RM_XLOG_ID,  XLOG_PENDING_DELETE, 100,              NULL},
             };
 
             buildWalP(wal, records, LENGTH_OF(records), 0);
