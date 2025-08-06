@@ -7,7 +7,7 @@ setup_environment $(basename "${0%.sh}") true
 
 # The test scenario starts here
 psql -c "create view random_array as select array_agg((random() * 100)::int) from generate_series(1, 128)a;" &
-# Сreate test tables
+# Create test tables
 psql -c "create table t1 (a int, b int[128]) distributed by(a);" &
 psql -c "create table t2 (a int, b int[128]) distributed by(a);" &
 
@@ -23,29 +23,56 @@ psql -c "insert into t2 select a, (select * from random_array) from generate_ser
 
 psql -c "insert into t4 select a, (select * from random_array) from generate_series(1, 100000)a;" &
 psql -c "insert into t5 select a, (select * from random_array) from generate_series(1, 100000)a;" &
-
 wait
 
-# Сreate backup
+# Create backup
 for i in -1 0 1 2
 do
     PGOPTIONS="-c gp_session_role=utility" pgbackrest --stanza=seg$i --type=full backup &
 done
 wait
 
+psql -c "select * from gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
+
 # Create new tables and add data to existing ones.
 psql -c "create table t3 (a int, b int[128]) distributed by(a);" &
-# Add several checkpoints inside the transaction to test the pending delete records.
-psql -c "begin; create table t6 (a int, b int[128]) with (appendoptimized=true) distributed by(a); checkpoint; commit;" &
-psql -c "begin; create table t9 (a int, b int[128]) with (appendoptimized=true, orientation=column) distributed by(a); checkpoint; commit;" &
+psql -c "create table t6 (a int, b int[128]) with (appendoptimized=true) distributed by(a);" &
+psql -c "create table t9 (a int, b int[128]) with (appendoptimized=true, orientation=column) distributed by(a);" &
 wait
-psql -c "insert into t3 select a, (select * from random_array) from generate_series(1, 100000)a;" &
+psql -c "insert into t3 select a, (select * from random_array) from generate_series(1, 100000)a;"
+
+# seg0 went down
+kill -9 $(ps aux | grep dbfast1/demoDataDir0 | grep -v grep | awk '{print $2}')
+sudo sed -i 's/dbfast1\/demoDataDir0/dbfast_mirror1\/demoDataDir0/g' /etc/pgbackrest.conf
+sudo sed -i "s/$((PGPORT+2))/$((PGPORT+5))/g" /etc/pgbackrest.conf
+psql -c "select gp_request_fts_probe_scan();"
+
 psql -c "insert into t6 select a, (select * from random_array) from generate_series(1, 100000)a;" &
 psql -c "insert into t9 select a, (select * from random_array) from generate_series(1, 100000)a;" &
+wait
+
+# seg0 went back
+gprecoverseg -a
+while [[ "$(psql -Atc "select mode from gp_segment_configuration where dbid = 5;")" != "s" ]]; do
+    sleep 1
+done
+gprecoverseg -ar
+
+sudo sed -i 's/dbfast_mirror1\/demoDataDir0/dbfast1\/demoDataDir0/g' /etc/pgbackrest.conf
+sudo sed -i "s/$((PGPORT+5))/$((PGPORT+2))/g" /etc/pgbackrest.conf
+psql -c "select gp_request_fts_probe_scan();"
 
 psql -c "insert into t1 select a, (select * from random_array) from generate_series(1, 100000)a;" &
 psql -c "insert into t2 select a, (select * from random_array) from generate_series(1, 100000)a;" &
 psql -c "insert into t4 select a, (select * from random_array) from generate_series(1, 100000)a;" &
+wait
+
+# seg2 went down
+kill -9 $(ps aux | grep dbfast2/demoDataDir1 | grep -v grep | awk '{print $2}')
+sudo sed -i 's/dbfast2\/demoDataDir1/dbfast_mirror2\/demoDataDir1/g' /etc/pgbackrest.conf
+sudo sed -i "s/$((PGPORT+3))/$((PGPORT+6))/g" /etc/pgbackrest.conf
+psql -c "select gp_request_fts_probe_scan();"
+
 psql -c "insert into t5 select a, (select * from random_array) from generate_series(1, 100000)a;" &
 psql -c "insert into t7 select a, (select * from random_array) from generate_series(1, 100000)a;" &
 psql -c "insert into t8 select a, (select * from random_array) from generate_series(1, 100000)a;" &
@@ -63,8 +90,6 @@ dump_table t7 pre &
 dump_table t9 pre &
 wait
 
-psql -c "select * from gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
-
 gpstop -a
 rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
 rm -rf "${MIRROR1:?}/"* "${MIRROR2:?}/"* "${MIRROR3:?}/"* "$DATADIR/standby/"*
@@ -73,19 +98,40 @@ rm -rf "${MIRROR1:?}/"* "${MIRROR2:?}/"* "${MIRROR3:?}/"* "$DATADIR/standby/"*
 echo "[]" >> "$PGBACKREST_TEST_DIR/$TEST_NAME/empty_filter.json"
 for i in -1 0 1 2
 do
-    pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath "$PGBACKREST_TEST_DIR/$TEST_NAME/empty_filter.json")" restore &
+    target_timeline=1
+
+    if [ $i == 0 ]; then
+      target_timeline=3
+    fi
+
+    if [ $i == 1 ]; then
+      target_timeline=2
+    fi
+
+    pgbackrest \
+     --stanza=seg$i \
+     --type=name \
+     --target=backup1 \
+     $RESTORE_OPTIONS \
+     --filter="$(realpath "$PGBACKREST_TEST_DIR/$TEST_NAME/empty_filter.json")" \
+     --target-timeline=$target_timeline \
+     restore &
 done
 wait
 
+echo "gp_dbid=6" > /home/gpadmin/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/internal.auto.conf
+echo "port=$((PGPORT+6))" >> /home/gpadmin/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/postgresql.conf
 gpstart -am
 gpinitstandby -ar
 
-PGOPTIONS="-c gp_session_role=utility" psql << EOF
-set allow_system_table_mods to true;
+PGOPTIONS="-c gp_session_role=utility" psql -c "select * from gp_segment_configuration;"
 
-update gp_segment_configuration
-set status = case when role='m' then 'd' else status end, mode = 'n'
-where content >= 0;
+PGOPTIONS="-c gp_session_role=utility" psql << EOF
+SET allow_system_table_mods to true;
+
+UPDATE gp_segment_configuration
+SET status = CASE WHEN role='m' THEN 'd' ELSE status END, mode = 'n'
+WHERE content >= 0;
 EOF
 gpstop -ra
 # Prevent sending the WAL to the archive while receiving the metadata of the tables
@@ -104,22 +150,43 @@ psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$) fro
 
 gpstop -a
 rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
+rm -rf "${MIRROR1:?}/"* "${MIRROR2:?}/"* "${MIRROR3:?}/"* "$DATADIR/standby/"*
 
 # Restore only tables t1, t3, t3 and t6
 for i in -1 0 1 2
 do
-    pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg$i.json")" restore &
+    target_timeline=1
+
+    if [ $i == 0 ]; then
+      target_timeline=3
+    fi
+
+    if [ $i == 1 ]; then
+      target_timeline=2
+    fi
+
+    pgbackrest \
+     --stanza=seg$i \
+     --type=name \
+     --target=backup1 \
+     $RESTORE_OPTIONS \
+     --filter="$(realpath "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg$i.json")" \
+     --target-timeline=$target_timeline \
+     restore &
 done
 wait
 
+echo "gp_dbid=6" > /home/gpadmin/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/internal.auto.conf
+echo "port=$((PGPORT+6))" >> /home/gpadmin/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/postgresql.conf
 gpstart -am
 gpinitstandby -ar
-PGOPTIONS="-c gp_session_role=utility" psql << EOF
-set allow_system_table_mods to true;
 
-update gp_segment_configuration
-set status = case when role='m' then 'd' else status end, mode = 'n'
-where content >= 0;
+PGOPTIONS="-c gp_session_role=utility" psql << EOF
+SET allow_system_table_mods to true;
+
+UPDATE gp_segment_configuration
+SET status = CASE WHEN role='m' THEN 'd' ELSE status END, mode = 'n'
+WHERE content >= 0;
 EOF
 gpstop -ra
 
@@ -141,6 +208,7 @@ diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t7_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NA
 diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t9_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t9_after.txt"
 
 gprecoverseg -aF
+gprecoverseg -ar
 gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby" -P $((PGPORT+1))
 
 # Checking cluster configuration after restore
