@@ -355,7 +355,7 @@ testRun(void)
         {
             wal = bufNew(1024 * 1024);
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .main_data_size = 100);
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             insertWalSwitchXRecord(wal);
             fillLastPage(wal, pgPageSize32);
         }
@@ -369,7 +369,7 @@ testRun(void)
         {
             wal = bufNew(1024 * 1024);
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .main_data_size = 500);
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             insertWalSwitchXRecord(wal);
             fillLastPage(wal, pgPageSize32);
         }
@@ -383,7 +383,7 @@ testRun(void)
         {
             wal = bufNew(1024 * 1024);
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .main_data_size = 500, .has_origin = true);
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             insertWalSwitchXRecord(wal);
             fillLastPage(wal, pgPageSize32);
         }
@@ -413,7 +413,7 @@ testRun(void)
             lstAdd(backupBlocks, &block);
 
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .backupBlocks = backupBlocks);
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             insertWalSwitchXRecord(wal);
             fillLastPage(wal, pgPageSize32);
         }
@@ -444,7 +444,7 @@ testRun(void)
             lstAdd(backupBlocks, &block);
 
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .backupBlocks = backupBlocks);
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             insertWalSwitchXRecord(wal);
             fillLastPage(wal, pgPageSize32);
         }
@@ -483,7 +483,7 @@ testRun(void)
             lstAdd(backupBlocks, &block2);
 
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .backupBlocks = backupBlocks, .main_data_size = 1000);
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             insertWalSwitchXRecord(wal);
             fillLastPage(wal, pgPageSize32);
         }
@@ -515,7 +515,7 @@ testRun(void)
             lstAdd(backupBlocks, &block);
 
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .backupBlocks = backupBlocks);
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             insertWalSwitchXRecord(wal);
             fillLastPage(wal, pgPageSize32);
         }
@@ -549,7 +549,7 @@ testRun(void)
             lstAdd(backupBlocks, &block);
 
             record = createXRecord(RM7_XACT_ID, XLOG_XACT_COMMIT, .backupBlocks = backupBlocks);
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             insertWalSwitchXRecord(wal);
             fillLastPage(wal, pgPageSize32);
         }
@@ -573,11 +573,11 @@ testRun(void)
                     sizeof(XLogRecordDataHeaderLong) -
                     8
                 );
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             record = createXRecord(RM_XLOG_ID, XLOG_XACT_COMMIT, .main_data_size = pgPageSize32 * 2);
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             record = createXRecord(RM_XLOG_ID, XLOG_XACT_COMMIT, .main_data_size = pgPageSize32 * 6);
-            insertXRecord(wal, record, 0);
+            insertXRecord(wal, record, NO_FLAGS);
             insertWalSwitchXRecord(wal);
             fillLastPage(wal, pgPageSize32);
         }

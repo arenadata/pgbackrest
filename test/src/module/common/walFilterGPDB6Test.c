@@ -194,6 +194,7 @@ fillWalWithRecords(Buffer *wal, uint32 targetOffset, uint32 segSize)
         return;
     }
 
+    ASSERT(targetOffset > bufUsed(wal));
     // We stop when we get close to the target offset by the page size.
     while (targetOffset - bufUsed(wal) > DEFAULT_GDPB_XLOG_PAGE_SIZE)
     {
@@ -311,7 +312,7 @@ testRun(void)
         archiveInfo.file = STRDEF("");
         MEM_CONTEXT_TEMP_END();
 
-        TEST_TITLE("an unfinished recprd at the beginning of the file is a wal switch");
+        TEST_TITLE("an unfinished record at the beginning of the file is a wal switch");
         MEM_CONTEXT_TEMP_BEGIN();
         filter = walFilterNew(pgControl, &archiveInfo);
         {
@@ -763,7 +764,7 @@ testRun(void)
 
         wal2 = bufNew(1024 * 1024);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
-        insertXRecord(wal2, record, 0, .segno = 2, .remLen = (DEFAULT_GDPB_XLOG_PAGE_SIZE * 2 + SizeOfXLogRecordGPDB6) - 8);
+        insertXRecord(wal2, record, NO_FLAGS, .segno = 2, .remLen = (DEFAULT_GDPB_XLOG_PAGE_SIZE * 2 + SizeOfXLogRecordGPDB6) - 8);
         insertWalSwitchXRecord(wal2);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
@@ -808,7 +809,7 @@ testRun(void)
 
         wal2 = bufNew(1024 * 1024);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
-        insertXRecord(wal2, record, 0, .segno = 2, .remLen = 132 - 8);
+        insertXRecord(wal2, record, NO_FLAGS, .segno = 2, .remLen = 132 - 8);
         insertWalSwitchXRecord(wal2);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
@@ -851,7 +852,7 @@ testRun(void)
 
         wal2 = bufNew(1024 * 1024);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
-        hrnGpdbWalInsertXRecordP(wal2, record, 0, .segno = 2, .remLen = 132 - 8);
+        hrnGpdbWalInsertXRecordP(wal2, record, NO_FLAGS, .segno = 2, .remLen = 132 - 8);
         insertWalSwitchXRecord(wal2);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
@@ -885,7 +886,7 @@ testRun(void)
         // 40  32728 |24  32744 |24  16552 32 16160 |24  32744 |24  16600 32
         // LPH  RM   |SPH  RM   |SPH  RM   RH   B   |SPH  RM   |SPH  RM   RH
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
-        insertXRecord(wal2, record, 0, .segno = 2, .remLen = 32728 + 32744 + 16552);
+        insertXRecord(wal2, record, NO_FLAGS, .segno = 2, .remLen = 32728 + 32744 + 16552);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
         insertXRecord(wal2, record, NO_FLAGS);
         insertWalSwitchXRecord(wal2);
@@ -1019,7 +1020,7 @@ testRun(void)
         insertXRecord(
             wal2,
             record,
-            0,
+            NO_FLAGS,
             .segno = 2,
             .remLen = 32728 + 32744 + 16552);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
@@ -1083,7 +1084,7 @@ testRun(void)
 
         wal2 = bufNew(1024 * 1024);
         record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
-        insertXRecord(wal2, record, 0, .segno = 2, .remLen = 132 - 8);
+        insertXRecord(wal2, record, NO_FLAGS, .segno = 2, .remLen = 132 - 8);
         insertWalSwitchXRecord(wal2);
 
         fillLastPage(wal2, DEFAULT_GDPB_XLOG_PAGE_SIZE);
@@ -1148,7 +1149,7 @@ testRun(void)
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
-            insertXRecord(wal1, record, 0, .remLen = 100);
+            insertXRecord(wal1, record, NO_FLAGS, .remLen = 100);
             fillLastPage(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             HRN_STORAGE_PUT(
@@ -1185,7 +1186,7 @@ testRun(void)
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             record = createXRecord(RM_XLOG_ID, XLOG_SWITCH);
-            insertXRecord(wal1, record, 0, .remLen = SizeOfXLogRecordGPDB6 - 16);
+            insertXRecord(wal1, record, NO_FLAGS, .remLen = SizeOfXLogRecordGPDB6 - 16);
             fillLastPage(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             HRN_STORAGE_PUT(
@@ -1221,7 +1222,7 @@ testRun(void)
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
-            insertXRecord(wal1, record, 0, .remLen = 100);
+            insertXRecord(wal1, record, NO_FLAGS, .remLen = 100);
             fillLastPage(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             HRN_STORAGE_PUT(
@@ -1274,7 +1275,7 @@ testRun(void)
             insertXRecord(
                 wal1,
                 record,
-                0,
+                NO_FLAGS,
                 .remLen = getRemainingLenOnPage(record, 2, DEFAULT_GDPB_XLOG_PAGE_SIZE, recordLsn),
                 .segno = 2,
                 .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
@@ -1290,7 +1291,7 @@ testRun(void)
             insertXRecord(
                 wal1_partial,
                 record,
-                0,
+                NO_FLAGS,
                 .remLen = getRemainingLenOnPage(record, 2, DEFAULT_GDPB_XLOG_PAGE_SIZE, recordLsn),
                 .segno = 2,
                 .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
@@ -1381,7 +1382,7 @@ testRun(void)
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
-            insertXRecord(wal1, record, 0, .remLen = 100, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            insertXRecord(wal1, record, NO_FLAGS, .remLen = 100, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
             fillLastPage(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             Buffer *zeros = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
@@ -1469,7 +1470,7 @@ testRun(void)
 
             record = createXRecord(
                 RM_XLOG_ID, XLOG_NOOP, .body_size = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2 - SizeOfXLogRecordGPDB6);
-            insertXRecord(wal1, record, 0, .remLen = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2 - SizeOfXLogRecordGPDB6, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
+            insertXRecord(wal1, record, NO_FLAGS, .remLen = DEFAULT_GDPB_XLOG_PAGE_SIZE * 2 - SizeOfXLogRecordGPDB6, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
             fillLastPage(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             HRN_STORAGE_PUT(
@@ -1513,7 +1514,7 @@ testRun(void)
             // 40  32 32696 |24  72 32 32640 |24 32744
             // LPH RH   B   |SPH B  RH   B   |PH   B
             // DEFAULT_GDPB_XLOG_PAGE_SIZE * 4 - 32640 - 32744 = 65688
-            insertXRecord(wal1, record, 0, .remLen = 65688, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
+            insertXRecord(wal1, record, NO_FLAGS, .remLen = 65688, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
             fillLastPage(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             HRN_STORAGE_PUT(
@@ -1545,7 +1546,7 @@ testRun(void)
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE * 3);
 
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = (DEFAULT_GDPB_XLOG_PAGE_SIZE * 2) - SizeOfXLogRecordGPDB6);
-            insertXRecord(wal1, record, 0, .remLen = (DEFAULT_GDPB_XLOG_PAGE_SIZE * 2) - SizeOfXLogRecordGPDB6);
+            insertXRecord(wal1, record, NO_FLAGS, .remLen = (DEFAULT_GDPB_XLOG_PAGE_SIZE * 2) - SizeOfXLogRecordGPDB6);
             fillLastPage(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE);
             bufResize(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE * 2);
             HRN_STORAGE_PUT(
@@ -1591,7 +1592,7 @@ testRun(void)
             // 40  124
             // LPH  RM
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
-            insertXRecord(wal1, record, 0, .remLen = 124, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            insertXRecord(wal1, record, NO_FLAGS, .remLen = 124, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
             fillLastPage(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             HRN_STORAGE_PUT(
@@ -1856,7 +1857,7 @@ testRun(void)
             Buffer *wal1 = bufNew(DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
-            insertXRecord(wal1, record, 0, .remLen = 100, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            insertXRecord(wal1, record, NO_FLAGS, .remLen = 100, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
             fillLastPage(wal1, DEFAULT_GDPB_XLOG_PAGE_SIZE);
 
             HRN_STORAGE_PUT(
@@ -2189,7 +2190,7 @@ testRun(void)
             wal = bufNew(1024 * 1024);
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = 100);
 
-            hrnGpdbWalInsertXRecordP(wal, record, 0, .magic = 0xDEAD);
+            hrnGpdbWalInsertXRecordP(wal, record, NO_FLAGS, .magic = 0xDEAD);
             fillLastPage(wal, DEFAULT_GDPB_XLOG_PAGE_SIZE);
         }
         TEST_ERROR(testFilter(filter, wal, bufSize(wal), bufSize(wal)), FormatError, "0/0 - wrong page magic");
@@ -2704,7 +2705,7 @@ testRun(void)
             // 32 + 12 = 44
             // 44 - 8 = 36
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = sizeof(node2), .body = &node2);
-            insertXRecord(wal4, record, 0, .remLen = 36, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            insertXRecord(wal4, record, NO_FLAGS, .remLen = 36, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
             HRN_STORAGE_PUT(
                 storageRepoWrite(),
                 STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000003-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
@@ -2723,7 +2724,7 @@ testRun(void)
             // 40  36 4 32 32644 4 8  |
             // LPH RM P RH   B   P RH |
             record = createXRecord(RM6_HEAP_ID, XLOG_HEAP_INSERT, .body_size = sizeof(node1), .body = &node1);
-            insertXRecord(wal2, record, 0, .segno = 2, .remLen = (sizeof(node1) + SizeOfXLogRecordGPDB6) - 8, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            insertXRecord(wal2, record, NO_FLAGS, .segno = 2, .remLen = (sizeof(node1) + SizeOfXLogRecordGPDB6) - 8, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
             record = createXRecord(
                 RM_XLOG_ID,
                 XLOG_NOOP,
@@ -2752,7 +2753,7 @@ testRun(void)
             // 40  36 4 32 32644 4 8  |
             // LPH RM P RH   B   P RH |
             record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = sizeof(node1), .body = &node1);
-            insertXRecord(wal3, record, 0, .segno = 2, .remLen = (sizeof(node1) + SizeOfXLogRecordGPDB6) - 8, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
+            insertXRecord(wal3, record, NO_FLAGS, .segno = 2, .remLen = (sizeof(node1) + SizeOfXLogRecordGPDB6) - 8, .segSize = DEFAULT_GDPB_XLOG_PAGE_SIZE);
             record = createXRecord(
                 RM_XLOG_ID,
                 XLOG_NOOP,
@@ -3342,7 +3343,7 @@ testRun(void)
     if (testBegin("brute force test"))
     {
         HRN_STORAGE_PUT_Z(storageTest, "recovery_filter.json", "[]");
-        const uint32 recordBodySizeSize = 128 * 1024;
+        const uint32 recordBodySize = 128 * 1024;
         const uint32 walSize = 512 * 1024;
         const PgControl pgControl = {
             .version = PG_VERSION_94,
@@ -3359,7 +3360,7 @@ testRun(void)
         };
         Buffer *wal = bufNew(walSize);
         srand(123);
-        record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = recordBodySizeSize);
+        record = createXRecord(RM_XLOG_ID, XLOG_NOOP, .body_size = recordBodySize);
 
         for (uint32 offset = 0; offset <= DEFAULT_GDPB_XLOG_PAGE_SIZE * 2; offset += MAXIMUM_ALIGNOF)
         {
