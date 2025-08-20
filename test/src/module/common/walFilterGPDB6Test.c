@@ -210,6 +210,7 @@ fillWalWithRecords(Buffer *wal, uint32 targetOffset, uint32 segSize)
         insertXRecord(wal,record, NO_FLAGS, .segno = 1, .segSize = segSize);
     }
 
+    ASSERT(bufUsed(wal) + SizeOfXLogRecordGPDB6 < targetOffset);
     uint32 bodySize = (uint32) (targetOffset - bufUsed(wal) - SizeOfXLogRecordGPDB6);
     // If we are at the beginning of the page, we need to take into account its header.
     if (bufUsed(wal) % DEFAULT_GDPB_XLOG_PAGE_SIZE == 0)

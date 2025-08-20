@@ -1,5 +1,5 @@
 function setup_environment {
-    export PGBACKREST_TEST_DIR=/home/gpadmin/test_pgbackrest
+    export TEST_DIR=/home/gpadmin/test_pgbackrest
 
     # Starting up demo cluster
     source "/usr/local/greenplum-db-devel/greenplum_path.sh"
@@ -10,8 +10,8 @@ function setup_environment {
 
     # Creating backup and log directories for pgbackrest
     export TEST_NAME=$1
-    mkdir -p "$PGBACKREST_TEST_DIR/logs/$TEST_NAME"
-    mkdir -p "$PGBACKREST_TEST_DIR/$TEST_NAME"
+    mkdir -p "$TEST_DIR/logs/$TEST_NAME"
+    mkdir -p "$TEST_DIR/$TEST_NAME"
     export DATADIR="${MASTER_DATA_DIRECTORY%*/*/*}"
     export MASTER=${DATADIR}/qddir/demoDataDir-1
     export PRIMARY1=${DATADIR}/dbfast1/demoDataDir0
@@ -43,8 +43,8 @@ pg1-path=$PRIMARY3
 pg1-port=$((PGPORT+4))
 
 [global]
-repo1-path=$PGBACKREST_TEST_DIR/$TEST_NAME
-log-path=$PGBACKREST_TEST_DIR/logs/$TEST_NAME
+repo1-path=$TEST_DIR/$TEST_NAME
+log-path=$TEST_DIR/logs/$TEST_NAME
 start-fast=y
 fork=GPDB
 EOF
@@ -85,5 +85,5 @@ EOF
 }
 
 function dump_table {
-    psql -Atc "select * from $1 order by a, b;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/$1_$2.txt"
+    psql -Atc "select * from $1 order by a, b;" -o "$TEST_DIR/$TEST_NAME/$1_$2.txt"
 }

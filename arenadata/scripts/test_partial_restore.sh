@@ -85,7 +85,7 @@ dump_table t7 pre &
 dump_table t9 pre &
 wait
 
-psql -c "select * from gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
+psql -c "select * from gp_segment_configuration order by dbid" -o "$TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
 
 # Step 6
 gpstop -a
@@ -94,10 +94,10 @@ rm -rf "${MIRROR1:?}/"* "${MIRROR2:?}/"* "${MIRROR3:?}/"* "$DATADIR/standby/"*
 
 # Step 7
 # Restore the cluster without data to get metadata
-echo "[]" > "$PGBACKREST_TEST_DIR/$TEST_NAME/empty_filter.json"
+echo "[]" > "$TEST_DIR/$TEST_NAME/empty_filter.json"
 for i in -1 0 1 2
 do
-    pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath "$PGBACKREST_TEST_DIR/$TEST_NAME/empty_filter.json")" restore &
+    pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath "$TEST_DIR/$TEST_NAME/empty_filter.json")" restore &
 done
 wait
 
@@ -123,10 +123,10 @@ $(cat /home/gpadmin/pgbackrest/arenadata/scripts/helpers/partial_restore_helper.
 
 # Step 8
 # Dump metadata
-psql -Atc "select * from table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$)" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg-1.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 0;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg0.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 1;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg1.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 2;" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg2.json"
+psql -Atc "select * from table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$)" -o "$TEST_DIR/$TEST_NAME/filter_seg-1.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 0;" -o "$TEST_DIR/$TEST_NAME/filter_seg0.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 1;" -o "$TEST_DIR/$TEST_NAME/filter_seg1.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 2;" -o "$TEST_DIR/$TEST_NAME/filter_seg2.json"
 
 # Step 9
 gpstop -a
@@ -136,7 +136,7 @@ rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
 # Restore only tables t1, t3, t4, t6, t7 and t9
 for i in -1 0 1 2
 do
-    pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath "$PGBACKREST_TEST_DIR/$TEST_NAME/filter_seg$i.json")" restore &
+    pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath "$TEST_DIR/$TEST_NAME/filter_seg$i.json")" restore &
 done
 wait
 
@@ -164,12 +164,12 @@ wait
 
 # Step 11
 # Verify data integrity.
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_after.txt"
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t3_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t3_after.txt"
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t4_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t4_after.txt"
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t6_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t6_after.txt"
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t7_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t7_after.txt"
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t9_pre.txt" "$PGBACKREST_TEST_DIR/$TEST_NAME/t9_after.txt"
+diff "$TEST_DIR/$TEST_NAME/t1_pre.txt" "$TEST_DIR/$TEST_NAME/t1_after.txt"
+diff "$TEST_DIR/$TEST_NAME/t3_pre.txt" "$TEST_DIR/$TEST_NAME/t3_after.txt"
+diff "$TEST_DIR/$TEST_NAME/t4_pre.txt" "$TEST_DIR/$TEST_NAME/t4_after.txt"
+diff "$TEST_DIR/$TEST_NAME/t6_pre.txt" "$TEST_DIR/$TEST_NAME/t6_after.txt"
+diff "$TEST_DIR/$TEST_NAME/t7_pre.txt" "$TEST_DIR/$TEST_NAME/t7_after.txt"
+diff "$TEST_DIR/$TEST_NAME/t9_pre.txt" "$TEST_DIR/$TEST_NAME/t9_after.txt"
 
 # Step 12
 gprecoverseg -aF
@@ -177,5 +177,5 @@ gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby" -P $((PGPORT+1))
 
 # Step 13
 # Checking cluster configuration after restore
-psql -c "select * from gp_segment_configuration order by dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out" "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
+psql -c "select * from gp_segment_configuration order by dbid" -o "$TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
+diff "$TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out" "$TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"

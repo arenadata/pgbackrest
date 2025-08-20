@@ -12,7 +12,7 @@ createdb
 psql -c "CREATE TABLE t1 AS SELECT id, 'text'||id AS text FROM generate_series(1,30) id DISTRIBUTED BY (id);"
 
 # Saving cluster configuration status
-psql -c "SELECT * FROM gp_segment_configuration ORDER BY dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
+psql -c "SELECT * FROM gp_segment_configuration ORDER BY dbid" -o "$TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out"
 
 # Creating full backup on master and seg0
 for i in -1 0
@@ -23,7 +23,7 @@ wait
 
 # Checking the presence of first backup
 function check_backup(){
-    segment_backup_dir=$PGBACKREST_TEST_DIR/$TEST_NAME/backup/seg$1
+    segment_backup_dir=$TEST_DIR/$TEST_NAME/backup/seg$1
     current_date=$(date +%Y%m%d)
         
     if [[ -z $(find "$segment_backup_dir" -maxdepth 1 -type d -name "${current_date}-??????F" -not -empty ) ]];
@@ -40,13 +40,13 @@ done
 psql -c "CREATE TABLE t2 AS SELECT id, 'text'||id AS text FROM generate_series(1,30) id DISTRIBUTED BY (id);"
 
 psql -c "SELECT * FROM t2 ORDER BY id;" \
--o "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_original.out"
+-o "$TEST_DIR/$TEST_NAME/t2_rows_original.out"
 
 # Filling the first table with more data at seg0 after the first backup
 psql -c "INSERT INTO t1 SELECT 3, 'text'||i FROM generate_series(1,10) i;"
 
 psql -c "SELECT * FROM t1 ORDER BY id;" \
--o "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_original.out"
+-o "$TEST_DIR/$TEST_NAME/t1_rows_original.out"
 
 # Creating full backup on seg1 and seg2
 for i in 1 2
@@ -106,17 +106,17 @@ gprecoverseg -aF
 gpinitstandby -as "$HOSTNAME" -S "$DATADIR/standby" -P $((PGPORT+1))
 
 # Checking cluster configuration after restore
-psql -c "SELECT * FROM gp_segment_configuration ORDER BY dbid" -o "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
+psql -c "SELECT * FROM gp_segment_configuration ORDER BY dbid" -o "$TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
 
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out" "$PGBACKREST_TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
+diff "$TEST_DIR/$TEST_NAME/gp_segment_conf_expected.out" "$TEST_DIR/$TEST_NAME/gp_segment_conf_result.out"
 
 # Checking data integrity
 psql -c "SELECT * FROM t1 ORDER BY id;" \
--o "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_restored.out"
+-o "$TEST_DIR/$TEST_NAME/t1_rows_restored.out"
 
 psql -c "SELECT * FROM t2 ORDER BY id;" \
--o "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_restored.out"
+-o "$TEST_DIR/$TEST_NAME/t2_rows_restored.out"
 
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_original.out" "$PGBACKREST_TEST_DIR/$TEST_NAME/t1_rows_restored.out"
+diff "$TEST_DIR/$TEST_NAME/t1_rows_original.out" "$TEST_DIR/$TEST_NAME/t1_rows_restored.out"
 
-diff "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_original.out" "$PGBACKREST_TEST_DIR/$TEST_NAME/t2_rows_restored.out"
+diff "$TEST_DIR/$TEST_NAME/t2_rows_original.out" "$TEST_DIR/$TEST_NAME/t2_rows_restored.out"
