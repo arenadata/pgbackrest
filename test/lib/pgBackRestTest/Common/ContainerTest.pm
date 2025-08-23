@@ -496,10 +496,10 @@ sub containerBuild
                 if (vmPgRepo($strVm))
                 {
                     $strScript .=
-                        "    echo \"deb http://apt" . ($strVm eq VM_U20 ? '-archive' : '') . ".postgresql.org/pub/repos/apt/ \$(lsb_release -s -c)-pgdg main" .
-                            "\" >> /etc/apt/sources.list.d/pgdg.list && \\\n" .
-                        "    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \\\n" .
-                        "    apt-get update && \\\n";
+                        "    apt-get install -y --no-install-recommends postgresql-common && \\\n" .
+                        "    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y" .
+                            ($strOS eq VM_U22 && ($strArch eq VM_ARCH_AARCH64 || $strArch eq VM_ARCH_X86_64) ? ' -c 18' : '') .
+                            " && \\\n";
                 }
 
                 $strScript .=
@@ -508,7 +508,7 @@ sub containerBuild
                         "/etc/postgresql-common/createcluster.conf";
             }
 
-            if (defined($oOS->{&VM_DB}) && @{$oOS->{&VM_DB}} > 0)
+            if (defined($oOS->{&VM_DB}) && @{$oOS->{&VM_DB}} > 0 && ($strArch eq VM_ARCH_AARCH64 || $strArch eq VM_ARCH_X86_64))
             {
                 $strScript .= sectionHeader() .
                     "# Install PostgreSQL\n";
