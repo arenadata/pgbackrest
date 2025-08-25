@@ -586,7 +586,7 @@ verifyUpdateWalFilesMissing(
 
             // We do not process backups from the wrong timeline
             bool wrongTimeline = false;
-            if (missingStart || missingStop)
+            if (missingStart != NULL || missingStop != NULL)
             {
                 const String *const anyMissing = missingStart ? missingStart : missingStop;
                 const String *const missingTimeline = strSubN(anyMissing, 0, 8);
