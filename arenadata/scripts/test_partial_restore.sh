@@ -58,7 +58,8 @@ psql -c "create table t3 (a int, b int[128]) distributed by(a);" &
 # Add several checkpoints inside the transaction to test the pending delete records.
 psql -c "begin; create table t6 (a int, b int[128]) with (appendoptimized=true) distributed by(a); checkpoint; commit;" &
 psql -c "begin; create table t9 (a int, b int[128]) with (appendoptimized=true, orientation=column) distributed by(a); checkpoint; commit;" &
-psql -c "create table tp1 (a int, b int) distributed by(a) partition by range (a) (start (0) end (1) EVERY (1) );"
+psql -c "CREATE TABLE tp1 (a int, b int, c int) DISTRIBUTED BY (a) PARTITION BY LIST (a) SUBPARTITION BY LIST (b)
+  SUBPARTITION TEMPLATE ( SUBPARTITION prt1 VALUES (1)) (PARTITION ptr1 VALUES (1));" &
 wait
 psql -c "insert into t3 select a, (select * from random_array) from generate_series(1, 100000)a;" &
 psql -c "insert into t6 select a, (select * from random_array) from generate_series(1, 100000)a;" &
@@ -70,7 +71,7 @@ psql -c "insert into t4 select a, (select * from random_array) from generate_ser
 psql -c "insert into t5 select a, (select * from random_array) from generate_series(1, 100000)a;" &
 psql -c "insert into t7 select a, (select * from random_array) from generate_series(1, 100000)a;" &
 psql -c "insert into t8 select a, (select * from random_array) from generate_series(1, 100000)a;" &
-psql -c "insert into tp1 select 0, a from generate_series(1, 100000)a;" &
+psql -c "insert into tp1 select 1, 1, a from generate_series(1, 100000)a;" &
 wait
 
 # Step 4
@@ -126,10 +127,10 @@ $(cat /home/gpadmin/pgbackrest/arenadata/scripts/helpers/partial_restore_helper.
 
 # Step 8
 # Dump metadata
-psql -Atc "select * from table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_1'\$\$)" -o "$TEST_DIR/$TEST_NAME/filter_seg-1.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_1'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 0;" -o "$TEST_DIR/$TEST_NAME/filter_seg0.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_1'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 1;" -o "$TEST_DIR/$TEST_NAME/filter_seg1.json"
-psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_1'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 2;" -o "$TEST_DIR/$TEST_NAME/filter_seg2.json"
+psql -Atc "select * from table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_ptr1','tp1_1_prt_ptr1_2_prt_prt1'\$\$)" -o "$TEST_DIR/$TEST_NAME/filter_seg-1.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_ptr1','tp1_1_prt_ptr1_2_prt_prt1'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 0;" -o "$TEST_DIR/$TEST_NAME/filter_seg0.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_ptr1','tp1_1_prt_ptr1_2_prt_prt1'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 1;" -o "$TEST_DIR/$TEST_NAME/filter_seg1.json"
+psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_ptr1','tp1_1_prt_ptr1_2_prt_prt1'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 2;" -o "$TEST_DIR/$TEST_NAME/filter_seg2.json"
 cat "$TEST_DIR/$TEST_NAME/filter_seg-1.json"
 cat "$TEST_DIR/$TEST_NAME/filter_seg0.json"
 cat "$TEST_DIR/$TEST_NAME/filter_seg1.json"
