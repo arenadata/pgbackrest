@@ -130,13 +130,17 @@ psql -Atc "select * from table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','
 psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_1'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 0;" -o "$TEST_DIR/$TEST_NAME/filter_seg0.json"
 psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_1'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 1;" -o "$TEST_DIR/$TEST_NAME/filter_seg1.json"
 psql -Atc "select table_metadata_dump(\$\$'t1','t3','t4','t6','t7','t9','tp1','tp1_1_prt_1'\$\$) from gp_dist_random(\$\$gp_id\$\$) where gp_segment_id = 2;" -o "$TEST_DIR/$TEST_NAME/filter_seg2.json"
+cat "$TEST_DIR/$TEST_NAME/filter_seg-1.json"
+cat "$TEST_DIR/$TEST_NAME/filter_seg0.json"
+cat "$TEST_DIR/$TEST_NAME/filter_seg1.json"
+cat "$TEST_DIR/$TEST_NAME/filter_seg2.json"
 
 # Step 9
 gpstop -a
 rm -rf "${MASTER:?}/"* "${PRIMARY1:?}/"* "${PRIMARY2:?}/"* "${PRIMARY3:?}/"*
 
 # Step 10
-# Restore only tables t1, t3, t4, t6, t7 and t9
+# Restore only tables t1, t3, t4, t6, t7, t9 and tp1
 for i in -1 0 1 2
 do
     pgbackrest --stanza=seg$i --type=name --target=backup1 $RESTORE_OPTIONS --filter="$(realpath "$TEST_DIR/$TEST_NAME/filter_seg$i.json")" restore &
@@ -174,6 +178,7 @@ diff "$TEST_DIR/$TEST_NAME/t4_pre.txt" "$TEST_DIR/$TEST_NAME/t4_after.txt"
 diff "$TEST_DIR/$TEST_NAME/t6_pre.txt" "$TEST_DIR/$TEST_NAME/t6_after.txt"
 diff "$TEST_DIR/$TEST_NAME/t7_pre.txt" "$TEST_DIR/$TEST_NAME/t7_after.txt"
 diff "$TEST_DIR/$TEST_NAME/t9_pre.txt" "$TEST_DIR/$TEST_NAME/t9_after.txt"
+diff "$TEST_DIR/$TEST_NAME/tp1_pre.txt" "$TEST_DIR/$TEST_NAME/tp1_after.txt"
 
 # Step 12
 gprecoverseg -aF
