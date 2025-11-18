@@ -507,11 +507,12 @@ sub containerBuild
                         "/etc/postgresql-common/createcluster.conf";
             }
 
+            $strScript .= "# Arch = " . vmArch($strOS);
             if (defined($oOS->{&VM_DB}) && @{$oOS->{&VM_DB}} > 0 &&
                 vmArch($strOS) eq VM_ARCH_AMD64)
             {
                 $strScript .= sectionHeader() .
-                    "# Install PostgreSQL\n" . vmArch($strOS);
+                    "# Install PostgreSQL\n";
 
                 if ($$oVm{$strOS}{&VM_OS_BASE} eq VM_OS_BASE_RHEL)
                 {
