@@ -507,7 +507,7 @@ sub containerBuild
                         "/etc/postgresql-common/createcluster.conf";
             }
 
-            $strScript .= "# Arch = " . vmArch($strOS);
+            $strScript .= sectionHeader() . "# Arch = " . vmArch($strOS);
             if (defined($oOS->{&VM_DB}) && @{$oOS->{&VM_DB}} > 0 &&
                 vmArch($strOS) eq VM_ARCH_AMD64)
             {
