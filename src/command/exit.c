@@ -113,13 +113,6 @@ exitSafe(int result, const bool error, const SignalType signalType)
         FUNCTION_LOG_PARAM(ENUM, signalType);
     FUNCTION_LOG_END();
 
-    // Release any locks but ignore errors
-    TRY_BEGIN()
-    {
-        cmdLockReleaseP(.returnOnNoLock = true);
-    }
-    TRY_END();
-
     // Report error if one was thrown
     if (error)
     {
@@ -171,6 +164,13 @@ exitSafe(int result, const bool error, const SignalType signalType)
         cmdEnd(result, errorMessage);
         strFree(errorMessage);
     }
+
+    // Release any locks but ignore errors
+    TRY_BEGIN()
+    {
+        cmdLockReleaseP(.returnOnNoLock = true);
+    }
+    TRY_END();
 
     // Return result - caller should immediate pass this result to exit()
     FUNCTION_LOG_RETURN(INT, result);
