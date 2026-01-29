@@ -107,6 +107,14 @@ command:
     log-level-default: DEBUG
     parameter-allowed: true
 
+  repo-push:
+    command-role:
+      remote: {}
+    internal: true
+    log-file: false
+    log-level-default: DEBUG
+    parameter-allowed: true
+
   repo-put:
     command-role:
       remote: {}
@@ -392,6 +400,8 @@ option:
       manifest:
         default: latest
         required: true
+      repo-push:
+        required: true
       restore:
         default: latest
         required: true
@@ -424,6 +434,8 @@ option:
       repo-get:
         required: false
       repo-ls:
+        required: false
+      repo-push:
         required: false
       repo-put:
         required: false
@@ -572,6 +584,7 @@ option:
       manifest: {}
       repo-get: {}
       repo-ls: {}
+      repo-push: {}
       repo-put: {}
       repo-rm: {}
       restore: {}
@@ -614,6 +627,7 @@ option:
       manifest: {}
       repo-get: {}
       repo-ls: {}
+      repo-push: {}
       repo-put: {}
       repo-rm: {}
       restore: {}
@@ -633,7 +647,7 @@ option:
     required: false
     command:
       repo-get: {}
-      repo-put: {}
+      repo-put: {}      
     command-role:
       main: {}
 
@@ -785,6 +799,7 @@ option:
     command:
       archive-push: {}
       backup: {}
+      repo-push: {}
     command-role:
       main: {}
 
@@ -1731,6 +1746,9 @@ option:
         command-role:
           main: {}
           remote: {}
+      repo-push:
+        command-role:
+          main: {}
       repo-put:
         command-role:
           main: {}
