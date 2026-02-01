@@ -11,34 +11,64 @@ Repository Put Command
 #include "common/io/fdRead.h"
 #include "common/io/io.h"
 #include "common/log.h"
+#include "common/compress/helper.h"
 #include "common/memContext.h"
 #include "config/config.h"
 #include "storage/helper.h"
+
+static String *
+composeDestinationPath(const String *source)
+{
+    FUNCTION_LOG_BEGIN(logLevelDebug);
+        FUNCTION_LOG_PARAM(STRING, source);
+    FUNCTION_LOG_END();
+
+    FUNCTION_LOG_RETURN(STRING, strNewFmt("%s", strZ(source)));
+}
 
 /***********************************************************************************************************************************
 Write source IO to destination file
 ***********************************************************************************************************************************/
 static void
-storagePushProcess(IoRead *source)
+storagePushProcess(const String *file, CompressType compressType, int compressLevel)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
-        FUNCTION_LOG_PARAM(IO_READ, source);
+        FUNCTION_LOG_PARAM(STRING, file);
+        FUNCTION_LOG_PARAM(ENUM, compressType);
+        FUNCTION_LOG_PARAM(INT, compressLevel);
     FUNCTION_LOG_END();
 
-    // Get destination file
-    const String *file = NULL;
+    // Ensure that the file exists and readable
 
-    if (strLstSize(cfgCommandParam()) == 1)
-        file = strLstGet(cfgCommandParam(), 0);
-    else
-        THROW(ParamRequiredError, "metadata file required");
+    // Normalize source file path
+    // Get current working dir
+    char currentWorkDir[1024];
+    THROW_ON_SYS_ERROR(getcwd(currentWorkDir, sizeof(currentWorkDir)) == NULL, FormatError, "unable to get cwd");
+
+    // TODO: Use realpath() to normalize on posix. 
+
+    String *sourcePath = strPathAbsolute(file, strNewZ(currentWorkDir));
+
+    // Repository Path Formation
+
+    String *destPath = composeDestinationPath(file);
+
+    // Is path valid for repo?
+    destPath = repoPathIsValid(destPath);
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        // Is path valid for repo?
-        file = repoPathIsValid(file);
+        StorageWrite *const destination = storageNewWriteP(storageRepoWrite(), destPath);
 
-        StorageWrite *const destination = storageNewWriteP(storageRepoWrite(), file);
+        IoRead *const source = storageReadIo(storageNewReadP(storageLocal(), sourcePath));
+
+        // Compression
+
+        // See archive/push/push.c for compress example
+
+        // Upload to Repository
+
+        // Update manifest
 
         // Add encryption if needed
         if (!cfgOptionBool(cfgOptRaw))
@@ -84,7 +114,19 @@ cmdStoragePush(void)
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        storagePushProcess(ioFdReadNew(STRDEF("stdin"), STDIN_FILENO, ioTimeoutMs()));
+        const StringList *params = cfgCommandParam();
+
+        if (strLstSize(params) != 1)
+            THROW(ParamInvalidError, "file parameter is required");
+
+        String *filename = strLstGet(cfgCommandParam(), 0);
+
+        LOG_INFO_FMT(
+            "push file %s to the archive.",
+                strZ(filename));
+
+        storagePushProcess(filename, compressTypeEnum(cfgOptionStrId(cfgOptCompressType)),
+                    cfgOptionInt(cfgOptCompressLevel));
     }
     MEM_CONTEXT_TEMP_END();
 

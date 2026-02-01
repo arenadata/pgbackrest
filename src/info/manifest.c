@@ -1867,6 +1867,8 @@ manifestBuildComplete(
 #define MANIFEST_SECTION_TARGET_PATH                                "target:path"
 #define MANIFEST_SECTION_TARGET_PATH_DEFAULT                        "target:path:default"
 
+#define MANIFEST_SECTION_CUSTOM_FILE                                "custom:file"
+
 #define MANIFEST_KEY_ANNOTATION                                     "annotation"
 #define MANIFEST_KEY_BACKUP_ARCHIVE_START                           "backup-archive-start"
 #define MANIFEST_KEY_BACKUP_ARCHIVE_STOP                            "backup-archive-stop"

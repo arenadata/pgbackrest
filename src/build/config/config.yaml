@@ -109,6 +109,8 @@ command:
 
   repo-push:
     command-role:
+      async: {}
+      local: {}
       remote: {}
     internal: true
     log-file: false
@@ -677,6 +679,7 @@ option:
     default: false
     command:
       repo-get: {}
+      repo-push: {}
       repo-put: {}
     command-role:
       main: {}
@@ -1866,6 +1869,10 @@ option:
           main: {}
           remote: {}
       repo-ls:
+        command-role:
+          main: {}
+          remote: {}
+      repo-push:
         command-role:
           main: {}
           remote: {}
