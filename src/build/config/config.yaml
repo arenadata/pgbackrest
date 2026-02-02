@@ -338,6 +338,7 @@ option:
       backup: {}
       check: {}
       expire: {}
+      repo-push: {}
       restore: {}
       stanza-create: {}
       stanza-upgrade: {}
@@ -438,7 +439,7 @@ option:
       repo-ls:
         required: false
       repo-push:
-        required: false
+        required: true
       repo-put:
         required: false
       repo-rm:

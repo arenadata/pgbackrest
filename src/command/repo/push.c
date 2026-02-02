@@ -9,22 +9,27 @@ Repository Put Command
 #include "common/crypto/cipherBlock.h"
 #include "common/debug.h"
 #include "common/io/fdRead.h"
+#include "common/io/filter/size.h"
 #include "common/io/io.h"
 #include "common/log.h"
 #include "common/compress/helper.h"
 #include "common/memContext.h"
 #include "config/config.h"
 #include "storage/helper.h"
+#include "info/manifest.h"
 
 static String *
-composeDestinationPath(const String *source)
+composeDestinationPath(const String *source, const String *stanza, const String *backupLabel)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(STRING, source);
     FUNCTION_LOG_END();
 
-    FUNCTION_LOG_RETURN(STRING, strNewFmt("%s", strZ(source)));
+    String *const result = strNewFmt("%s/%s/%s", strZ(stanza), strZ(backupLabel), strZ(source));
+
+    FUNCTION_LOG_RETURN(STRING, result);
 }
+
 
 /***********************************************************************************************************************************
 Write source IO to destination file
@@ -51,31 +56,49 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
 
     // Repository Path Formation
 
-    String *destPath = composeDestinationPath(file);
+    const String *stanza = cfgOptionStr(cfgOptStanza); 
+    const String *backupLabel = cfgOptionStr(cfgOptSet);
+
+    String *destPath = composeDestinationPath(file, stanza, backupLabel);
 
     // Is path valid for repo?
     destPath = repoPathIsValid(destPath);
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        StorageWrite *const destination = storageNewWriteP(storageRepoWrite(), destPath);
+        bool repoChecksum = false;
+        const Storage *storage = storageRepoWrite();
+        const StorageWrite *const destination = storageNewWriteP(storage, destPath);
 
-        IoRead *const source = storageReadIo(storageNewReadP(storageLocal(), sourcePath));
+        IoFilterGroup *const filterGroup = ioWriteFilterGroup(storageWriteIo(destination));
 
-        // Compression
+        CipherType cipherType = cfgOptionStrId(cfgOptRepoCipherType);
+        const String *cipherPass = cfgOptionStrNull(cfgOptRepoCipherPass);
 
-        // See archive/push/push.c for compress example
+        const String *manifestFileName = strNewFmt(STORAGE_REPO_BACKUP "/%s/" BACKUP_MANIFEST_FILE, strZ(backupLabel));
+        Manifest *manifest = manifestLoadFile(
+                            storage, manifestFileName,
+                            cipherType, cipherPass);
 
-        // Upload to Repository
+        // Add SHA1 filter
+        ioFilterGroupAdd(filterGroup, cryptoHashNew(hashTypeSha1));
 
-        // Update manifest
+        // Add compression
+        if (compressType != compressTypeNone)
+        {
+            ioFilterGroupAdd(
+                ioWriteFilterGroup(storageWriteIo(destination)), 
+                compressFilterP(compressType, cfgOptionInt(cfgOptCompressLevel)));
 
-        // Add encryption if needed
-        if (!cfgOptionBool(cfgOptRaw))
+            repoChecksum = true;
+        }
+
+        // Add encryption filter if required
+        if (manifestCipherSubPass(manifest) != NULL)
         {
             const CipherType repoCipherType = cfgOptionStrId(cfgOptRepoCipherType);
 
-            if (repoCipherType != cipherTypeNone)
+            if (repoCipherType != cipherTypeNone) 
             {
                 // Check for a passphrase parameter
                 const String *cipherPass = cfgOptionStrNull(cfgOptCipherPass);
@@ -84,11 +107,20 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
                 if (cipherPass == NULL)
                     cipherPass = cfgOptionStr(cfgOptRepoCipherPass);
 
-                // Add encryption filter
-                cipherBlockFilterGroupAdd(
-                    ioWriteFilterGroup(storageWriteIo(destination)), repoCipherType, cipherModeEncrypt, cipherPass);
-            }
+                ioFilterGroupAdd(
+                    ioWriteFilterGroup(storageWriteIo(destination)),
+                    cipherBlockNewP(
+                        cipherModeEncrypt, repoCipherType, BUFSTR(manifestCipherSubPass(manifest))
+                    )
+                );
+                repoChecksum = true;
+            }            
         }
+
+        // Add size filter last to calculate repo size
+        ioFilterGroupAdd(filterGroup, ioSizeNew());
+
+        IoRead *const source = storageReadIo(storageNewReadP(storageLocal(), sourcePath));
 
         // Open source and destination
         ioReadOpen(source);
@@ -100,6 +132,42 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
         // Close the source and destination
         ioReadClose(source);
         ioWriteClose(storageWriteIo(destination));
+
+        // Use base path to set ownership and mode
+        const ManifestPath *const basePath = manifestPathFind(manifest, MANIFEST_TARGET_PGDATA_STR);
+
+        // Add to manifest
+        uint64_t size = pckReadU64P(ioFilterGroupResultP(filterGroup, SIZE_FILTER_TYPE));
+        ManifestFile customFile =
+        {
+            .name = destPath,
+            .mode = basePath->mode & (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH),
+            .user = basePath->user,
+            .group = basePath->group,
+            .size = size,
+            .sizeOriginal = size,
+            .sizeRepo = size,
+            .timestamp = time(NULL),
+            .checksumSha1 = bufPtr(pckReadBinP(ioFilterGroupResultP(filterGroup, CRYPTO_HASH_FILTER_TYPE, .idx = 0))),
+        };
+
+        if (repoChecksum)
+        {
+            PackRead * packRead = ioFilterGroupResultP(filterGroup, CRYPTO_HASH_FILTER_TYPE, .idx = 1);
+            ASSERT(packRead != NULL);
+            customFile.checksumRepoSha1 = bufPtr(pckReadBinP(packRead));
+        }
+
+        manifestCustomFileAdd(manifest, &customFile);
+
+        // Save manifest
+        IoWrite *const manifestWrite = storageWriteIo(
+                storageNewWriteP(
+                    storageRepoWrite(),
+                    manifestFileName           
+                    ));
+
+        manifestSave(manifest, manifestWrite);
     }
     MEM_CONTEXT_TEMP_END();
 
@@ -125,8 +193,13 @@ cmdStoragePush(void)
             "push file %s to the archive.",
                 strZ(filename));
 
-        storagePushProcess(filename, compressTypeEnum(cfgOptionStrId(cfgOptCompressType)),
-                    cfgOptionInt(cfgOptCompressLevel));
+        CompressType compressType = compressTypeNone;
+        if (cfgOptionValid(cfgOptCompress))
+        {
+            compressType = compressTypeEnum(cfgOptionStrId(cfgOptCompressType));            
+        }
+        storagePushProcess(filename, compressType, 
+            cfgOptionInt(cfgOptCompressLevel));
     }
     MEM_CONTEXT_TEMP_END();
 

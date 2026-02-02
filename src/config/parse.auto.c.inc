@@ -2536,6 +2536,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             PARSE_RULE_OPTION_COMMAND(Backup)                                                                            // opt/fork
             PARSE_RULE_OPTION_COMMAND(Check)                                                                             // opt/fork
             PARSE_RULE_OPTION_COMMAND(Expire)                                                                            // opt/fork
+            PARSE_RULE_OPTION_COMMAND(RepoPush)                                                                          // opt/fork
             PARSE_RULE_OPTION_COMMAND(Restore)                                                                           // opt/fork
             PARSE_RULE_OPTION_COMMAND(StanzaCreate)                                                                      // opt/fork
             PARSE_RULE_OPTION_COMMAND(StanzaUpgrade)                                                                     // opt/fork
@@ -2546,6 +2547,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
         (                                                                                                                // opt/fork
             PARSE_RULE_OPTION_COMMAND(ArchiveGet)                                                                        // opt/fork
             PARSE_RULE_OPTION_COMMAND(ArchivePush)                                                                       // opt/fork
+            PARSE_RULE_OPTION_COMMAND(RepoPush)                                                                          // opt/fork
         ),                                                                                                               // opt/fork
                                                                                                                          // opt/fork
         PARSE_RULE_OPTION_COMMAND_ROLE_LOCAL_VALID_LIST                                                                  // opt/fork
@@ -2553,6 +2555,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             PARSE_RULE_OPTION_COMMAND(ArchiveGet)                                                                        // opt/fork
             PARSE_RULE_OPTION_COMMAND(ArchivePush)                                                                       // opt/fork
             PARSE_RULE_OPTION_COMMAND(Backup)                                                                            // opt/fork
+            PARSE_RULE_OPTION_COMMAND(RepoPush)                                                                          // opt/fork
             PARSE_RULE_OPTION_COMMAND(Restore)                                                                           // opt/fork
             PARSE_RULE_OPTION_COMMAND(Verify)                                                                            // opt/fork
         ),                                                                                                               // opt/fork
@@ -2564,6 +2567,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             PARSE_RULE_OPTION_COMMAND(ArchivePush)                                                                       // opt/fork
             PARSE_RULE_OPTION_COMMAND(Backup)                                                                            // opt/fork
             PARSE_RULE_OPTION_COMMAND(Check)                                                                             // opt/fork
+            PARSE_RULE_OPTION_COMMAND(RepoPush)                                                                          // opt/fork
             PARSE_RULE_OPTION_COMMAND(Restore)                                                                           // opt/fork
             PARSE_RULE_OPTION_COMMAND(StanzaCreate)                                                                      // opt/fork
             PARSE_RULE_OPTION_COMMAND(StanzaUpgrade)                                                                     // opt/fork
@@ -10306,7 +10310,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                     PARSE_RULE_VAL_CMD(Info),                                                                          // opt/stanza
                     PARSE_RULE_VAL_CMD(RepoGet),                                                                       // opt/stanza
                     PARSE_RULE_VAL_CMD(RepoLs),                                                                        // opt/stanza
-                    PARSE_RULE_VAL_CMD(RepoPush),                                                                      // opt/stanza
                     PARSE_RULE_VAL_CMD(RepoPut),                                                                       // opt/stanza
                     PARSE_RULE_VAL_CMD(RepoRm),                                                                        // opt/stanza
                     PARSE_RULE_VAL_CMD(Start),                                                                         // opt/stanza
