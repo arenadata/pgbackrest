@@ -1844,6 +1844,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             PARSE_RULE_OPTION_COMMAND(Manifest)                                                        // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(RepoGet)                                                         // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(RepoLs)                                                          // opt/compress-level-network
+            PARSE_RULE_OPTION_COMMAND(RepoPush)                                                        // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(RepoPut)                                                         // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(Restore)                                                         // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(StanzaCreate)                                                    // opt/compress-level-network
@@ -1856,6 +1857,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
         (                                                                                              // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(ArchiveGet)                                                      // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(ArchivePush)                                                     // opt/compress-level-network
+            PARSE_RULE_OPTION_COMMAND(RepoPush)                                                        // opt/compress-level-network
         ),                                                                                             // opt/compress-level-network
                                                                                                        // opt/compress-level-network
         PARSE_RULE_OPTION_COMMAND_ROLE_LOCAL_VALID_LIST                                                // opt/compress-level-network
@@ -1863,6 +1865,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             PARSE_RULE_OPTION_COMMAND(ArchiveGet)                                                      // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(ArchivePush)                                                     // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(Backup)                                                          // opt/compress-level-network
+            PARSE_RULE_OPTION_COMMAND(RepoPush)                                                        // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(Restore)                                                         // opt/compress-level-network
             PARSE_RULE_OPTION_COMMAND(Verify)                                                          // opt/compress-level-network
         ),                                                                                             // opt/compress-level-network

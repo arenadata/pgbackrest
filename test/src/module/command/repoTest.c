@@ -3,14 +3,64 @@ Test Repo Commands
 ***********************************************************************************************************************************/
 #include "common/io/bufferRead.h"
 #include "common/io/bufferWrite.h"
+#include "common/memContext.h"
+#include "common/type/string.h"
 #include "storage/posix/storage.h"
+#include "storage/helper.h"
 
 #include "common/harnessConfig.h"
 #include "common/harnessInfo.h"
 #include "common/harnessStorageHelper.h"
+#include "common/harnessPostgres.h"
 
 #include "info/infoArchive.h"
 #include "info/infoBackup.h"
+
+static String *
+testManifestCustomFilesValidate(const Storage *const storage, const String *const path)
+{
+    FUNCTION_HARNESS_BEGIN();
+        FUNCTION_HARNESS_PARAM(STORAGE, storage);
+        FUNCTION_HARNESS_PARAM(STRING, path);
+    FUNCTION_HARNESS_END();
+
+    ASSERT(storage != NULL);
+    ASSERT(path != NULL);
+
+    String *const result = strNew();
+
+    MEM_CONTEXT_TEMP_BEGIN()
+    {
+        Manifest *manifest = manifestLoadFile(
+            storageRepo(), strNewFmt("%s/" BACKUP_MANIFEST_FILE, strZ(path)), cipherTypeNone, NULL);
+
+
+        // Build list of files in the manifest
+        StringList *const manifestFileList = strLstNew();
+
+        for (unsigned int fileIdx = 0; fileIdx < manifestCustomFileTotal(manifest); fileIdx++)
+            strLstAdd(manifestFileList, manifestFileUnpack(manifest, manifestCustomFilePackGet(manifest, fileIdx)).name);
+            
+        for (unsigned int manifestFileIdx = 0; manifestFileIdx < strLstSize(manifestFileList); manifestFileIdx++)
+        {
+            // const ManifestFilePack *const filePack = manifestFilePackFind(
+            //     manifest, strLstGet(manifestFileList, manifestFileIdx));
+
+            // const ManifestFile file = manifestFileUnpack(manifest, filePack);
+
+            // Error if reference is NULL
+            // if (file.reference == NULL)
+            //     THROW_FMT(AssertError, "manifest file '%s' not in backup but does not have a reference", strZ(file.name));
+
+            strCatFmt(result, "%s\n", strZ(strLstGet(manifestFileList, manifestFileIdx)));
+            // strCatFmt(result, "%s\n", strZ(file.name));
+        }
+        
+    }
+    MEM_CONTEXT_TEMP_END();
+
+    FUNCTION_HARNESS_RETURN(STRING, result);
+}
 
 /***********************************************************************************************************************************
 Test Run
@@ -879,6 +929,129 @@ testRun(void)
         HRN_STORAGE_PUT_Z(storageRepoWrite(), "path/aaa.txt", "TESTDATA", .comment = "add path/file");
         TEST_RESULT_VOID(cmdStorageRemove(), "remove file");
         TEST_STORAGE_LIST(storageRepo(), NULL, "path/\n", .comment = "check path exists and file removed");
+    }
+
+    #define TEST_BACKUP_LABEL_FULL                              "20260201-173010F"
+    #define TEST_STANZA   "testStanza01"
+
+    #define TEST_MANIFEST_HEADER                                                                                                   \
+        "[backup]\n"                                                                                                               \
+        "backup-label=null\n"                                                                                                      \
+        "backup-timestamp-copy-start=0\n"                                                                                          \
+        "backup-timestamp-start=0\n"                                                                                               \
+        "backup-timestamp-stop=0\n"                                                                                                \
+        "backup-type=\"full\"\n"
+
+    #define TEST_MANIFEST_OPTION_ALL                                                                                               \
+        "\n"                                                                                                                       \
+        "[backup:option]\n"                                                                                                        \
+        "option-archive-check=false\n"                                                                                             \
+        "option-archive-copy=false\n"                                                                                              \
+        "option-checksum-page=false\n"                                                                                             \
+        "option-compress=false\n"                                                                                                  \
+        "option-compress-type=\"none\"\n"                                                                                          \
+        "option-hardlink=false\n"                                                                                                  \
+        "option-online=false\n"
+
+    #define TEST_MANIFEST_TARGET                                                                                                   \
+        "\n"                                                                                                                       \
+        "[backup:target]\n"                                                                                                        \
+        "pg_data={\"path\":\"/pg/base\",\"type\":\"path\"}\n"
+
+    #define TEST_MANIFEST_DB                                                                                                       \
+        "\n"                                                                                                                       \
+        "[db]\n"                                                                                                                   \
+        "postgres={\"db-id\":12173,\"db-last-system-id\":12168}\n"
+    #define TEST_MANIFEST_FILE                                                                                                     \
+        "\n"                                                                                                                       \
+        "[target:file]\n"                                                                                                          \
+        "pg_data/PG_VERSION={\"checksum\":\"184473f470864e067ee3a22e64b47b0a1c356f29\",\"size\":4,\"timestamp\":1565282114}\n"
+
+    #define TEST_MANIFEST_FILE_DEFAULT                                                                                             \
+        "\n"                                                                                                                       \
+        "[target:file:default]\n"                                                                                                  \
+        "group=\"group1\"\n"                                                                                                       \
+        "mode=\"0600\"\n"                                                                                                          \
+        "user=\"user1\"\n"
+
+    #define TEST_MANIFEST_LINK                                                                                                     \
+        "\n"                                                                                                                       \
+        "[target:link]\n"                                                                                                          \
+        "pg_data/pg_stat={\"destination\":\"../pg_stat\"}\n"
+
+    #define TEST_MANIFEST_LINK_DEFAULT                                                                                             \
+        "\n"                                                                                                                       \
+        "[target:link:default]\n"                                                                                                  \
+        "group=\"group1\"\n"                                                                                                       \
+        "user=false\n"
+
+    #define TEST_MANIFEST_PATH                                                                                                     \
+        "\n"                                                                                                                       \
+        "[target:path]\n"                                                                                                          \
+        "pg_data={\"user\":\"user1\"}\n"                                                                                           \
+
+    #define TEST_MANIFEST_PATH_DEFAULT                                                                                             \
+        "\n"                                                                                                                       \
+        "[target:path:default]\n"                                                                                                  \
+        "group=false\n"                                                                                                            \
+        "mode=\"0700\"\n"                                                                                                          \
+        "user=\"user1\"\n"
+
+
+    // *****************************************************************************************************************************
+    if (testBegin("cmdStoragePush()"))
+    {
+        HRN_STORAGE_PATH_CREATE(storageRepoWrite(), "path");
+
+        Storage *storageTest = storagePosixNewP(TEST_PATH_STR, .write = true);
+
+        HRN_STORAGE_PUT_Z(storageTest, "path/aaa.txt", "TESTDATA", .timeModified = 1578671569);
+
+        TEST_TITLE("push uncompressed file");
+
+        StringList *argList = strLstNew();
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/bogus");
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawZ(argList, cfgOptRepo, "2");
+        strLstAddZ(argList, "path/aaa.txt");
+
+        HRN_INFO_PUT(
+            storageRepoWrite(), STORAGE_REPO_BACKUP "/"  TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE,
+            TEST_MANIFEST_HEADER
+            "\n"
+            "[backup:db]\n"
+            "db-catalog-version=201608131\n"
+            "db-control-version=960\n"
+            "db-id=1\n"
+            "db-system-id=" HRN_PG_SYSTEMID_94_Z "\n"               // 9.4 system id is used so version will trigger error
+            "db-version=\"9.6\"\n"
+            TEST_MANIFEST_OPTION_ALL
+            TEST_MANIFEST_TARGET
+            TEST_MANIFEST_DB
+            TEST_MANIFEST_FILE
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT,
+            .comment = "manifest db section mismatch");
+
+        HRN_CFG_LOAD(cfgCmdRepoPush, argList);
+
+        TEST_RESULT_VOID(cmdStoragePush(), "push file");
+        TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
+        TEST_STORAGE_LIST(storageRepo(), "testStanza01/20260201-173010F", "aaa.txt\n", .comment = "check path exists and file added");
+
+        TEST_STORAGE_GET(storageRepo(), "testStanza01/20260201-173010F/aaa.txt", "TESTDATA");
+
+        /* Check manifest record */
+        TEST_RESULT_STR_Z(
+            testManifestCustomFilesValidate(storageRepo(), STRDEF(STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL)), 
+            "aaa.txt\n",
+            "compare file list");
+        TEST_TITLE("push compressed file");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();

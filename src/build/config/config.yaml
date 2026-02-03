@@ -831,6 +831,7 @@ option:
       manifest: {}
       repo-get: {}
       repo-ls: {}
+      repo-push: {}
       repo-put: {}
       restore: {}
       stanza-create: {}

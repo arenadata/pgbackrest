@@ -14,18 +14,22 @@ Repository Put Command
 #include "common/log.h"
 #include "common/compress/helper.h"
 #include "common/memContext.h"
+#include "common/type/string.h"
 #include "config/config.h"
 #include "storage/helper.h"
 #include "info/manifest.h"
 
+
 static String *
-composeDestinationPath(const String *source, const String *stanza, const String *backupLabel)
+composeDestinationPath(const String *stanza, const String *backupLabel, const String *fileName)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
-        FUNCTION_LOG_PARAM(STRING, source);
+        FUNCTION_LOG_PARAM(STRING, stanza);
+        FUNCTION_LOG_PARAM(STRING, backupLabel);
+        FUNCTION_LOG_PARAM(STRING, fileName);
     FUNCTION_LOG_END();
 
-    String *const result = strNewFmt("%s/%s/%s", strZ(stanza), strZ(backupLabel), strZ(source));
+    String *const result = strNewFmt("%s/%s/%s", strZ(stanza), strZ(backupLabel), strZ(fileName));
 
     FUNCTION_LOG_RETURN(STRING, result);
 }
@@ -44,28 +48,29 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
     FUNCTION_LOG_END();
 
     // Ensure that the file exists and readable
-
-    // Normalize source file path
-    // Get current working dir
-    char currentWorkDir[1024];
-    THROW_ON_SYS_ERROR(getcwd(currentWorkDir, sizeof(currentWorkDir)) == NULL, FormatError, "unable to get cwd");
-
-    // TODO: Use realpath() to normalize on posix. 
-
-    String *sourcePath = strPathAbsolute(file, strNewZ(currentWorkDir));
-
-    // Repository Path Formation
-
-    const String *stanza = cfgOptionStr(cfgOptStanza); 
-    const String *backupLabel = cfgOptionStr(cfgOptSet);
-
-    String *destPath = composeDestinationPath(file, stanza, backupLabel);
-
-    // Is path valid for repo?
-    destPath = repoPathIsValid(destPath);
-
     MEM_CONTEXT_TEMP_BEGIN()
     {
+
+        // Normalize source file path
+        // Get current working dir
+        char currentWorkDir[1024];
+        THROW_ON_SYS_ERROR(getcwd(currentWorkDir, sizeof(currentWorkDir)) == NULL, FormatError, "unable to get cwd");
+
+        // TODO: Use realpath() to normalize on posix. 
+
+        String *sourcePath = strPathAbsolute(file, strNewZ(currentWorkDir));
+
+        // Repository Path Formation
+
+        const String *stanza = cfgOptionStr(cfgOptStanza); 
+        const String *backupLabel = cfgOptionStr(cfgOptSet);
+
+        String *destFilename = strFileName(file);
+        String *destPath = composeDestinationPath(stanza, backupLabel, destFilename);
+
+        // Is path valid for repo?
+        destPath = repoPathIsValid(destPath);
+
         bool repoChecksum = false;
         const Storage *storage = storageRepoWrite();
         const StorageWrite *const destination = storageNewWriteP(storage, destPath);
@@ -140,7 +145,7 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
         uint64_t size = pckReadU64P(ioFilterGroupResultP(filterGroup, SIZE_FILTER_TYPE));
         ManifestFile customFile =
         {
-            .name = destPath,
+            .name = destFilename,
             .mode = basePath->mode & (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH),
             .user = basePath->user,
             .group = basePath->group,
