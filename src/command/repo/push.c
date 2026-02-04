@@ -90,7 +90,7 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
         {
             ioFilterGroupAdd(
                 writeFilterGroup,
-                compressFilterP(compressType, cfgOptionInt(cfgOptCompressLevel)));
+                compressFilterP(compressType, compressLevel));
 
             repoChecksum = true;
         }
@@ -190,7 +190,7 @@ cmdStoragePush(void)
         if (strLstSize(params) != 1)
             THROW(ParamInvalidError, "file parameter is required");
 
-        String *filename = strLstGet(cfgCommandParam(), 0);
+        String *filename = strLstGet(params, 0);
 
         LOG_INFO_FMT(
             "push file %s to the archive.",
