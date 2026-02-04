@@ -413,6 +413,9 @@ manifestCustomFileTotal(const Manifest *const this)
 // Update a file with new data
 FN_EXTERN void manifestFileUpdate(Manifest *const this, const ManifestFile *file);
 
+// Update a custom file with new data
+FN_EXTERN void manifestCustomFileUpdate(Manifest *const this, const ManifestFile *file);
+
 /***********************************************************************************************************************************
 Link functions and getters/setters
 ***********************************************************************************************************************************/

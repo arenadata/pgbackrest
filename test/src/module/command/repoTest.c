@@ -1,61 +1,41 @@
 /***********************************************************************************************************************************
 Test Repo Commands
 ***********************************************************************************************************************************/
+#include "common/compress/helper.h"
 #include "common/io/bufferRead.h"
 #include "common/io/bufferWrite.h"
 #include "common/memContext.h"
 #include "common/type/string.h"
-#include "storage/posix/storage.h"
 #include "storage/helper.h"
+#include "storage/posix/storage.h"
 
 #include "common/harnessConfig.h"
 #include "common/harnessInfo.h"
-#include "common/harnessStorageHelper.h"
 #include "common/harnessPostgres.h"
+#include "common/harnessStorageHelper.h"
 
 #include "info/infoArchive.h"
 #include "info/infoBackup.h"
 
 static String *
-testManifestCustomFilesValidate(const Storage *const storage, const String *const path)
+testManifestCustomFilesValidate(Manifest *manifest)
 {
     FUNCTION_HARNESS_BEGIN();
-        FUNCTION_HARNESS_PARAM(STORAGE, storage);
-        FUNCTION_HARNESS_PARAM(STRING, path);
     FUNCTION_HARNESS_END();
-
-    ASSERT(storage != NULL);
-    ASSERT(path != NULL);
 
     String *const result = strNew();
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        Manifest *manifest = manifestLoadFile(
-            storageRepo(), strNewFmt("%s/" BACKUP_MANIFEST_FILE, strZ(path)), cipherTypeNone, NULL);
-
-
         // Build list of files in the manifest
-        StringList *const manifestFileList = strLstNew();
 
         for (unsigned int fileIdx = 0; fileIdx < manifestCustomFileTotal(manifest); fileIdx++)
-            strLstAdd(manifestFileList, manifestFileUnpack(manifest, manifestCustomFilePackGet(manifest, fileIdx)).name);
-            
-        for (unsigned int manifestFileIdx = 0; manifestFileIdx < strLstSize(manifestFileList); manifestFileIdx++)
         {
-            // const ManifestFilePack *const filePack = manifestFilePackFind(
-            //     manifest, strLstGet(manifestFileList, manifestFileIdx));
+            const ManifestFile file = manifestFileUnpack(manifest, manifestCustomFilePackGet(manifest, fileIdx));
 
-            // const ManifestFile file = manifestFileUnpack(manifest, filePack);
-
-            // Error if reference is NULL
-            // if (file.reference == NULL)
-            //     THROW_FMT(AssertError, "manifest file '%s' not in backup but does not have a reference", strZ(file.name));
-
-            strCatFmt(result, "%s\n", strZ(strLstGet(manifestFileList, manifestFileIdx)));
-            // strCatFmt(result, "%s\n", strZ(file.name));
+            // strCatFmt(result, "%s\n",  strZ(strLstGet(manifestFileList, manifestFileIdx)));
+            strCatFmt(result, "%s %lu %lu\n", strZ(file.name), file.size, file.sizeOriginal);
         }
-        
     }
     MEM_CONTEXT_TEMP_END();
 
@@ -934,6 +914,15 @@ testRun(void)
     #define TEST_BACKUP_LABEL_FULL                              "20260201-173010F"
     #define TEST_STANZA   "testStanza01"
 
+    #define TEST_DATA                                                                                                              \
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, "                                                                \
+        "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "                                                      \
+        "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris "                                                      \
+        "nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in "                                                       \
+        "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla "                                                     \
+        "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "                                                       \
+        "culpa qui officia deserunt mollit anim id est laborum."
+
     #define TEST_MANIFEST_HEADER                                                                                                   \
         "[backup]\n"                                                                                                               \
         "backup-label=null\n"                                                                                                      \
@@ -997,7 +986,6 @@ testRun(void)
         "mode=\"0700\"\n"                                                                                                          \
         "user=\"user1\"\n"
 
-
     // *****************************************************************************************************************************
     if (testBegin("cmdStoragePush()"))
     {
@@ -1007,14 +995,97 @@ testRun(void)
 
         HRN_STORAGE_PUT_Z(storageTest, "path/aaa.txt", "TESTDATA", .timeModified = 1578671569);
 
-        TEST_TITLE("push uncompressed file");
+        HRN_INFO_PUT(
+            storageRepoWrite(), STORAGE_REPO_BACKUP "/"  TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE,
+            TEST_MANIFEST_HEADER
+            "\n"
+            "[backup:db]\n"
+            "db-catalog-version=201608131\n"
+            "db-control-version=960\n"
+            "db-id=1\n"
+            "db-system-id=" HRN_PG_SYSTEMID_94_Z "\n"               // 9.4 system id is used so version will trigger error
+            "db-version=\"9.6\"\n"
+            TEST_MANIFEST_OPTION_ALL
+            TEST_MANIFEST_TARGET
+            TEST_MANIFEST_DB
+            TEST_MANIFEST_FILE
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT,
+            .comment = "manifest db section mismatch");
 
+        TEST_TITLE("missing file argument");
         StringList *argList = strLstNew();
         hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/bogus");
         hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo");
         hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
         hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
         hrnCfgArgRawZ(argList, cfgOptRepo, "2");
+
+        HRN_CFG_LOAD(cfgCmdRepoPush, argList);
+
+        TEST_ERROR(
+            cmdStoragePush(), ParamInvalidError,
+            "file parameter is required");
+
+        TEST_TITLE("push uncompressed file");
+
+        argList = strLstNew();
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/bogus");
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "none");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawZ(argList, cfgOptRepo, "2");
+        strLstAddZ(argList, "path/aaa.txt");
+
+        HRN_CFG_LOAD(cfgCmdRepoPush, argList);
+
+        TEST_RESULT_VOID(cmdStoragePush(), "push file");
+        TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
+        TEST_STORAGE_LIST(storageRepo(), "testStanza01/20260201-173010F", "aaa.txt\n", .comment = "check path exists and file added");
+
+        TEST_STORAGE_GET(storageRepo(), "testStanza01/20260201-173010F/aaa.txt", "TESTDATA");
+
+        Manifest *manifest = manifestLoadFile(
+            storageRepo(), STR(STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE), cipherTypeNone, NULL);
+
+        /* Check manifest record */
+        TEST_RESULT_STR_Z(
+            testManifestCustomFilesValidate(manifest),
+            "aaa.txt 8 8\n",
+            "compare file list");
+
+        TEST_TITLE("push uncompressed file, replace existing");
+
+        HRN_STORAGE_PUT_Z(storageTest, "path/aaa.txt", TEST_DATA, .timeModified = 1578671569);
+
+        TEST_RESULT_VOID(cmdStoragePush(), "push file");
+        TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
+        TEST_STORAGE_LIST(storageRepo(), "testStanza01/20260201-173010F", "aaa.txt\n", .comment = "check path exists and file added");
+
+        TEST_STORAGE_GET(storageRepo(), "testStanza01/20260201-173010F/aaa.txt", TEST_DATA);
+
+        manifest = manifestLoadFile(
+            storageRepo(), STR(STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE), cipherTypeNone, NULL);
+
+        /* Check manifest record */
+        TEST_RESULT_STR_Z(
+            testManifestCustomFilesValidate(manifest),
+            "aaa.txt 445 445\n",
+            "compare file list");
+
+        TEST_TITLE("push compressed file");
+        argList = strLstNew();
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/bogus");
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawZ(argList, cfgOptRepo, "2");
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
+        hrnCfgArgRawZ(argList, cfgOptCompressLevel, "3");
         strLstAddZ(argList, "path/aaa.txt");
 
         HRN_INFO_PUT(
@@ -1042,16 +1113,32 @@ testRun(void)
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
-        TEST_STORAGE_LIST(storageRepo(), "testStanza01/20260201-173010F", "aaa.txt\n", .comment = "check path exists and file added");
+        TEST_STORAGE_LIST(storageRepo(), "testStanza01/20260201-173010F", "aaa.txt\naaa.txt.gz\n", .comment = "check path exists and file added");
 
-        TEST_STORAGE_GET(storageRepo(), "testStanza01/20260201-173010F/aaa.txt", "TESTDATA");
+        TEST_STORAGE_GET(storageRepo(), "testStanza01/20260201-173010F/aaa.txt", TEST_DATA, .compressType = compressTypeGz);
+
+        manifest = manifestLoadFile(
+            storageRepo(), STR(STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE), cipherTypeNone, NULL);
 
         /* Check manifest record */
         TEST_RESULT_STR_Z(
-            testManifestCustomFilesValidate(storageRepo(), STRDEF(STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL)), 
-            "aaa.txt\n",
+            testManifestCustomFilesValidate(manifest),
+            "aaa.txt 445 445\naaa.txt.gz 283 445\n",
             "compare file list");
-        TEST_TITLE("push compressed file");
+
+        TEST_TITLE("push encrypted file not supported");
+        argList = strLstNew();
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/bogus");
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawZ(argList, cfgOptRepo, "2");
+        hrnCfgArgRawZ(argList, cfgOptCipherPass, "unimportant");
+        strLstAddZ(argList, "path/aaa.txt");
+
+        TEST_ERROR(
+            HRN_CFG_LOAD(cfgCmdRepoPush, argList), OptionInvalidError,
+            "option 'cipher-pass' not valid for command 'repo-push'");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();

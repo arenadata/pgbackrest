@@ -468,6 +468,31 @@ manifestFilePackUpdate(Manifest *const this, ManifestFilePack **const filePack, 
     FUNCTION_TEST_RETURN_VOID();
 }
 
+// Update custom file pack by creating a new one and then freeing the old one
+static void
+manifestCustomFilePackUpdate(Manifest *const this, ManifestFilePack **const filePack, const ManifestFile *const file)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(MANIFEST, this);
+        FUNCTION_TEST_PARAM_P(VOID, filePack);
+        FUNCTION_TEST_PARAM(MANIFEST_FILE, file);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+    ASSERT(filePack != NULL);
+    ASSERT(file != NULL);
+
+    MEM_CONTEXT_BEGIN(lstMemContext(this->pub.customFileList))
+    {
+        ManifestFilePack *const filePackOld = *filePack;
+        *filePack = manifestFilePack(this, file);
+        memFree(filePackOld);
+    }
+    MEM_CONTEXT_END();
+
+    FUNCTION_TEST_RETURN_VOID();
+}
+
 FN_EXTERN void
 manifestLinkAdd(Manifest *const this, const ManifestLink *const link)
 {
@@ -3109,6 +3134,25 @@ manifestFilePackFindInternal(const Manifest *const this, const String *const nam
     FUNCTION_TEST_RETURN_TYPE_PP(ManifestFilePack, filePack);
 }
 
+static ManifestFilePack **
+manifestCustomFilePackFindInternal(const Manifest *const this, const String *const name)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(MANIFEST, this);
+        FUNCTION_TEST_PARAM(STRING, name);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+    ASSERT(name != NULL);
+
+    ManifestFilePack **const filePack = lstFind(this->pub.customFileList, &name);
+
+    if (filePack == NULL)
+        THROW_FMT(AssertError, "unable to find '%s' in manifest file list", strZ(name));
+
+    FUNCTION_TEST_RETURN_TYPE_PP(ManifestFilePack, filePack);
+}
+
 const ManifestFilePack *
 manifestFilePackFind(const Manifest *const this, const String *const name)
 {
@@ -3158,6 +3202,28 @@ manifestFileUpdate(Manifest *const this, const ManifestFile *const file)
 
     ManifestFilePack **const filePack = manifestFilePackFindInternal(this, file->name);
     manifestFilePackUpdate(this, filePack, file);
+
+    FUNCTION_TEST_RETURN_VOID();
+}
+
+FN_EXTERN void
+manifestCustomFileUpdate(Manifest *const this, const ManifestFile *file)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(MANIFEST, this);
+        FUNCTION_TEST_PARAM(MANIFEST_FILE, file);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+    ASSERT(file != NULL);
+    ASSERT(
+        (!file->checksumPage && !file->checksumPageError && file->checksumPageErrorList == NULL) ||
+        (file->checksumPage && !file->checksumPageError && file->checksumPageErrorList == NULL) ||
+        (file->checksumPage && file->checksumPageError));
+    ASSERT(file->size != 0 || (file->bundleId == 0 && file->bundleOffset == 0));
+
+    ManifestFilePack **const filePack = manifestCustomFilePackFindInternal(this, file->name);
+    manifestCustomFilePackUpdate(this, filePack, file);
 
     FUNCTION_TEST_RETURN_VOID();
 }
