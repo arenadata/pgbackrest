@@ -1047,7 +1047,7 @@ testRun(void)
             cmdStoragePush(), ParamInvalidError,
             "file parameter should not end with a slash");
 
-        TEST_TITLE("non-existant file");
+        TEST_TITLE("non-existent file");
 
         argList = strLstNew();
         hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/bogus");
@@ -1056,15 +1056,15 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
         hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
         hrnCfgArgRawZ(argList, cfgOptRepo, "2");
-        strLstAddZ(argList, "path/non-existant.txt");
+        strLstAddZ(argList, "path/non-existent.txt");
 
         HRN_CFG_LOAD(cfgCmdRepoPush, argList);
 
         TEST_ERROR(
             cmdStoragePush(), FileMissingError,
-            "unable to open missing file '" TEST_PATH "/path/non-existant.txt' for read");
+            "unable to open missing file '" TEST_PATH "/path/non-existent.txt' for read");
 
-        TEST_RESULT_LOG("P00   INFO: push file path/non-existant.txt to the archive.");
+        TEST_RESULT_LOG("P00   INFO: push file path/non-existent.txt to the archive.");
 
         TEST_TITLE("push uncompressed file");
 
