@@ -34,7 +34,7 @@ testManifestCustomFilesValidate(Manifest *manifest)
             const ManifestFile file = manifestFileUnpack(manifest, manifestCustomFilePackGet(manifest, fileIdx));
 
             // strCatFmt(result, "%s\n",  strZ(strLstGet(manifestFileList, manifestFileIdx)));
-            strCatFmt(result, "%s %lu %lu\n", strZ(file.name), file.size, file.sizeOriginal);
+            strCatFmt(result, "%s %" PRIu64 " %" PRIu64 "\n", strZ(file.name), file.size, file.sizeOriginal);
         }
     }
     MEM_CONTEXT_TEMP_END();
