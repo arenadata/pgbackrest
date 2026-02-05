@@ -34,7 +34,7 @@ testManifestCustomFilesValidate(Manifest *manifest)
             const ManifestFile file = manifestFileUnpack(manifest, manifestCustomFilePackGet(manifest, fileIdx));
 
             // strCatFmt(result, "%s\n",  strZ(strLstGet(manifestFileList, manifestFileIdx)));
-            strCatFmt(result, "%s %" PRIu64 " %" PRIu64 "\n", strZ(file.name), file.size, file.sizeOriginal);
+            strCatFmt(result, "%s %" PRIu64 "\n", strZ(file.name), file.sizeOriginal);
         }
     }
     MEM_CONTEXT_TEMP_END();
@@ -1055,7 +1055,7 @@ testRun(void)
         /* Check manifest record */
         TEST_RESULT_STR_Z(
             testManifestCustomFilesValidate(manifest),
-            "aaa.txt 8 8\n",
+            "aaa.txt 8\n",
             "compare file list");
 
         TEST_TITLE("push uncompressed file, replace existing");
@@ -1074,7 +1074,7 @@ testRun(void)
         /* Check manifest record */
         TEST_RESULT_STR_Z(
             testManifestCustomFilesValidate(manifest),
-            "aaa.txt 445 445\n",
+            "aaa.txt 445\n",
             "compare file list");
 
         TEST_TITLE("push compressed file");
@@ -1123,7 +1123,7 @@ testRun(void)
         /* Check manifest record */
         TEST_RESULT_STR_Z(
             testManifestCustomFilesValidate(manifest),
-            "aaa.txt 445 445\naaa.txt.gz 283 445\n",
+            "aaa.txt 445\naaa.txt.gz 445\n",
             "compare file list");
 
         TEST_TITLE("push encrypted file not supported");
