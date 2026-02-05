@@ -2049,7 +2049,7 @@ testRun(void)
     }
 
     // *****************************************************************************************************************************
-    if (testBegin("manifestCustomFileAdd(), manifestCustomFileUpdate() and manifestLinkAdd()"))
+    if (testBegin("manifestCustomFileAdd(), manifestCustomFileUpdate() and manifestSave()/manifestNewLoad()"))
     {
         Manifest *manifest = NULL;
 
