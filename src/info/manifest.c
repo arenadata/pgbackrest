@@ -2045,7 +2045,8 @@ manifestOwnerDefaultGet(const Variant *const ownerDefault)
     FUNCTION_TEST_RETURN_CONST(VARIANT, varDup(ownerDefault));
 }
 
-static void manifestLoadFileEntry(Manifest *const manifest, ManifestLoadData *const loadData, const String *const key, const String *const value, ManifestFile *file)
+static void
+manifestLoadFileEntry(Manifest *const manifest, ManifestLoadData *const loadData, const String *const key, const String *const value, ManifestFile *file)
 {
     JsonRead *const json = jsonReadNew(value);
     jsonReadObjectBegin(json);
@@ -2566,8 +2567,8 @@ manifestOwnerVar(const String *const ownerDefault)
     FUNCTION_TEST_RETURN_CONST(VARIANT, ownerDefault == NULL ? BOOL_FALSE_VAR : varNewStr(ownerDefault));
 }
 
-
-static void manifestSaveFileEntry(const ManifestFile *file, ManifestSaveData *const saveData, const char *section, InfoSave *const infoSaveData)
+static void
+manifestSaveFileEntry(const ManifestFile *file, ManifestSaveData *const saveData, const char *section, InfoSave *const infoSaveData)
 {
     JsonWrite *const json = jsonWriteObjectBegin(jsonWriteNewP());
 
@@ -2642,7 +2643,6 @@ static void manifestSaveFileEntry(const ManifestFile *file, ManifestSaveData *co
 
     infoSaveValue(
         infoSaveData, section, strZ(file->name), jsonWriteResult(jsonWriteObjectEnd(json)));
-
 }
 
 static void
@@ -2927,7 +2927,7 @@ manifestSaveCallback(void *const callbackData, const String *const sectionNext, 
             for (unsigned int fileIdx = 0; fileIdx < manifestFileTotal(manifest); fileIdx++)
             {
                 const ManifestFile file = manifestFile(manifest, fileIdx);
- 
+
                 manifestSaveFileEntry(&file, saveData, MANIFEST_SECTION_TARGET_FILE, infoSaveData);
 
                 MEM_CONTEXT_TEMP_RESET(1000);

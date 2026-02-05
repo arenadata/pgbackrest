@@ -650,7 +650,7 @@ option:
     required: false
     command:
       repo-get: {}
-      repo-put: {}      
+      repo-put: {}
     command-role:
       main: {}
 
@@ -680,7 +680,6 @@ option:
     default: false
     command:
       repo-get: {}
-      repo-push: {}
       repo-put: {}
     command-role:
       main: {}

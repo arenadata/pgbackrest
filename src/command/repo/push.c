@@ -144,7 +144,7 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
 
         for (unsigned int fileIdx = 0; fileIdx < manifestCustomFileTotal(manifest); fileIdx++)
         {
-            ManifestFile manifestFile = manifestFileUnpack(manifest, manifestCustomFilePackGet(manifest, fileIdx));
+            ManifestFile manifestFile = manifestCustomFile(manifest, fileIdx);
 
             if (strCmp(manifestFile.name, destFilename) == 0){
                 manifestFile.mode = customFile.mode;
@@ -191,6 +191,10 @@ cmdStoragePush(void)
             THROW(ParamInvalidError, "file parameter is required");
 
         String *filename = strLstGet(params, 0);
+
+        // Check that the filename does not end with a slash
+        if (strEndsWith(filename, FSLASH_STR))
+            THROW(ParamInvalidError, "file parameter should not end with a slash");
 
         LOG_INFO_FMT(
             "push file %s to the archive.",

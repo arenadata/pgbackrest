@@ -1030,6 +1030,42 @@ testRun(void)
             cmdStoragePush(), ParamInvalidError,
             "file parameter is required");
 
+        TEST_TITLE("invalid file");
+
+        argList = strLstNew();
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/bogus");
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "none");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawZ(argList, cfgOptRepo, "2");
+        strLstAddZ(argList, "path/aaa.txt/");
+
+        HRN_CFG_LOAD(cfgCmdRepoPush, argList);
+
+        TEST_ERROR(
+            cmdStoragePush(), ParamInvalidError,
+            "file parameter should not end with a slash");
+
+        TEST_TITLE("non-existant file");
+
+        argList = strLstNew();
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/bogus");
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "none");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawZ(argList, cfgOptRepo, "2");
+        strLstAddZ(argList, "path/non-existant.txt");
+
+        HRN_CFG_LOAD(cfgCmdRepoPush, argList);
+
+        TEST_ERROR(
+            cmdStoragePush(), FileMissingError,
+            "unable to open missing file '" TEST_PATH "/path/non-existant.txt' for read");
+
+        TEST_RESULT_LOG("P00   INFO: push file path/non-existant.txt to the archive.");
+
         TEST_TITLE("push uncompressed file");
 
         argList = strLstNew();
