@@ -27,7 +27,7 @@ composeDestinationPath(const String *stanza, const String *backupLabel, const St
         FUNCTION_LOG_PARAM(STRING, fileName);
     FUNCTION_LOG_END();
 
-    String *const result = strNewFmt("%s/%s/%s", strZ(stanza), strZ(backupLabel), strZ(fileName));
+    String *const result = strNewFmt(STORAGE_PATH_BACKUP "/%s/%s/%s", strZ(stanza), strZ(backupLabel), strZ(fileName));
 
     FUNCTION_LOG_RETURN(STRING, result);
 }

@@ -1081,9 +1081,9 @@ testRun(void)
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
-        TEST_STORAGE_LIST(storageRepo(), "testStanza01/20260201-173010F", "aaa.txt\n", .comment = "check path exists and file added");
+        TEST_STORAGE_LIST(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL, "aaa.txt\nbackup.manifest\n", .comment = "check path exists and file added");
 
-        TEST_STORAGE_GET(storageRepo(), "testStanza01/20260201-173010F/aaa.txt", "TESTDATA");
+        TEST_STORAGE_GET(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/aaa.txt", "TESTDATA");
 
         Manifest *manifest = manifestLoadFile(
             storageRepo(), STR(STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE), cipherTypeNone, NULL);
@@ -1100,9 +1100,9 @@ testRun(void)
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
-        TEST_STORAGE_LIST(storageRepo(), "testStanza01/20260201-173010F", "aaa.txt\n", .comment = "check path exists and file added");
+        TEST_STORAGE_LIST(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL, "aaa.txt\nbackup.manifest\n", .comment = "check path exists and file added");
 
-        TEST_STORAGE_GET(storageRepo(), "testStanza01/20260201-173010F/aaa.txt", TEST_DATA);
+        TEST_STORAGE_GET(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/aaa.txt", TEST_DATA);
 
         manifest = manifestLoadFile(
             storageRepo(), STR(STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE), cipherTypeNone, NULL);
@@ -1149,9 +1149,9 @@ testRun(void)
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
-        TEST_STORAGE_LIST(storageRepo(), "testStanza01/20260201-173010F", "aaa.txt\naaa.txt.gz\n", .comment = "check path exists and file added");
+        TEST_STORAGE_LIST(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL, "aaa.txt\naaa.txt.gz\nbackup.manifest\n", .comment = "check path exists and file added");
 
-        TEST_STORAGE_GET(storageRepo(), "testStanza01/20260201-173010F/aaa.txt", TEST_DATA, .compressType = compressTypeGz);
+        TEST_STORAGE_GET(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/aaa.txt", TEST_DATA, .compressType = compressTypeGz);
 
         manifest = manifestLoadFile(
             storageRepo(), STR(STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE), cipherTypeNone, NULL);
