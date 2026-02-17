@@ -33,7 +33,6 @@ testManifestCustomFilesValidate(Manifest *manifest)
         {
             const ManifestFile file = manifestFileUnpack(manifest, manifestCustomFilePackGet(manifest, fileIdx));
 
-            // strCatFmt(result, "%s\n",  strZ(strLstGet(manifestFileList, manifestFileIdx)));
             strCatFmt(result, "%s %" PRIu64 "\n", strZ(file.name), file.sizeOriginal);
         }
     }
