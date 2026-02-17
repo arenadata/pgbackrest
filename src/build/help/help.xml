@@ -2414,7 +2414,7 @@
                 </option-list>
             </command>
 
-            <command id="repo-push" name="Repository Put File">
+            <command id="repo-push" name="Repository Push File">
                 <summary>Upload a metadata file to the repository.</summary>
 
                 <text>
