@@ -188,7 +188,7 @@ cmdStoragePush(void)
         const StringList *params = cfgCommandParam();
 
         if (strLstSize(params) != 1)
-            THROW(ParamInvalidError, "file parameter is required");
+            THROW(ParamInvalidError, "exactly one parameter is required");
 
         String *filename = strLstGet(params, 0);
 

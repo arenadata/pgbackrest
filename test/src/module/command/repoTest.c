@@ -1027,7 +1027,7 @@ testRun(void)
 
         TEST_ERROR(
             cmdStoragePush(), ParamInvalidError,
-            "file parameter is required");
+            "exactly one parameter is required");
 
         TEST_TITLE("invalid file");
 
