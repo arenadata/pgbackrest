@@ -390,6 +390,13 @@
         "enabled=1" \
         "gpgcheck=1" \
         "gpgkey=https://yum.postgresql.org/keys/PGDG-RPM-GPG-KEY-RHEL" > /etc/yum.repos.d/pgdg-12.repo
+        RUN printf "%s\n" \
+        "[pgdg13-archive]" \
+        "name=PostgreSQL 13 RPMs for RHEL/Rocky Linux/AlmaLinux 8" \
+        "baseurl=https://yum-archive.postgresql.org/13/redhat/rhel-8-x86_64" \
+        "enabled=1" \
+        "gpgcheck=1" \
+        "gpgkey=https://yum.postgresql.org/keys/PGDG-RPM-GPG-KEY-RHEL" > /etc/yum.repos.d/pgdg-13.repo
 
 
 
@@ -905,7 +912,7 @@
         <title>Introduction</title>
 
         <!-- Create Azure server first to allow it time to boot before being used -->
-        <host-add if="'{[azure-local]}' eq 'y'" id="{[host-azure-id]}" name="{[host-azure]}" user="root" image="{[azure-image]}" os="{[os-type]}" option="-v {[fake-cert-path]}/azure-server.crt:/root/public.crt:ro -v {[fake-cert-path]}/azure-server.key:/root/private.key:ro -e AZURITE_ACCOUNTS='{[azure-account]}:{[azure-key]}'" param="azurite-blob --blobPort 443 --blobHost 0.0.0.0 --cert=/root/public.crt --key=/root/private.key" update-hosts="n"/>
+        <host-add if="'{[azure-local]}' eq 'y'" id="{[host-azure-id]}" name="{[host-azure]}" user="root" image="{[azure-image]}" os="{[os-type]}" option="-v {[fake-cert-path]}/azure-server.crt:/root/public.crt:ro -v {[fake-cert-path]}/azure-server.key:/root/private.key:ro -e AZURITE_ACCOUNTS='{[azure-account]}:{[azure-key]}'" param="azurite-blob --blobPort 443 --blobHost 0.0.0.0 --cert=/root/public.crt --key=/root/private.key --skipApiVersionCheck" update-hosts="n"/>
 
         <!-- Create S3 server first to allow it time to boot before being used -->
         <host-add if="'{[s3-local]}' eq 'y'" id="{[host-s3-id]}" name="{[host-s3]}" user="root" image="{[s3-image]}" os="{[os-type]}" option="-v {[fake-cert-path]}/s3-server.crt:/root/.minio/certs/public.crt:ro -v {[fake-cert-path]}/s3-server.key:/root/.minio/certs/private.key:ro -e MINIO_REGION={[s3-region]} -e MINIO_DOMAIN={[s3-endpoint]} -e MINIO_BROWSER=off -e MINIO_ACCESS_KEY={[s3-key]} -e MINIO_SECRET_KEY={[s3-key-secret]}" param="server /data --address :443" update-hosts="n"/>
