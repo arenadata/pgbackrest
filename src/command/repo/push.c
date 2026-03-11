@@ -19,15 +19,14 @@ Repository Put Command
 #include "storage/helper.h"
 
 static String *
-composeDestinationPath(const String *stanza, const String *backupLabel, const String *fileName)
+composeDestinationPath(const String *backupLabel, const String *fileName)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
-        FUNCTION_LOG_PARAM(STRING, stanza);
         FUNCTION_LOG_PARAM(STRING, backupLabel);
         FUNCTION_LOG_PARAM(STRING, fileName);
     FUNCTION_LOG_END();
 
-    String *const result = strNewFmt(STORAGE_PATH_BACKUP "/%s/%s/%s", strZ(stanza), strZ(backupLabel), strZ(fileName));
+    String *const result = strNewFmt(STORAGE_REPO_BACKUP "/%s/%s", strZ(backupLabel), strZ(fileName));
 
     FUNCTION_LOG_RETURN(STRING, result);
 }
@@ -56,13 +55,12 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
 
         // Repository Path Formation
 
-        const String *stanza = cfgOptionStr(cfgOptStanza);
         const String *backupLabel = cfgOptionStr(cfgOptSet);
 
         String *destFilename = strCat(strNew(), strFileName(file));
         compressExtCat(destFilename, compressType);
 
-        String *destPath = composeDestinationPath(stanza, backupLabel, destFilename);
+        String *destPath = composeDestinationPath(backupLabel, destFilename);
 
         // Is path valid for repo?
         destPath = repoPathIsValid(destPath);
