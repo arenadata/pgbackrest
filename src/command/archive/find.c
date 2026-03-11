@@ -145,12 +145,12 @@ walSegmentFind(WalSegmentFind *const this, const String *const walSegment)
 
                     match = strLstSize(matchList);
 
+                    if (match > 1)
+                    {
                     // Clear list for next find
                     strLstFree(this->list);
                     this->list = NULL;
 
-                    if (match > 1)
-                    {
                     THROW_FMT(
                         ArchiveDuplicateError,
                         "duplicates found in archive for WAL segment %s: %s\n"
