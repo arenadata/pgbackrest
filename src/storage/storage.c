@@ -444,7 +444,7 @@ storageList(const Storage *const this, const String *const pathExp, const Storag
             result = strLstNew();
 
             while (storageItrMore(storageItr))
-                strLstAdd(result, storageItrNext(storageItr).name);
+                strLstAddIfMissing(result, storageItrNext(storageItr).name);
 
             strLstMove(result, memContextPrior());
         }
