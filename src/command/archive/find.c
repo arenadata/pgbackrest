@@ -156,7 +156,7 @@ walSegmentFind(WalSegmentFind *const this, const String *const walSegment)
                             "duplicates found in archive for WAL segment %s: %s\n"
                             "HINT: are multiple primaries archiving to this stanza?",
                             strZ(walSegment), strZ(strLstJoin(matchList, ", ")));
-                        }
+                    }
                 }
 
                 // On match copy file name of WAL segment found into the prior context
