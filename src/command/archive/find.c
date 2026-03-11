@@ -147,16 +147,16 @@ walSegmentFind(WalSegmentFind *const this, const String *const walSegment)
 
                     if (match > 1)
                     {
-                    // Clear list for next find
-                    strLstFree(this->list);
-                    this->list = NULL;
+                        // Clear list for next find
+                        strLstFree(this->list);
+                        this->list = NULL;
 
-                    THROW_FMT(
-                        ArchiveDuplicateError,
-                        "duplicates found in archive for WAL segment %s: %s\n"
-                        "HINT: are multiple primaries archiving to this stanza?",
-                        strZ(walSegment), strZ(strLstJoin(matchList, ", ")));
-                    }
+                        THROW_FMT(
+                            ArchiveDuplicateError,
+                            "duplicates found in archive for WAL segment %s: %s\n"
+                            "HINT: are multiple primaries archiving to this stanza?",
+                            strZ(walSegment), strZ(strLstJoin(matchList, ", ")));
+                        }
                 }
 
                 // On match copy file name of WAL segment found into the prior context
