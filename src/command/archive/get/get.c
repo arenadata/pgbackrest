@@ -278,57 +278,89 @@ archiveGetFind(
             // If a segment match list is > 1 then check for duplicates
             if (isSegment && lstSize(matchList) > 1)
             {
-                // Count the number of unique hashes
-                StringList *const hashList = strLstNew();
-
-                for (unsigned int matchIdx = 0; matchIdx < lstSize(matchList); matchIdx++)
-                    strLstAddIfMissing(hashList, strSubN(((ArchiveGetFile *)lstGet(matchList, matchIdx))->file, 25, 40));
-
-                // If there is more than one unique hash then there are duplicates
-                if (strLstSize(hashList) > 1)
+                // Detect filesystem-level duplicates when the OS returns the same directory entry twice. Two
+                // matchList entries will have identical repoIdx and file
+                for (unsigned int matchIdx = 1; matchIdx < lstSize(matchList) && !error; matchIdx++)
                 {
-                    // Build list of duplicates
-                    unsigned int repoKeyLast = 0;
-                    String *const message = strNew();
-                    bool first = true;
+                    const ArchiveGetFile *const curr = lstGet(matchList, matchIdx);
 
-                    // Sort the matches so they are logged in a consistent order
-                    lstSort(matchList, sortOrderAsc);
+                    for (unsigned int checkIdx = 0; checkIdx < matchIdx && !error; checkIdx++)
+                    {
+                        const ArchiveGetFile *const prev = lstGet(matchList, checkIdx);
+
+                        if (prev->repoIdx == curr->repoIdx && strEq(prev->file, curr->file))
+                        {
+                            MEM_CONTEXT_BEGIN(lstMemContext(getCheckResult->archiveFileMapList))
+                            {
+                                getCheckResult->errorType = &ArchiveDuplicateError;
+                                getCheckResult->errorFile = strDup(archiveFileRequest);
+                                getCheckResult->errorMessage = strNewFmt(
+                                    "filesystem returned the same file twice for WAL segment %s: %s\n"
+                                    "HINT: this is likely a filesystem bug; NFS clients with stale or invalid"
+                                    " directory handles are a common cause.",
+                                    strZ(archiveFileRequest), strZ(curr->file));
+                                getCheckResult->warnList = strLstMove(fileWarnList, memContextCurrent());
+                            }
+                            MEM_CONTEXT_END();
+
+                            error = true;
+                        }
+                    }
+                }
+
+                // Detect archive-level duplicates: multiple distinct hashes mean multiple primaries are archiving
+                if (!error)
+                {
+                    StringList *const hashList = strLstNew();
 
                     for (unsigned int matchIdx = 0; matchIdx < lstSize(matchList); matchIdx++)
-                    {
-                        const ArchiveGetFile *const file = lstGet(matchList, matchIdx);
-                        const unsigned int repoKey = cfgOptionGroupIdxToKey(cfgOptGrpRepo, file->repoIdx);
+                        strLstAddIfMissing(hashList, strSubN(((ArchiveGetFile *)lstGet(matchList, matchIdx))->file, 25, 40));
 
-                        if (repoKey != repoKeyLast)
+                    if (strLstSize(hashList) > 1)
+                    {
+                        // Sort for deterministic error message ordering
+                        lstSort(matchList, sortOrderAsc);
+
+                        // Build list of duplicates
+                        unsigned int repoKeyLast = 0;
+                        String *const message = strNew();
+                        bool first = true;
+
+                        for (unsigned int matchIdx = 0; matchIdx < lstSize(matchList); matchIdx++)
                         {
-                            strCatFmt(message, "\n%s:", cfgOptionGroupName(cfgOptGrpRepo, file->repoIdx));
-                            repoKeyLast = repoKey;
-                            first = true;
+                            const ArchiveGetFile *const file = lstGet(matchList, matchIdx);
+                            const unsigned int repoKey = cfgOptionGroupIdxToKey(cfgOptGrpRepo, file->repoIdx);
+
+                            if (repoKey != repoKeyLast)
+                            {
+                                strCatFmt(message, "\n%s:", cfgOptionGroupName(cfgOptGrpRepo, file->repoIdx));
+                                repoKeyLast = repoKey;
+                                first = true;
+                            }
+
+                            if (first)
+                                first = false;
+                            else
+                                strCatChr(message, ',');
+
+                            strCatFmt(message, " %s", strZ(file->file));
                         }
 
-                        if (first)
-                            first = false;
-                        else
-                            strCatChr(message, ',');
+                        // Set as global error since processing cannot continue past this segment
+                        MEM_CONTEXT_BEGIN(lstMemContext(getCheckResult->archiveFileMapList))
+                        {
+                            getCheckResult->errorType = &ArchiveDuplicateError;
+                            getCheckResult->errorFile = strDup(archiveFileRequest);
+                            getCheckResult->errorMessage = strNewFmt(
+                                "duplicates found for WAL segment %s:%s\n"
+                                "HINT: are multiple primaries archiving to this stanza?",
+                                strZ(archiveFileRequest), strZ(message));
+                            getCheckResult->warnList = strLstMove(fileWarnList, memContextCurrent());
+                        }
+                        MEM_CONTEXT_END();
 
-                        strCatFmt(message, " %s", strZ(file->file));
+                        error = true;
                     }
-
-                    // Set as global error since processing cannot continue past this segment
-                    MEM_CONTEXT_BEGIN(lstMemContext(getCheckResult->archiveFileMapList))
-                    {
-                        getCheckResult->errorType = &ArchiveDuplicateError;
-                        getCheckResult->errorFile = strDup(archiveFileRequest);
-                        getCheckResult->errorMessage = strNewFmt(
-                            "duplicates found for WAL segment %s:%s\n"
-                            "HINT: are multiple primaries archiving to this stanza?",
-                            strZ(archiveFileRequest), strZ(message));
-                        getCheckResult->warnList = strLstMove(fileWarnList, memContextCurrent());
-                    }
-                    MEM_CONTEXT_END();
-
-                    error = true;
                 }
             }
 

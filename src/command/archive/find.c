@@ -108,6 +108,20 @@ walSegmentFind(WalSegmentFind *const this, const String *const walSegment)
                         storageListP(this->storage, path, .expression = this->single ? expression : NULL), sortOrderAsc);
                 }
                 MEM_CONTEXT_OBJ_END();
+
+                // Detect filesystem-level duplicates: a sorted list with adjacent identical names means the OS returned
+                // the same directory entry twice, which is a known NFS client bug.
+                for (unsigned int listIdx = 1; listIdx < strLstSize(this->list); listIdx++)
+                {
+                    if (strEq(strLstGet(this->list, listIdx - 1), strLstGet(this->list, listIdx)))
+                    {
+                        THROW_FMT(
+                            ArchiveDuplicateError,
+                            "filesystem returned the same file twice in archive directory '%s': %s\n"
+                            "HINT: this is likely a filesystem bug; NFS clients with stale or invalid directory handles are a common cause.",
+                            strZ(path), strZ(strLstGet(this->list, listIdx)));
+                    }
+                }
             }
 
             // If there are results
