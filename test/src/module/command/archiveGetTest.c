@@ -11,6 +11,57 @@ Test Archive Get Command
 #include "common/harnessProtocol.h"
 #include "common/harnessStorage.h"
 #include "storage/posix/storage.h"
+#include "storage/storage.intern.h"
+
+static StorageList *
+archiveGetDupList(
+    void *const thisVoid, const String *const path, const StorageInfoLevel level, const StorageInterfaceListParam param)
+{
+    (void)thisVoid;
+    (void)path;
+    (void)param;
+
+    StorageList *const result = storageLstNew(level);
+    const StorageInfo info =
+    {
+        .name = STRDEF("01ABCDEF01ABCDEF01ABCDEF-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        .level = level,
+        .exists = true,
+    };
+    storageLstAdd(result, &info);
+    storageLstAdd(result, &info);
+
+    return result;
+}
+
+static StorageList *
+archiveGetDupListDeep(
+    void *const thisVoid, const String *const path, const StorageInfoLevel level, const StorageInterfaceListParam param)
+{
+    (void)thisVoid;
+    (void)path;
+    (void)param;
+
+    StorageList *const result = storageLstNew(level);
+    const StorageInfo infoA =
+    {
+        .name = STRDEF("01ABCDEF01ABCDEF01ABCDEF-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        .level = level,
+        .exists = true,
+    };
+    const StorageInfo infoB =
+    {
+        .name = STRDEF("01ABCDEF01ABCDEF01ABCDEF-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        .level = level,
+        .exists = true,
+    };
+    storageLstAdd(result, &infoA);
+    storageLstAdd(result, &infoB);
+    storageLstAdd(result, &infoA);
+    storageLstAdd(result, &infoB);
+
+    return result;
+}
 
 /***********************************************************************************************************************************
 Test Run
@@ -873,6 +924,44 @@ testRun(void)
         // Clean-up pg_wal directory
         TEST_RESULT_UINT(storageInfoP(storagePg(), STRDEF("pg_wal/RECOVERYXLOG")).size, 16 * 1024 * 1024, "check size");
         TEST_STORAGE_LIST(storagePgWrite(), "pg_wal", "RECOVERYXLOG\n", .remove = true);
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("error on filesystem duplicate WAL segment");
+
+        {
+            StorageInterface *const repoIface = (StorageInterface *)storageDriver(storageRepoIdx(0));
+            StorageInterfaceList *const savedList = repoIface->list;
+            repoIface->list = archiveGetDupList;
+
+            TEST_ERROR(
+                cmdArchiveGet(), ArchiveDuplicateError,
+                "filesystem returned the same file twice for WAL segment 01ABCDEF01ABCDEF01ABCDEF:"
+                " 10-1/01ABCDEF01ABCDEF/01ABCDEF01ABCDEF01ABCDEF-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+                "HINT: this is likely a filesystem bug; NFS clients with stale or invalid directory handles are a common cause.");
+
+            repoIface->list = savedList;
+        }
+
+        TEST_STORAGE_LIST(storagePg(), "pg_wal", NULL);
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("error on filesystem duplicate WAL segment with extra entries");
+
+        {
+            StorageInterface *const repoIface = (StorageInterface *)storageDriver(storageRepoIdx(0));
+            StorageInterfaceList *const savedList = repoIface->list;
+            repoIface->list = archiveGetDupListDeep;
+
+            TEST_ERROR(
+                cmdArchiveGet(), ArchiveDuplicateError,
+                "filesystem returned the same file twice for WAL segment 01ABCDEF01ABCDEF01ABCDEF:"
+                " 10-1/01ABCDEF01ABCDEF/01ABCDEF01ABCDEF01ABCDEF-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+                "HINT: this is likely a filesystem bug; NFS clients with stale or invalid directory handles are a common cause.");
+
+            repoIface->list = savedList;
+        }
+
+        TEST_STORAGE_LIST(storagePg(), "pg_wal", NULL);
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error on duplicate WAL segment");
