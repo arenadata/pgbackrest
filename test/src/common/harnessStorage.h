@@ -269,4 +269,12 @@ Dummy interface for constructing test storage drivers. All functions and feature
 ***********************************************************************************************************************************/
 extern const StorageInterface hrnStorageInterfaceDummy;
 
+/***********************************************************************************************************************************
+Shim for storagePosixOpendir/storagePosixReaddir/storagePosixClosedir. Install with a scripted list of names: the next
+storagePosixOpendir() returns a sentinel handle, storagePosixReaddir() returns dirent entries with these names in order (NULL once
+exhausted), and storagePosixClosedir() accepts the sentinel. The names pointer must remain valid until uninstall.
+***********************************************************************************************************************************/
+void hrnStoragePosixReaddirShimInstall(const char *const *names, size_t count);
+void hrnStoragePosixReaddirShimUninstall(void);
+
 #endif

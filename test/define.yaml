@@ -361,7 +361,11 @@ unit:
         harness:
           name: storage
           shim:
-            storage/posix/storage: ~
+            storage/posix/storage:
+              function:
+                - storagePosixOpendir
+                - storagePosixReaddir
+                - storagePosixClosedir
 
         coverage:
           - common/crypto/cipherBlock
@@ -600,6 +604,14 @@ unit:
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: posix
         total: 24
+        harness:
+          name: storage
+          shim:
+            storage/posix/storage:
+              function:
+                - storagePosixOpendir
+                - storagePosixReaddir
+                - storagePosixClosedir
 
         coverage:
           - storage/cifs/helper

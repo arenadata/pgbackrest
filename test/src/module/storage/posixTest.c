@@ -567,6 +567,22 @@ testRun(void)
         TEST_RESULT_VOID(
             storagePutP(storageNewWriteP(storageTest, STRDEF("bbb.txt")), BUFSTRDEF("bbb")), "write bbb.text");
         TEST_RESULT_STRLST_Z(storageListP(storageTest, NULL, .expression = STRDEF("^bbb")), "bbb.txt\n", "dir list");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("duplicate entry from readdir emits error");
+
+        {
+            const char *const dupNames[] = {"a", "b", "a"};
+            hrnStoragePosixReaddirShimInstall(dupNames, LENGTH_OF(dupNames));
+
+            TEST_ERROR_FMT(
+                storageListP(storageTest, NULL), FileExistsError,
+                "duplicate entry 'a' in directory listing of '%s'\n"
+                "HINT: possible stale NFS handle, retry the operation.",
+                strZ(storagePathP(storageTest, NULL)));
+
+            hrnStoragePosixReaddirShimUninstall();
+        }
     }
 
     // *****************************************************************************************************************************

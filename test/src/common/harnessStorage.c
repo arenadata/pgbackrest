@@ -3,6 +3,7 @@ Storage Test Harness
 ***********************************************************************************************************************************/
 #include "build.auto.h"
 
+#include <dirent.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,6 +18,7 @@ Storage Test Harness
 #include "storage/storage.h"
 
 #include "common/harnessConfig.h"
+#include "common/harnessDebug.h"
 #include "common/harnessStorage.h"
 #include "common/harnessTest.h"
 
@@ -491,4 +493,128 @@ hrnStorageTime(const Storage *const storage, const char *const path, const time_
         "unable to set time for '%s'", pathFull);
 
     hrnTestResultEnd();
+}
+
+/***********************************************************************************************************************************
+Shim install state for the storagePosixOpendir/Readdir/Closedir wrappers. The sentinel DIR pointer has to be distinct from any real
+DIR returned by libc so delegate calls stay safe
+***********************************************************************************************************************************/
+static struct
+{
+    bool installed;
+    const char *const *names;
+    size_t count;
+    size_t idx;
+    struct dirent entry;
+} hrnStoragePosixReaddirStatic;
+
+#define HRN_STORAGE_POSIX_READDIR_SENTINEL                          ((DIR *)&hrnStoragePosixReaddirStatic)
+
+/***********************************************************************************************************************************
+Shim storagePosixOpendir()
+***********************************************************************************************************************************/
+DIR *
+storagePosixOpendir(const char *const path)
+{
+    FUNCTION_HARNESS_BEGIN();
+        FUNCTION_HARNESS_PARAM(STRINGZ, path);
+    FUNCTION_HARNESS_END();
+
+    DIR *result;
+
+    if (hrnStoragePosixReaddirStatic.installed)
+    {
+        hrnStoragePosixReaddirStatic.idx = 0;
+        result = HRN_STORAGE_POSIX_READDIR_SENTINEL;
+    }
+    else
+        result = storagePosixOpendir_SHIMMED(path);
+
+    FUNCTION_HARNESS_RETURN(VOID, result);
+}
+
+/***********************************************************************************************************************************
+Shim storagePosixReaddir()
+***********************************************************************************************************************************/
+struct dirent *
+storagePosixReaddir(DIR *const dir)
+{
+    FUNCTION_HARNESS_BEGIN();
+        FUNCTION_HARNESS_PARAM_P(VOID, dir);
+    FUNCTION_HARNESS_END();
+
+    struct dirent *result;
+
+    if (hrnStoragePosixReaddirStatic.installed && dir == HRN_STORAGE_POSIX_READDIR_SENTINEL)
+    {
+        if (hrnStoragePosixReaddirStatic.idx < hrnStoragePosixReaddirStatic.count)
+        {
+            const char *const name = hrnStoragePosixReaddirStatic.names[hrnStoragePosixReaddirStatic.idx++];
+            const size_t nameSize = strlen(name);
+
+            ASSERT(nameSize < sizeof(hrnStoragePosixReaddirStatic.entry.d_name));
+
+            memcpy(hrnStoragePosixReaddirStatic.entry.d_name, name, nameSize);
+            hrnStoragePosixReaddirStatic.entry.d_name[nameSize] = '\0';
+
+            result = &hrnStoragePosixReaddirStatic.entry;
+        }
+        else
+            result = NULL;
+    }
+    else
+        result = storagePosixReaddir_SHIMMED(dir);
+
+    FUNCTION_HARNESS_RETURN(VOID, result);
+}
+
+/***********************************************************************************************************************************
+Shim storagePosixClosedir()
+***********************************************************************************************************************************/
+int
+storagePosixClosedir(DIR *const dir)
+{
+    FUNCTION_HARNESS_BEGIN();
+        FUNCTION_HARNESS_PARAM_P(VOID, dir);
+    FUNCTION_HARNESS_END();
+
+    int result;
+
+    if (hrnStoragePosixReaddirStatic.installed && dir == HRN_STORAGE_POSIX_READDIR_SENTINEL)
+        result = 0;
+    else
+        result = storagePosixClosedir_SHIMMED(dir);
+
+    FUNCTION_HARNESS_RETURN(INT, result);
+}
+
+/**********************************************************************************************************************************/
+void
+hrnStoragePosixReaddirShimInstall(const char *const *const names, const size_t count)
+{
+    FUNCTION_HARNESS_BEGIN();
+        FUNCTION_HARNESS_PARAM_P(VOID, names);
+        FUNCTION_HARNESS_PARAM(SIZE, count);
+    FUNCTION_HARNESS_END();
+
+    hrnStoragePosixReaddirStatic.installed = true;
+    hrnStoragePosixReaddirStatic.names = names;
+    hrnStoragePosixReaddirStatic.count = count;
+    hrnStoragePosixReaddirStatic.idx = 0;
+
+    FUNCTION_HARNESS_RETURN_VOID();
+}
+
+/**********************************************************************************************************************************/
+void
+hrnStoragePosixReaddirShimUninstall(void)
+{
+    FUNCTION_HARNESS_VOID();
+
+    hrnStoragePosixReaddirStatic.installed = false;
+    hrnStoragePosixReaddirStatic.names = NULL;
+    hrnStoragePosixReaddirStatic.count = 0;
+    hrnStoragePosixReaddirStatic.idx = 0;
+
+    FUNCTION_HARNESS_RETURN_VOID();
 }

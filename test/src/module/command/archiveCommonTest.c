@@ -5,10 +5,31 @@ Test Archive Common
 
 #include "storage/helper.h"
 #include "storage/posix/storage.h"
+#include "storage/storage.intern.h"
 
 #include "common/harnessConfig.h"
 #include "common/harnessFork.h"
 #include "common/harnessStorage.h"
+
+static StorageList *
+walSegmentFindDupList(
+    void *const thisVoid, const String *const path, const StorageInfoLevel level, const StorageInterfaceListParam param)
+{
+    (void)thisVoid;
+    (void)path;
+    (void)param;
+
+    StorageList *const result = storageLstNew(level);
+    const StorageInfo info =
+    {
+        .name = STRDEF("123456781234567812345678-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        .level = level,
+        .exists = true,
+    };
+    storageLstAdd(result, &info);
+
+    return result;
+}
 
 /***********************************************************************************************************************************
 Test Run
@@ -273,6 +294,22 @@ testRun(void)
             HRN_FORK_PARENT_END();
         }
         HRN_FORK_END();
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("filesystem duplicate deduplicated by driver");
+
+        {
+            StorageInterface *const repoIface = (StorageInterface *)storageDriver(storageRepo());
+            StorageInterfaceList *const savedList = repoIface->list;
+            repoIface->list = walSegmentFindDupList;
+
+            TEST_RESULT_STR_Z(
+                walSegmentFindOne(storageRepo(), STRDEF("9.6-2"), STRDEF("123456781234567812345678"), 0),
+                "123456781234567812345678-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "segment found, no false duplicate error");
+
+            repoIface->list = savedList;
+        }
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("duplicate");
