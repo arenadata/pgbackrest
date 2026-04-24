@@ -187,6 +187,24 @@ storagePosixListEntry(
     FUNCTION_TEST_RETURN_VOID();
 }
 
+DIR *
+storagePosixOpendir(const char *const path)
+{
+    return opendir(path);
+}
+
+struct dirent *
+storagePosixReaddir(DIR *const dir)
+{
+    return readdir(dir);
+}
+
+int
+storagePosixClosedir(DIR *const dir)
+{
+    return closedir(dir);
+}
+
 static StorageList *
 storagePosixList(THIS_VOID, const String *const path, const StorageInfoLevel level, const StorageInterfaceListParam param)
 {
@@ -206,7 +224,7 @@ storagePosixList(THIS_VOID, const String *const path, const StorageInfoLevel lev
     StorageList *result = NULL;
 
     // Open the directory for read
-    DIR *const dir = opendir(strZ(path));
+    DIR *const dir = storagePosixOpendir(strZ(path));
 
     // If the directory could not be opened process errors and report missing directories
     if (dir == NULL)
@@ -224,23 +242,31 @@ storagePosixList(THIS_VOID, const String *const path, const StorageInfoLevel lev
             MEM_CONTEXT_TEMP_RESET_BEGIN()
             {
                 // Read the directory entries
-                const struct dirent *dirEntry = readdir(dir);
+                const struct dirent *dirEntry = storagePosixReaddir(dir);
 
                 while (dirEntry != NULL)
                 {
                     // Always skip . and ..
                     if (!strEqZ(DOT_STR, dirEntry->d_name) && !strEqZ(DOTDOT_STR, dirEntry->d_name))
                     {
+                        StorageInfo storageInfo = storageLstFind(result, STR(dirEntry->d_name));
+
+                        // readdir() must not return the same name twice for one open handle. A stale NFS cookie can violate this
+                        if (storageInfo.exists)
+                        {
+                            THROW_FMT(
+                                FileExistsError,
+                                "duplicate entry '%s' in directory listing of '%s'\n"
+                                "HINT: possible stale NFS handle, retry the operation.",
+                                dirEntry->d_name, strZ(path));
+                        }
+
                         // If only making a list of files that exist then no need to go get detailed info which requires calling
                         // stat() and is therefore relatively slow
                         if (level == storageInfoLevelExists)
                         {
-                            const StorageInfo storageInfo =
-                            {
-                                .name = STR(dirEntry->d_name),
-                                .level = storageInfoLevelExists,
-                                .exists = true,
-                            };
+                            storageInfo.name = STR(dirEntry->d_name);
+                            storageInfo.level = storageInfoLevelExists;
 
                             storageLstAdd(result, &storageInfo);
                         }
@@ -250,7 +276,7 @@ storagePosixList(THIS_VOID, const String *const path, const StorageInfoLevel lev
                     }
 
                     // Get next entry
-                    dirEntry = readdir(dir);
+                    dirEntry = storagePosixReaddir(dir);
 
                     // Reset the memory context occasionally so we don't use too much memory or slow down processing
                     MEM_CONTEXT_TEMP_RESET(1000);
@@ -260,7 +286,7 @@ storagePosixList(THIS_VOID, const String *const path, const StorageInfoLevel lev
         }
         FINALLY()
         {
-            closedir(dir);
+            storagePosixClosedir(dir);
         }
         TRY_END();
     }
