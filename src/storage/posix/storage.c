@@ -267,6 +267,7 @@ storagePosixList(THIS_VOID, const String *const path, const StorageInfoLevel lev
                         {
                             storageInfo.name = STR(dirEntry->d_name);
                             storageInfo.level = storageInfoLevelExists;
+                            storageInfo.exists = true;
 
                             storageLstAdd(result, &storageInfo);
                         }
