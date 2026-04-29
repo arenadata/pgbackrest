@@ -1024,7 +1024,6 @@ testRun(void)
         socketLocal = (struct SocketLocal){.init = false};
         TEST_RESULT_VOID(cfgLoad(strLstSize(argList), strLstPtr(argList)), "repo-push command initialises local socket");
         TEST_RESULT_BOOL(socketLocal.init, true, "check socketLocal.init");
-
     }
 
     FUNCTION_HARNESS_RETURN_VOID();
