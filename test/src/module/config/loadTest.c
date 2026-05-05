@@ -1013,6 +1013,17 @@ testRun(void)
         TEST_RESULT_INT(lstat(TEST_PATH "/test-archive-get-async.log", &statLog), 0, "check log file exists");
 
         cmdLockReleaseP();
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("repo-push command initialises local socket");
+        argList = strLstNew();
+        strLstAddZ(argList, PROJECT_BIN);
+        hrnCfgArgRawZ(argList, cfgOptStanza, "test");
+        strLstAddZ(argList, CFGCMD_REPO_PUSH ":" CONFIG_COMMAND_ROLE_LOCAL);
+
+        socketLocal = (struct SocketLocal){.init = false};
+        TEST_RESULT_VOID(cfgLoad(strLstSize(argList), strLstPtr(argList)), "repo-push command initialises local socket");
+        TEST_RESULT_BOOL(socketLocal.init, true, "check socketLocal.init");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();
