@@ -823,6 +823,7 @@ testRun(void)
         argList = strLstNew();
         hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
         hrnCfgArgRawStrId(argList, cfgOptRepoCipherType, cipherTypeAes256Cbc);
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "none");
         strLstAddZ(argList, STORAGE_PATH_BACKUP "/test/backup.history/2020/label.manifest.gz");
         HRN_CFG_LOAD(cfgCmdRepoGet, argList);
 
@@ -1096,6 +1097,7 @@ testRun(void)
         TEST_TITLE("push uncompressed file, replace existing");
 
         HRN_STORAGE_PUT_Z(storageTest, "path/aaa.txt", TEST_DATA, .timeModified = 1578671569);
+        HRN_STORAGE_PUT_Z(storageTest, "path/aaa_compressed.txt", TEST_DATA, .timeModified = 1578671569);
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
@@ -1121,7 +1123,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptRepo, "2");
         hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
         hrnCfgArgRawZ(argList, cfgOptCompressLevel, "3");
-        strLstAddZ(argList, "path/aaa.txt");
+        strLstAddZ(argList, "path/aaa_compressed.txt");
 
         HRN_INFO_PUT(
             storageRepoWrite(), STORAGE_REPO_BACKUP "/"  TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE,
@@ -1147,10 +1149,10 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdRepoPush, argList);
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
-        TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
-        TEST_STORAGE_LIST(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL, "aaa.txt\naaa.txt.gz\nbackup.manifest\n", .comment = "check path exists and file added");
+        TEST_RESULT_LOG("P00   INFO: push file path/aaa_compressed.txt to the archive.");
+        TEST_STORAGE_LIST(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL, "aaa.txt\naaa_compressed.txt.gz\nbackup.manifest\n", .comment = "check path exists and file added");
 
-        TEST_STORAGE_GET(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/aaa.txt", TEST_DATA, .compressType = compressTypeGz);
+        TEST_STORAGE_GET(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/aaa_compressed.txt", TEST_DATA, .compressType = compressTypeGz);
 
         manifest = manifestLoadFile(
             storageRepo(), STR(STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE), cipherTypeNone, NULL);
@@ -1158,7 +1160,7 @@ testRun(void)
         /* Check manifest record */
         TEST_RESULT_STR_Z(
             testManifestCustomFilesValidate(manifest),
-            "aaa.txt 445\naaa.txt.gz 445\n",
+            "aaa.txt 445\naaa_compressed.txt.gz 445\n",
             "compare file list");
 
         TEST_TITLE("push encrypted file not supported");
@@ -1174,7 +1176,82 @@ testRun(void)
         TEST_ERROR(
             HRN_CFG_LOAD(cfgCmdRepoPush, argList), OptionInvalidError,
             "option 'cipher-pass' not valid for command 'repo-push'");
-    }
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get compressed file with auto decompression");
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        strLstAddZ(argList, "path/aaa_compressed.txt");
+
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        Buffer *writeBuffer = bufNew(0);
+
+        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), TEST_DATA, "get matches put");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get compressed file with forced decompression");
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
+        strLstAddZ(argList, "path/aaa_compressed.txt");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        writeBuffer = bufNew(0);
+        TEST_ERROR(
+            storageGetProcess(ioBufferWriteNew(writeBuffer)),
+            FormatError, 
+            "zlib threw error: [-3] data error");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get compressed file with forced no decompression");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "none");
+        strLstAddZ(argList, "path/aaa_compressed.txt");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        writeBuffer = bufNew(0);
+        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
+
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), TEST_DATA, "get matches put");;
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get uncompressed file with defaults");
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        strLstAddZ(argList, "path/aaa.txt");
+
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        writeBuffer = bufNew(0);
+
+        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), TEST_DATA, "get matches put");;   
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get uncompressed file with forced decompression (shall be error)");
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
+        strLstAddZ(argList, "path/aaa.txt");
+
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        writeBuffer = bufNew(0);
+
+        TEST_ERROR(
+            storageGetProcess(ioBufferWriteNew(writeBuffer)),
+            FormatError,
+            "zlib threw error: [-3] data error");
+       }
 
     FUNCTION_HARNESS_RETURN_VOID();
 }
