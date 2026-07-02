@@ -42,9 +42,25 @@ storageGetProcess(IoWrite *const destination)
         // Is path valid for repo?
         file = repoPathIsValid(file);
 
+        CompressType fileCompressType = compressTypeNone; // compressTypeFromName(file);
+        if (cfgOptionSource(cfgOptCompressType) != cfgSourceDefault)
+        {
+            // Compression type was specified on command line, use this option
+            fileCompressType = compressTypeEnum(cfgOptionStrId(cfgOptCompressType));
+        }
+
         // Create new file read
         IoRead *const source = storageReadIo(
-            storageNewReadP(storageRepo(), file, .ignoreMissing = cfgOptionBool(cfgOptIgnoreMissing)));
+            storageNewReadP(storageRepo(), file,
+            .compressible = (fileCompressType == compressTypeNone),  .ignoreMissing = cfgOptionBool(cfgOptIgnoreMissing)));
+
+        // Add decompession if requested
+        if (fileCompressType != compressTypeNone)
+        {
+            // KDBTODO: what is bundleRaw?
+            bool bundleRaw = false;
+            ioFilterGroupAdd(ioReadFilterGroup(source), decompressFilterP(fileCompressType, .raw = bundleRaw));
+        }
 
         // Add decryption if needed
         if (!cfgOptionBool(cfgOptRaw))

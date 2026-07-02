@@ -803,6 +803,7 @@ option:
     command:
       archive-push: {}
       backup: {}
+      repo-get: {}
       repo-push: {}
     command-role:
       main: {}
