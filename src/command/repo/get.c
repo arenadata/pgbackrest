@@ -52,7 +52,8 @@ storageGetProcess(IoWrite *const destination)
         // Create new file read
         IoRead *const source = storageReadIo(
             storageNewReadP(storageRepo(), file,
-            .compressible = (fileCompressType == compressTypeNone),  .ignoreMissing = cfgOptionBool(cfgOptIgnoreMissing)));
+                            .compressible = (fileCompressType == compressTypeNone),
+                            .ignoreMissing = cfgOptionBool(cfgOptIgnoreMissing)));
 
         // Add decompession if requested
         if (fileCompressType != compressTypeNone)

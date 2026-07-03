@@ -1251,7 +1251,7 @@ testRun(void)
             storageGetProcess(ioBufferWriteNew(writeBuffer)),
             FormatError,
             "zlib threw error: [-3] data error");
-       }
+    }
 
     FUNCTION_HARNESS_RETURN_VOID();
 }
