@@ -46,6 +46,59 @@ storageGetProcess(IoWrite *const destination)
         IoRead *const source = storageReadIo(
             storageNewReadP(storageRepo(), file, .ignoreMissing = cfgOptionBool(cfgOptIgnoreMissing)));
 
+        // Add decompression if needed
+        if (cfgOptionBool(cfgOptDecompress))
+        {
+            CompressType compressType = compressTypeNone;
+
+            const String *const stanza = cfgOptionStrNull(cfgOptStanza);
+            const String *const set = cfgOptionStrNull(cfgOptSet);
+
+            if (stanza == NULL)
+            {
+                THROW(ParamRequiredError, "stanza required");
+            }
+
+            if (set == NULL)
+            {
+                THROW(ParamRequiredError, "set required");
+            }
+
+            // const StringList *const filePathSplitLst = strLstNewSplit(file, FSLASH_STR);
+            const CipherType repoCipherType = cfgOptionStrId(cfgOptRepoCipherType);
+
+            const String *cipherPass = cfgOptionStrNull(cfgOptCipherPass);
+
+            // Stanza is mandatory in this case, so we work within a backup
+            // Process constants
+            file = storagePathP(storageRepo(), file);
+
+            if (cfgOptionSource(cfgOptCompressType) == cfgSourceParam)
+            {
+                // Compression type was specified on command line, use this option
+                compressType = compressTypeEnum(cfgOptionStrId(cfgOptCompressType));
+            } 
+            else if (!strEndsWithZ(file, BACKUP_MANIFEST_FILE) &&
+                !strEndsWithZ(file, BACKUP_MANIFEST_FILE INFO_COPY_EXT))
+            {
+                // Find the decompression from manifest
+                const Manifest *const manifest = manifestLoadFile(
+                    storageRepo(),
+                    strNewFmt(
+                        STORAGE_PATH_BACKUP "/%s/%s/" BACKUP_MANIFEST_FILE, strZ(stanza), strZ(set)),
+                    repoCipherType, cipherPass);
+                
+                compressType = manifestData(manifest)->backupOptionCompressType;
+            }
+
+
+            if (compressType != compressTypeNone)
+            {
+                bool bundleRaw = false;
+                ioFilterGroupAdd(ioReadFilterGroup(source), decompressFilterP(compressType, .raw = bundleRaw));
+            }            
+        }
+
         // Add decryption if needed
         if (!cfgOptionBool(cfgOptRaw))
         {
