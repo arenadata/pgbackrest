@@ -42,51 +42,16 @@ storageGetProcess(IoWrite *const destination)
         // Is path valid for repo?
         file = repoPathIsValid(file);
 
-        CompressType fileCompressType = compressTypeNone; // compressTypeFromName(file);
-        if (cfgOptionSource(cfgOptCompressType) != cfgSourceDefault)
-        {
-            // Compression type was specified on command line, use this option
-            fileCompressType = compressTypeEnum(cfgOptionStrId(cfgOptCompressType));
-        }
-
-        // Create new file read
-        IoRead *const source = storageReadIo(
-            storageNewReadP(storageRepo(), file,
-                            .compressible = (fileCompressType == compressTypeNone),
-                            .ignoreMissing = cfgOptionBool(cfgOptIgnoreMissing)));
-
-        // Add decompession if requested
-        if (fileCompressType != compressTypeNone)
-        {
-            // KDBTODO: what is bundleRaw?
-            bool bundleRaw = false;
-            ioFilterGroupAdd(ioReadFilterGroup(source), decompressFilterP(fileCompressType, .raw = bundleRaw));
-        }
+        CompressType compressType = compressTypeNone;
 
         // Add decompression if needed
         if (cfgOptionBool(cfgOptDecompress))
         {
-            CompressType compressType = compressTypeNone;
 
-            const String *const stanza = cfgOptionStrNull(cfgOptStanza);
-            const String *const set = cfgOptionStrNull(cfgOptSet);
-
-            if (stanza == NULL)
-            {
-                THROW(ParamRequiredError, "stanza required");
-            }
-
-            if (set == NULL)
-            {
-                THROW(ParamRequiredError, "set required");
-            }
-
-            // const StringList *const filePathSplitLst = strLstNewSplit(file, FSLASH_STR);
             const CipherType repoCipherType = cfgOptionStrId(cfgOptRepoCipherType);
 
             const String *cipherPass = cfgOptionStrNull(cfgOptCipherPass);
 
-            // Stanza is mandatory in this case, so we work within a backup
             // Process constants
             file = storagePathP(storageRepo(), file);
 
@@ -98,6 +63,20 @@ storageGetProcess(IoWrite *const destination)
             else if (!strEndsWithZ(file, BACKUP_MANIFEST_FILE) &&
                 !strEndsWithZ(file, BACKUP_MANIFEST_FILE INFO_COPY_EXT))
             {
+                const String *const stanza = cfgOptionStrNull(cfgOptStanza);
+                const String *const set = cfgOptionStrNull(cfgOptSet);
+
+                // Stanza and set ares mandatory in this case as we work within a backup
+                if (stanza == NULL)
+                {
+                    THROW(ParamRequiredError, "stanza required");
+                }
+
+                if (set == NULL)
+                {
+                    THROW(ParamRequiredError, "set required");
+                }
+
                 // Find the decompression from manifest
                 const Manifest *const manifest = manifestLoadFile(
                     storageRepo(),
@@ -107,13 +86,17 @@ storageGetProcess(IoWrite *const destination)
                 
                 compressType = manifestData(manifest)->backupOptionCompressType;
             }
+        }
 
+        // Create new file read
+        IoRead *const source = storageReadIo(
+            storageNewReadP(storageRepo(), file,
+                            .compressible = (compressType == compressTypeNone),
+                            .ignoreMissing = cfgOptionBool(cfgOptIgnoreMissing)));
 
-            if (compressType != compressTypeNone)
-            {
-                bool bundleRaw = false;
-                ioFilterGroupAdd(ioReadFilterGroup(source), decompressFilterP(compressType, .raw = bundleRaw));
-            }            
+        if (compressType != compressTypeNone)
+        {
+            ioFilterGroupAdd(ioReadFilterGroup(source), decompressFilterP(compressType));
         }
 
         // Add decryption if needed
