@@ -17,6 +17,92 @@ Test Repo Commands
 #include "info/infoArchive.h"
 #include "info/infoBackup.h"
 
+#define TEST_BACKUP_LABEL_FULL                              "20260201-173010F"
+#define TEST_STANZA   "testStanza01"
+
+#define TEST_DATA                                                                                                              \
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, "                                                                \
+    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "                                                      \
+    "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris "                                                      \
+    "nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in "                                                       \
+    "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla "                                                     \
+    "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "                                                       \
+    "culpa qui officia deserunt mollit anim id est laborum."
+
+#define TEST_MANIFEST_HEADER                                                                                                   \
+    "[backup]\n"                                                                                                               \
+    "backup-label=null\n"                                                                                                      \
+    "backup-timestamp-copy-start=0\n"                                                                                          \
+    "backup-timestamp-start=0\n"                                                                                               \
+    "backup-timestamp-stop=0\n"                                                                                                \
+    "backup-type=\"full\"\n"
+
+#define TEST_MANIFEST_OPTION_ALL                                                                                               \
+    "\n"                                                                                                                       \
+    "[backup:option]\n"                                                                                                        \
+    "option-archive-check=false\n"                                                                                             \
+    "option-archive-copy=false\n"                                                                                              \
+    "option-checksum-page=false\n"                                                                                             \
+    "option-compress=false\n"                                                                                                  \
+    "option-compress-type=\"none\"\n"                                                                                          \
+    "option-hardlink=false\n"                                                                                                  \
+    "option-online=false\n"
+
+#define TEST_MANIFEST_OPTION_ALL_GZ                                                                                            \
+    "\n"                                                                                                                       \
+    "[backup:option]\n"                                                                                                        \
+    "option-archive-check=false\n"                                                                                             \
+    "option-archive-copy=false\n"                                                                                              \
+    "option-checksum-page=false\n"                                                                                             \
+    "option-compress=true\n"                                                                                                   \
+    "option-compress-type=\"gz\"\n"                                                                                            \
+    "option-hardlink=false\n"                                                                                                  \
+    "option-online=false\n"
+
+#define TEST_MANIFEST_TARGET                                                                                                   \
+    "\n"                                                                                                                       \
+    "[backup:target]\n"                                                                                                        \
+    "pg_data={\"path\":\"/pg/base\",\"type\":\"path\"}\n"
+
+#define TEST_MANIFEST_DB                                                                                                       \
+    "\n"                                                                                                                       \
+    "[db]\n"                                                                                                                   \
+    "postgres={\"db-id\":12173,\"db-last-system-id\":12168}\n"
+#define TEST_MANIFEST_FILE                                                                                                     \
+    "\n"                                                                                                                       \
+    "[target:file]\n"                                                                                                          \
+    "pg_data/PG_VERSION={\"checksum\":\"184473f470864e067ee3a22e64b47b0a1c356f29\",\"size\":4,\"timestamp\":1565282114}\n"
+
+#define TEST_MANIFEST_FILE_DEFAULT                                                                                             \
+    "\n"                                                                                                                       \
+    "[target:file:default]\n"                                                                                                  \
+    "group=\"group1\"\n"                                                                                                       \
+    "mode=\"0600\"\n"                                                                                                          \
+    "user=\"user1\"\n"
+
+#define TEST_MANIFEST_LINK                                                                                                     \
+    "\n"                                                                                                                       \
+    "[target:link]\n"                                                                                                          \
+    "pg_data/pg_stat={\"destination\":\"../pg_stat\"}\n"
+
+#define TEST_MANIFEST_LINK_DEFAULT                                                                                             \
+    "\n"                                                                                                                       \
+    "[target:link:default]\n"                                                                                                  \
+    "group=\"group1\"\n"                                                                                                       \
+    "user=false\n"
+
+#define TEST_MANIFEST_PATH                                                                                                     \
+    "\n"                                                                                                                       \
+    "[target:path]\n"                                                                                                          \
+    "pg_data={\"user\":\"user1\"}\n"                                                                                           \
+
+#define TEST_MANIFEST_PATH_DEFAULT                                                                                             \
+    "\n"                                                                                                                       \
+    "[target:path:default]\n"                                                                                                  \
+    "group=false\n"                                                                                                            \
+    "mode=\"0700\"\n"                                                                                                          \
+    "user=\"user1\"\n"
+
 static String *
 testManifestCustomFilesValidate(Manifest *manifest)
 {
@@ -851,6 +937,243 @@ testRun(void)
 
         // Reset buffer size
         ioBufferSizeSet(oldBufferSize);
+
+        HRN_STORAGE_PUT_Z(storageRepoWrite(),
+            STORAGE_REPO_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/path/test_data_gz.txt", 
+            TEST_DATA, 
+            .compressType=compressTypeGz, 
+            .timeModified = 1578671569);
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get compressed file from backup");
+
+        HRN_INFO_PUT(
+            storageRepoWrite(), STORAGE_REPO_BACKUP "/"  TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE,
+            TEST_MANIFEST_HEADER
+            "\n"
+            "[backup:db]\n"
+            "db-catalog-version=201608131\n"
+            "db-control-version=960\n"
+            "db-id=1\n"
+            "db-system-id=" HRN_PG_SYSTEMID_94_Z "\n"               // 9.4 system id is used so version will trigger error
+            "db-version=\"9.6\"\n"
+            TEST_MANIFEST_OPTION_ALL_GZ
+            TEST_MANIFEST_TARGET
+            TEST_MANIFEST_DB
+            TEST_MANIFEST_FILE
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT,
+            .comment = "manifest db section mismatch");
+
+        HRN_INFO_PUT(
+            storageRepoWrite(), STORAGE_REPO_BACKUP "/"  TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
+            TEST_MANIFEST_HEADER
+            "\n"
+            "[backup:db]\n"
+            "db-catalog-version=201608131\n"
+            "db-control-version=960\n"
+            "db-id=1\n"
+            "db-system-id=" HRN_PG_SYSTEMID_94_Z "\n"               // 9.4 system id is used so version will trigger error
+            "db-version=\"9.6\"\n"
+            TEST_MANIFEST_OPTION_ALL_GZ
+            TEST_MANIFEST_TARGET
+            TEST_MANIFEST_DB
+            TEST_MANIFEST_FILE
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT,
+            .comment = "manifest db section mismatch");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        strLstAddZ(argList, STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/path/test_data_gz.txt.gz");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+        
+        writeBuffer = bufNew(0);
+        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), TEST_DATA, "get matches put");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("no stanza specified with decompress");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        strLstAddZ(argList, STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/path/test_data_gz.txt.gz");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+        
+        writeBuffer = bufNew(0);
+        TEST_ERROR(storageGetProcess(ioBufferWriteNew(writeBuffer)), ParamRequiredError, "stanza required");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("no set specified with decompress");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        strLstAddZ(argList, STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/path/test_data_gz.txt.gz");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+        
+        writeBuffer = bufNew(0);
+        TEST_ERROR(storageGetProcess(ioBufferWriteNew(writeBuffer)), ParamRequiredError, "set required");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get the uncompressed manifest file with decompress");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        strLstAddZ(argList, STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE);
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+        
+        writeBuffer = bufNew(0);
+        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), 
+            "[backrest]\n"
+            "backrest-format=5\n"
+            "backrest-version=\"2.54.2\"\n"
+            "\n"
+            "[backup]\n"
+            "backup-label=null\n"
+            "backup-timestamp-copy-start=0\n"
+            "backup-timestamp-start=0\n"
+            "backup-timestamp-stop=0\n"
+            "backup-type=\"full\"\n"
+            "\n"
+            "[backup:db]\n"
+            "db-catalog-version=201608131\n"
+            "db-control-version=960\n"
+            "db-id=1\n"
+            "db-system-id=10000000000000090400\n"
+            "db-version=\"9.6\"\n"
+            "\n"
+            "[backup:option]\n"
+            "option-archive-check=false\n"
+            "option-archive-copy=false\n"
+            "option-checksum-page=false\n"
+            "option-compress=true\n"
+            "option-compress-type=\"gz\"\n"
+            "option-hardlink=false\n"
+            "option-online=false\n"
+            "\n"
+            "[backup:target]\n"
+            "pg_data={\"path\":\"/pg/base\",\"type\":\"path\"}\n"
+            "\n"
+            "[db]\n"
+            "postgres={\"db-id\":12173,\"db-last-system-id\":12168}\n"
+            "\n"
+            "[target:file]\n"
+            "pg_data/PG_VERSION={\"checksum\":\"184473f470864e067ee3a22e64b47b0a1c356f29\",\"size\":4,\"timestamp\":1565282114}\n"
+            "\n"
+            "[target:file:default]\n"
+            "group=\"group1\"\n"
+            "mode=\"0600\"\n"
+            "user=\"user1\"\n"
+            "\n"
+            "[target:link]\n"
+            "pg_data/pg_stat={\"destination\":\"../pg_stat\"}\n"
+            "\n"
+            "[target:link:default]\n"
+            "group=\"group1\"\n"
+            "user=false\n"
+            "\n"
+            "[target:path]\n"
+            "pg_data={\"user\":\"user1\"}\n"
+            "\n"
+            "[target:path:default]\n"
+            "group=false\n"
+            "mode=\"0700\"\n"
+            "user=\"user1\"\n"
+            "\n"
+            "[backrest]\n"
+            "backrest-checksum=\"bfbd7009538c9aa26d3e9fbfe7f09570d2a2af15\"\n", 
+            "get matches put");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get the manifest copy file with decompress");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        strLstAddZ(argList, STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE INFO_COPY_EXT);
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+        
+        writeBuffer = bufNew(0);
+        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), 
+            "[backrest]\n"
+            "backrest-format=5\n"
+            "backrest-version=\"2.54.2\"\n"
+            "\n"
+            "[backup]\n"
+            "backup-label=null\n"
+            "backup-timestamp-copy-start=0\n"
+            "backup-timestamp-start=0\n"
+            "backup-timestamp-stop=0\n"
+            "backup-type=\"full\"\n"
+            "\n"
+            "[backup:db]\n"
+            "db-catalog-version=201608131\n"
+            "db-control-version=960\n"
+            "db-id=1\n"
+            "db-system-id=10000000000000090400\n"
+            "db-version=\"9.6\"\n"
+            "\n"
+            "[backup:option]\n"
+            "option-archive-check=false\n"
+            "option-archive-copy=false\n"
+            "option-checksum-page=false\n"
+            "option-compress=true\n"
+            "option-compress-type=\"gz\"\n"
+            "option-hardlink=false\n"
+            "option-online=false\n"
+            "\n"
+            "[backup:target]\n"
+            "pg_data={\"path\":\"/pg/base\",\"type\":\"path\"}\n"
+            "\n"
+            "[db]\n"
+            "postgres={\"db-id\":12173,\"db-last-system-id\":12168}\n"
+            "\n"
+            "[target:file]\n"
+            "pg_data/PG_VERSION={\"checksum\":\"184473f470864e067ee3a22e64b47b0a1c356f29\",\"size\":4,\"timestamp\":1565282114}\n"
+            "\n"
+            "[target:file:default]\n"
+            "group=\"group1\"\n"
+            "mode=\"0600\"\n"
+            "user=\"user1\"\n"
+            "\n"
+            "[target:link]\n"
+            "pg_data/pg_stat={\"destination\":\"../pg_stat\"}\n"
+            "\n"
+            "[target:link:default]\n"
+            "group=\"group1\"\n"
+            "user=false\n"
+            "\n"
+            "[target:path]\n"
+            "pg_data={\"user\":\"user1\"}\n"
+            "\n"
+            "[target:path:default]\n"
+            "group=false\n"
+            "mode=\"0700\"\n"
+            "user=\"user1\"\n"
+            "\n"
+            "[backrest]\n"
+            "backrest-checksum=\"bfbd7009538c9aa26d3e9fbfe7f09570d2a2af15\"\n", 
+            "get matches put");
     }
 
     // *****************************************************************************************************************************
@@ -910,81 +1233,6 @@ testRun(void)
         TEST_RESULT_VOID(cmdStorageRemove(), "remove file");
         TEST_STORAGE_LIST(storageRepo(), NULL, "path/\n", .comment = "check path exists and file removed");
     }
-
-    #define TEST_BACKUP_LABEL_FULL                              "20260201-173010F"
-    #define TEST_STANZA   "testStanza01"
-
-    #define TEST_DATA                                                                                                              \
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, "                                                                \
-        "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "                                                      \
-        "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris "                                                      \
-        "nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in "                                                       \
-        "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla "                                                     \
-        "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "                                                       \
-        "culpa qui officia deserunt mollit anim id est laborum."
-
-    #define TEST_MANIFEST_HEADER                                                                                                   \
-        "[backup]\n"                                                                                                               \
-        "backup-label=null\n"                                                                                                      \
-        "backup-timestamp-copy-start=0\n"                                                                                          \
-        "backup-timestamp-start=0\n"                                                                                               \
-        "backup-timestamp-stop=0\n"                                                                                                \
-        "backup-type=\"full\"\n"
-
-    #define TEST_MANIFEST_OPTION_ALL                                                                                               \
-        "\n"                                                                                                                       \
-        "[backup:option]\n"                                                                                                        \
-        "option-archive-check=false\n"                                                                                             \
-        "option-archive-copy=false\n"                                                                                              \
-        "option-checksum-page=false\n"                                                                                             \
-        "option-compress=false\n"                                                                                                  \
-        "option-compress-type=\"none\"\n"                                                                                          \
-        "option-hardlink=false\n"                                                                                                  \
-        "option-online=false\n"
-
-    #define TEST_MANIFEST_TARGET                                                                                                   \
-        "\n"                                                                                                                       \
-        "[backup:target]\n"                                                                                                        \
-        "pg_data={\"path\":\"/pg/base\",\"type\":\"path\"}\n"
-
-    #define TEST_MANIFEST_DB                                                                                                       \
-        "\n"                                                                                                                       \
-        "[db]\n"                                                                                                                   \
-        "postgres={\"db-id\":12173,\"db-last-system-id\":12168}\n"
-    #define TEST_MANIFEST_FILE                                                                                                     \
-        "\n"                                                                                                                       \
-        "[target:file]\n"                                                                                                          \
-        "pg_data/PG_VERSION={\"checksum\":\"184473f470864e067ee3a22e64b47b0a1c356f29\",\"size\":4,\"timestamp\":1565282114}\n"
-
-    #define TEST_MANIFEST_FILE_DEFAULT                                                                                             \
-        "\n"                                                                                                                       \
-        "[target:file:default]\n"                                                                                                  \
-        "group=\"group1\"\n"                                                                                                       \
-        "mode=\"0600\"\n"                                                                                                          \
-        "user=\"user1\"\n"
-
-    #define TEST_MANIFEST_LINK                                                                                                     \
-        "\n"                                                                                                                       \
-        "[target:link]\n"                                                                                                          \
-        "pg_data/pg_stat={\"destination\":\"../pg_stat\"}\n"
-
-    #define TEST_MANIFEST_LINK_DEFAULT                                                                                             \
-        "\n"                                                                                                                       \
-        "[target:link:default]\n"                                                                                                  \
-        "group=\"group1\"\n"                                                                                                       \
-        "user=false\n"
-
-    #define TEST_MANIFEST_PATH                                                                                                     \
-        "\n"                                                                                                                       \
-        "[target:path]\n"                                                                                                          \
-        "pg_data={\"user\":\"user1\"}\n"                                                                                           \
-
-    #define TEST_MANIFEST_PATH_DEFAULT                                                                                             \
-        "\n"                                                                                                                       \
-        "[target:path:default]\n"                                                                                                  \
-        "group=false\n"                                                                                                            \
-        "mode=\"0700\"\n"                                                                                                          \
-        "user=\"user1\"\n"
 
     // *****************************************************************************************************************************
     if (testBegin("cmdStoragePush()"))
@@ -1097,7 +1345,7 @@ testRun(void)
         TEST_TITLE("push uncompressed file, replace existing");
 
         HRN_STORAGE_PUT_Z(storageTest, "path/aaa.txt", TEST_DATA, .timeModified = 1578671569);
-        HRN_STORAGE_PUT_Z(storageTest, "path/aaa_compressed.txt", TEST_DATA, .timeModified = 1578671569);
+        HRN_STORAGE_PUT_Z(storageTest, "path/aaa_compressed.txt", TEST_DATA, .timeModified = 1578671569, .compressType=compressTypeGz);
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
@@ -1176,13 +1424,15 @@ testRun(void)
         TEST_ERROR(
             HRN_CFG_LOAD(cfgCmdRepoPush, argList), OptionInvalidError,
             "option 'cipher-pass' not valid for command 'repo-push'");
-
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("get compressed file with auto decompression");
+        
+        TEST_TITLE("get compressed file from not compressed backup");
         argList = strLstNew();
-        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/");
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/");
         hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
-        strLstAddZ(argList, "path/aaa_compressed.txt");
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_FULL);
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
+        strLstAddZ(argList, "path/aaa_compressed.txt.gz");
 
         HRN_CFG_LOAD(cfgCmdRepoGet, argList);
 
@@ -1190,67 +1440,6 @@ testRun(void)
 
         TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
         TEST_RESULT_STR_Z(strNewBuf(writeBuffer), TEST_DATA, "get matches put");
-
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("get compressed file with forced decompression");
-        argList = strLstNew();
-        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/");
-        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
-        hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
-        strLstAddZ(argList, "path/aaa_compressed.txt");
-        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
-
-        writeBuffer = bufNew(0);
-        TEST_ERROR(
-            storageGetProcess(ioBufferWriteNew(writeBuffer)),
-            FormatError,
-            "zlib threw error: [-3] data error");
-
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("get compressed file with forced no decompression");
-
-        argList = strLstNew();
-        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/");
-        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
-        hrnCfgArgRawZ(argList, cfgOptCompressType, "none");
-        strLstAddZ(argList, "path/aaa_compressed.txt");
-        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
-
-        writeBuffer = bufNew(0);
-        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
-
-        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), TEST_DATA, "get matches put");
-
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("get uncompressed file with defaults");
-        argList = strLstNew();
-        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/");
-        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
-        strLstAddZ(argList, "path/aaa.txt");
-
-        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
-
-        writeBuffer = bufNew(0);
-
-        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
-        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), TEST_DATA, "get matches put");
-
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("get uncompressed file with forced decompression (shall be error)");
-        argList = strLstNew();
-        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/");
-        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
-        hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
-        strLstAddZ(argList, "path/aaa.txt");
-
-        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
-
-        writeBuffer = bufNew(0);
-
-        TEST_ERROR(
-            storageGetProcess(ioBufferWriteNew(writeBuffer)),
-            FormatError,
-            "zlib threw error: [-3] data error");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();

@@ -72,6 +72,7 @@ Option constants
 #define CFGOPT_DB_EXCLUDE                                           "db-exclude"
 #define CFGOPT_DB_INCLUDE                                           "db-include"
 #define CFGOPT_DB_TIMEOUT                                           "db-timeout"
+#define CFGOPT_DECOMPRESS                                           "decompress"
 #define CFGOPT_DELTA                                                "delta"
 #define CFGOPT_DRY_RUN                                              "dry-run"
 #define CFGOPT_EXCLUDE                                              "exclude"
@@ -142,7 +143,7 @@ Option constants
 #define CFGOPT_VERBOSE                                              "verbose"
 #define CFGOPT_VERSION                                              "version"
 
-#define CFG_OPTION_TOTAL                                            186
+#define CFG_OPTION_TOTAL                                            187
 
 /***********************************************************************************************************************************
 Option value constants
@@ -429,6 +430,7 @@ typedef enum
     cfgOptDbExclude,
     cfgOptDbInclude,
     cfgOptDbTimeout,
+    cfgOptDecompress,
     cfgOptDelta,
     cfgOptDryRun,
     cfgOptExclude,

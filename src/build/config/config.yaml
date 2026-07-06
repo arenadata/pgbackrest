@@ -403,6 +403,7 @@ option:
       manifest:
         default: latest
         required: true
+      repo-get: {}
       repo-push:
         required: true
       restore:
@@ -876,6 +877,13 @@ option:
       stanza-create: {}
       stanza-delete: {}
       stanza-upgrade: {}
+
+  decompress:
+    section: global
+    type: boolean
+    default: false
+    command:
+      repo-get: {}
 
   delta:
     section: global
