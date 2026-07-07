@@ -47,7 +47,6 @@ storageGetProcess(IoWrite *const destination)
         // Add decompression if needed
         if (cfgOptionBool(cfgOptDecompress))
         {
-
             const CipherType repoCipherType = cfgOptionStrId(cfgOptRepoCipherType);
 
             const String *cipherPass = cfgOptionStrNull(cfgOptCipherPass);
@@ -59,9 +58,9 @@ storageGetProcess(IoWrite *const destination)
             {
                 // Compression type was specified on command line, use this option
                 compressType = compressTypeEnum(cfgOptionStrId(cfgOptCompressType));
-            } 
+            }
             else if (!strEndsWithZ(file, BACKUP_MANIFEST_FILE) &&
-                !strEndsWithZ(file, BACKUP_MANIFEST_FILE INFO_COPY_EXT))
+                     !strEndsWithZ(file, BACKUP_MANIFEST_FILE INFO_COPY_EXT))
             {
                 const String *const stanza = cfgOptionStrNull(cfgOptStanza);
                 const String *const set = cfgOptionStrNull(cfgOptSet);
@@ -83,7 +82,7 @@ storageGetProcess(IoWrite *const destination)
                     strNewFmt(
                         STORAGE_PATH_BACKUP "/%s/%s/" BACKUP_MANIFEST_FILE, strZ(stanza), strZ(set)),
                     repoCipherType, cipherPass);
-                
+
                 compressType = manifestData(manifest)->backupOptionCompressType;
             }
         }

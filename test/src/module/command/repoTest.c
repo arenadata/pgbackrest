@@ -939,10 +939,10 @@ testRun(void)
         ioBufferSizeSet(oldBufferSize);
 
         HRN_STORAGE_PUT_Z(storageRepoWrite(),
-            STORAGE_REPO_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/path/test_data_gz.txt", 
-            TEST_DATA, 
-            .compressType=compressTypeGz, 
-            .timeModified = 1578671569);
+                          STORAGE_REPO_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/path/test_data_gz.txt",
+                          TEST_DATA,
+                          .compressType = compressTypeGz,
+                          .timeModified = 1578671569);
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("get compressed file from backup");
@@ -996,7 +996,7 @@ testRun(void)
         hrnCfgArgRawBool(argList, cfgOptDecompress, true);
         strLstAddZ(argList, STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/path/test_data_gz.txt.gz");
         HRN_CFG_LOAD(cfgCmdRepoGet, argList);
-        
+
         writeBuffer = bufNew(0);
         TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
         TEST_RESULT_STR_Z(strNewBuf(writeBuffer), TEST_DATA, "get matches put");
@@ -1010,7 +1010,7 @@ testRun(void)
         hrnCfgArgRawBool(argList, cfgOptDecompress, true);
         strLstAddZ(argList, STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/path/test_data_gz.txt.gz");
         HRN_CFG_LOAD(cfgCmdRepoGet, argList);
-        
+
         writeBuffer = bufNew(0);
         TEST_ERROR(storageGetProcess(ioBufferWriteNew(writeBuffer)), ParamRequiredError, "stanza required");
 
@@ -1023,7 +1023,7 @@ testRun(void)
         hrnCfgArgRawBool(argList, cfgOptDecompress, true);
         strLstAddZ(argList, STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/path/test_data_gz.txt.gz");
         HRN_CFG_LOAD(cfgCmdRepoGet, argList);
-        
+
         writeBuffer = bufNew(0);
         TEST_ERROR(storageGetProcess(ioBufferWriteNew(writeBuffer)), ParamRequiredError, "set required");
 
@@ -1037,69 +1037,69 @@ testRun(void)
         hrnCfgArgRawBool(argList, cfgOptDecompress, true);
         strLstAddZ(argList, STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE);
         HRN_CFG_LOAD(cfgCmdRepoGet, argList);
-        
+
         writeBuffer = bufNew(0);
         TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
-        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), 
-            "[backrest]\n"
-            "backrest-format=5\n"
-            "backrest-version=\"2.54.2\"\n"
-            "\n"
-            "[backup]\n"
-            "backup-label=null\n"
-            "backup-timestamp-copy-start=0\n"
-            "backup-timestamp-start=0\n"
-            "backup-timestamp-stop=0\n"
-            "backup-type=\"full\"\n"
-            "\n"
-            "[backup:db]\n"
-            "db-catalog-version=201608131\n"
-            "db-control-version=960\n"
-            "db-id=1\n"
-            "db-system-id=10000000000000090400\n"
-            "db-version=\"9.6\"\n"
-            "\n"
-            "[backup:option]\n"
-            "option-archive-check=false\n"
-            "option-archive-copy=false\n"
-            "option-checksum-page=false\n"
-            "option-compress=true\n"
-            "option-compress-type=\"gz\"\n"
-            "option-hardlink=false\n"
-            "option-online=false\n"
-            "\n"
-            "[backup:target]\n"
-            "pg_data={\"path\":\"/pg/base\",\"type\":\"path\"}\n"
-            "\n"
-            "[db]\n"
-            "postgres={\"db-id\":12173,\"db-last-system-id\":12168}\n"
-            "\n"
-            "[target:file]\n"
-            "pg_data/PG_VERSION={\"checksum\":\"184473f470864e067ee3a22e64b47b0a1c356f29\",\"size\":4,\"timestamp\":1565282114}\n"
-            "\n"
-            "[target:file:default]\n"
-            "group=\"group1\"\n"
-            "mode=\"0600\"\n"
-            "user=\"user1\"\n"
-            "\n"
-            "[target:link]\n"
-            "pg_data/pg_stat={\"destination\":\"../pg_stat\"}\n"
-            "\n"
-            "[target:link:default]\n"
-            "group=\"group1\"\n"
-            "user=false\n"
-            "\n"
-            "[target:path]\n"
-            "pg_data={\"user\":\"user1\"}\n"
-            "\n"
-            "[target:path:default]\n"
-            "group=false\n"
-            "mode=\"0700\"\n"
-            "user=\"user1\"\n"
-            "\n"
-            "[backrest]\n"
-            "backrest-checksum=\"bfbd7009538c9aa26d3e9fbfe7f09570d2a2af15\"\n", 
-            "get matches put");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer),
+                          "[backrest]\n"
+                          "backrest-format=5\n"
+                          "backrest-version=\"2.54.2\"\n"
+                          "\n"
+                          "[backup]\n"
+                          "backup-label=null\n"
+                          "backup-timestamp-copy-start=0\n"
+                          "backup-timestamp-start=0\n"
+                          "backup-timestamp-stop=0\n"
+                          "backup-type=\"full\"\n"
+                          "\n"
+                          "[backup:db]\n"
+                          "db-catalog-version=201608131\n"
+                          "db-control-version=960\n"
+                          "db-id=1\n"
+                          "db-system-id=10000000000000090400\n"
+                          "db-version=\"9.6\"\n"
+                          "\n"
+                          "[backup:option]\n"
+                          "option-archive-check=false\n"
+                          "option-archive-copy=false\n"
+                          "option-checksum-page=false\n"
+                          "option-compress=true\n"
+                          "option-compress-type=\"gz\"\n"
+                          "option-hardlink=false\n"
+                          "option-online=false\n"
+                          "\n"
+                          "[backup:target]\n"
+                          "pg_data={\"path\":\"/pg/base\",\"type\":\"path\"}\n"
+                          "\n"
+                          "[db]\n"
+                          "postgres={\"db-id\":12173,\"db-last-system-id\":12168}\n"
+                          "\n"
+                          "[target:file]\n"
+                          "pg_data/PG_VERSION={\"checksum\":\"184473f470864e067ee3a22e64b47b0a1c356f29\",\"size\":4,\"timestamp\":1565282114}\n"
+                          "\n"
+                          "[target:file:default]\n"
+                          "group=\"group1\"\n"
+                          "mode=\"0600\"\n"
+                          "user=\"user1\"\n"
+                          "\n"
+                          "[target:link]\n"
+                          "pg_data/pg_stat={\"destination\":\"../pg_stat\"}\n"
+                          "\n"
+                          "[target:link:default]\n"
+                          "group=\"group1\"\n"
+                          "user=false\n"
+                          "\n"
+                          "[target:path]\n"
+                          "pg_data={\"user\":\"user1\"}\n"
+                          "\n"
+                          "[target:path:default]\n"
+                          "group=false\n"
+                          "mode=\"0700\"\n"
+                          "user=\"user1\"\n"
+                          "\n"
+                          "[backrest]\n"
+                          "backrest-checksum=\"bfbd7009538c9aa26d3e9fbfe7f09570d2a2af15\"\n",
+                          "get matches put");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("get the manifest copy file with decompress");
@@ -1111,69 +1111,69 @@ testRun(void)
         hrnCfgArgRawBool(argList, cfgOptDecompress, true);
         strLstAddZ(argList, STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE INFO_COPY_EXT);
         HRN_CFG_LOAD(cfgCmdRepoGet, argList);
-        
+
         writeBuffer = bufNew(0);
         TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
-        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), 
-            "[backrest]\n"
-            "backrest-format=5\n"
-            "backrest-version=\"2.54.2\"\n"
-            "\n"
-            "[backup]\n"
-            "backup-label=null\n"
-            "backup-timestamp-copy-start=0\n"
-            "backup-timestamp-start=0\n"
-            "backup-timestamp-stop=0\n"
-            "backup-type=\"full\"\n"
-            "\n"
-            "[backup:db]\n"
-            "db-catalog-version=201608131\n"
-            "db-control-version=960\n"
-            "db-id=1\n"
-            "db-system-id=10000000000000090400\n"
-            "db-version=\"9.6\"\n"
-            "\n"
-            "[backup:option]\n"
-            "option-archive-check=false\n"
-            "option-archive-copy=false\n"
-            "option-checksum-page=false\n"
-            "option-compress=true\n"
-            "option-compress-type=\"gz\"\n"
-            "option-hardlink=false\n"
-            "option-online=false\n"
-            "\n"
-            "[backup:target]\n"
-            "pg_data={\"path\":\"/pg/base\",\"type\":\"path\"}\n"
-            "\n"
-            "[db]\n"
-            "postgres={\"db-id\":12173,\"db-last-system-id\":12168}\n"
-            "\n"
-            "[target:file]\n"
-            "pg_data/PG_VERSION={\"checksum\":\"184473f470864e067ee3a22e64b47b0a1c356f29\",\"size\":4,\"timestamp\":1565282114}\n"
-            "\n"
-            "[target:file:default]\n"
-            "group=\"group1\"\n"
-            "mode=\"0600\"\n"
-            "user=\"user1\"\n"
-            "\n"
-            "[target:link]\n"
-            "pg_data/pg_stat={\"destination\":\"../pg_stat\"}\n"
-            "\n"
-            "[target:link:default]\n"
-            "group=\"group1\"\n"
-            "user=false\n"
-            "\n"
-            "[target:path]\n"
-            "pg_data={\"user\":\"user1\"}\n"
-            "\n"
-            "[target:path:default]\n"
-            "group=false\n"
-            "mode=\"0700\"\n"
-            "user=\"user1\"\n"
-            "\n"
-            "[backrest]\n"
-            "backrest-checksum=\"bfbd7009538c9aa26d3e9fbfe7f09570d2a2af15\"\n", 
-            "get matches put");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer),
+                          "[backrest]\n"
+                          "backrest-format=5\n"
+                          "backrest-version=\"2.54.2\"\n"
+                          "\n"
+                          "[backup]\n"
+                          "backup-label=null\n"
+                          "backup-timestamp-copy-start=0\n"
+                          "backup-timestamp-start=0\n"
+                          "backup-timestamp-stop=0\n"
+                          "backup-type=\"full\"\n"
+                          "\n"
+                          "[backup:db]\n"
+                          "db-catalog-version=201608131\n"
+                          "db-control-version=960\n"
+                          "db-id=1\n"
+                          "db-system-id=10000000000000090400\n"
+                          "db-version=\"9.6\"\n"
+                          "\n"
+                          "[backup:option]\n"
+                          "option-archive-check=false\n"
+                          "option-archive-copy=false\n"
+                          "option-checksum-page=false\n"
+                          "option-compress=true\n"
+                          "option-compress-type=\"gz\"\n"
+                          "option-hardlink=false\n"
+                          "option-online=false\n"
+                          "\n"
+                          "[backup:target]\n"
+                          "pg_data={\"path\":\"/pg/base\",\"type\":\"path\"}\n"
+                          "\n"
+                          "[db]\n"
+                          "postgres={\"db-id\":12173,\"db-last-system-id\":12168}\n"
+                          "\n"
+                          "[target:file]\n"
+                          "pg_data/PG_VERSION={\"checksum\":\"184473f470864e067ee3a22e64b47b0a1c356f29\",\"size\":4,\"timestamp\":1565282114}\n"
+                          "\n"
+                          "[target:file:default]\n"
+                          "group=\"group1\"\n"
+                          "mode=\"0600\"\n"
+                          "user=\"user1\"\n"
+                          "\n"
+                          "[target:link]\n"
+                          "pg_data/pg_stat={\"destination\":\"../pg_stat\"}\n"
+                          "\n"
+                          "[target:link:default]\n"
+                          "group=\"group1\"\n"
+                          "user=false\n"
+                          "\n"
+                          "[target:path]\n"
+                          "pg_data={\"user\":\"user1\"}\n"
+                          "\n"
+                          "[target:path:default]\n"
+                          "group=false\n"
+                          "mode=\"0700\"\n"
+                          "user=\"user1\"\n"
+                          "\n"
+                          "[backrest]\n"
+                          "backrest-checksum=\"bfbd7009538c9aa26d3e9fbfe7f09570d2a2af15\"\n",
+                          "get matches put");
     }
 
     // *****************************************************************************************************************************
@@ -1345,7 +1345,7 @@ testRun(void)
         TEST_TITLE("push uncompressed file, replace existing");
 
         HRN_STORAGE_PUT_Z(storageTest, "path/aaa.txt", TEST_DATA, .timeModified = 1578671569);
-        HRN_STORAGE_PUT_Z(storageTest, "path/aaa_compressed.txt", TEST_DATA, .timeModified = 1578671569, .compressType=compressTypeGz);
+        HRN_STORAGE_PUT_Z(storageTest, "path/aaa_compressed.txt", TEST_DATA, .timeModified = 1578671569, .compressType = compressTypeGz);
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
@@ -1424,7 +1424,7 @@ testRun(void)
         TEST_ERROR(
             HRN_CFG_LOAD(cfgCmdRepoPush, argList), OptionInvalidError,
             "option 'cipher-pass' not valid for command 'repo-push'");
-        
+
         TEST_TITLE("get compressed file unrelated to manifest");
         argList = strLstNew();
         hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/");
