@@ -2328,7 +2328,7 @@
 
                 <option-list>
                     <option id="decompress" name="Decompress">
-                        <summary>decompresses the file before writing to stdout</summary>
+                        <summary>decompresses the file before writing to stdout.</summary>
 
                         <text>
                             <p>If specified, pgBackRest automatically decompresses the file before writing to stdout. The compression algorithm is determined from the backup manifest (the same algorithm that was used when the backup was created). If decompression fails (e.g., the file is not compressed or the manifest entry is missing), an error is returned. Without this flag, the raw (possibly compressed) content is output.</p>
@@ -2345,7 +2345,7 @@
                         <example>y</example>
                     </option>
                     <option id="set" name="Set">
-                        <summary>backup set identifier</summary>
+                        <summary>backup set identifier.</summary>
                         <text>
                             <p>Backup set identifier (restore point).</p>
                         </text>
