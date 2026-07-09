@@ -1212,7 +1212,7 @@ testRun(void)
             "[db:history]\n"
             "1={\"db-catalog-version\":201510051,\"db-control-version\":942,\"db-system-id\":6626363367545678089"
             ",\"db-version\":\"9.5\"}\n",
-            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,            
+            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,
             .comment = "write encrypted backup.info, stanza1, repo2");
 
         HRN_INFO_PUT(
@@ -1227,7 +1227,7 @@ testRun(void)
             "\n"
             "[db:history]\n"
             "1={\"db-id\":" HRN_PG_SYSTEMID_15_Z ",\"db-version\":\"15\"}\n",
-            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,            
+            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,
             .comment = "write encrypted archive.info, stanza1, repo2");
 
         // Create encrypted manifest file
@@ -1257,17 +1257,17 @@ testRun(void)
 
         // Create encrypted and compressed file in the backup
         HRN_STORAGE_PUT_Z(storageTest,
-            TEST_PATH "/repo2/" STORAGE_PATH_BACKUP "/stanza1/20201116-200000F/" "test_file_ec.txt",
-            "test file content",
-            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,
-            .compressType = compressTypeGz);
+                          TEST_PATH "/repo2/" STORAGE_PATH_BACKUP "/stanza1/20201116-200000F/" "test_file_ec.txt",
+                          "test file content",
+                          .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,
+                          .compressType = compressTypeGz);
 
         // Create encrypted and compressed file in the archive
         HRN_STORAGE_PUT_Z(storageTest,
-            TEST_PATH "/repo2/" STORAGE_PATH_ARCHIVE "/stanza1/20201116-200000F/" "test_file_ec.txt",
-            "test file content",
-            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,
-            .compressType = compressTypeGz);
+                          TEST_PATH "/repo2/" STORAGE_PATH_ARCHIVE "/stanza1/20201116-200000F/" "test_file_ec.txt",
+                          "test file content",
+                          .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,
+                          .compressType = compressTypeGz);
 
         // Get the file
         argList = strLstNew();
@@ -1314,7 +1314,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdRepoGet, argList);
 
         writeBuffer = bufNew(0);
-        TEST_ERROR(storageGetProcess(ioBufferWriteNew(writeBuffer)), ParamRequiredError, "stanza required");        
+        TEST_ERROR(storageGetProcess(ioBufferWriteNew(writeBuffer)), ParamRequiredError, "stanza required");
     }
 
     // *****************************************************************************************************************************

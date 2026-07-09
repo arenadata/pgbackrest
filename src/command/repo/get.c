@@ -99,12 +99,12 @@ storageGetProcess(IoWrite *const destination)
                         const String *stanza = NULL;
                         const char *strz2 = NULL;
 
-                        if ((strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_ARCHIVE_STR) || 
-                                strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_BACKUP_STR)))
-                        {                            
+                        if ((strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_ARCHIVE_STR) ||
+                             strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_BACKUP_STR)))
+                        {
                             stanza = cfgOptionStr(cfgOptStanza);
                             strz2 = strZ(strLstGet(filePathSplitLst, 1));
-                        } 
+                        }
                         else
                         {
                             stanza = strLstGet(filePathSplitLst, 1);
@@ -120,7 +120,7 @@ storageGetProcess(IoWrite *const destination)
                         }
 
                         // Archive path
-                        if (strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_ARCHIVE_STR) || 
+                        if (strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_ARCHIVE_STR) ||
                             strEq(strLstGet(filePathSplitLst, 0), STORAGE_PATH_ARCHIVE_STR))
                         {
                             cipherPass = cfgOptionStr(cfgOptRepoCipherPass);
@@ -169,7 +169,7 @@ storageGetProcess(IoWrite *const destination)
 
                 // Error when unable to determine cipher passphrase
                 if (cipherPass == NULL)
-                    THROW_FMT(OptionInvalidValueError, "unable to determine cipher passphrase for '%s'", strZ(file));                
+                    THROW_FMT(OptionInvalidValueError, "unable to determine cipher passphrase for '%s'", strZ(file));
             }
         }
 
