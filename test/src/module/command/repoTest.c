@@ -18,7 +18,7 @@ Test Repo Commands
 #include "info/infoBackup.h"
 
 #define TEST_BACKUP_LABEL_FULL                              "20260201-173010F"
-#define TEST_STANZA   "testStanza01"
+#define TEST_STANZA                                         "testStanza01"
 
 #define TEST_DATA                                                                                                              \
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, "                                                                \
@@ -58,6 +58,11 @@ Test Repo Commands
     "option-compress-type=\"gz\"\n"                                                                                            \
     "option-hardlink=false\n"                                                                                                  \
     "option-online=false\n"
+
+#define TEST_MANIFEST_OPTION_CIPHER                                                                                            \
+    "\n"                                                                                                                       \
+    "[cipher]\n"                                                                                                               \
+    "cipher-pass=\"" TEST_CIPHER_PASS "\"\n"                                                                                     \
 
 #define TEST_MANIFEST_TARGET                                                                                                   \
     "\n"                                                                                                                       \
@@ -1174,6 +1179,142 @@ testRun(void)
                           "[backrest]\n"
                           "backrest-checksum=\"bfbd7009538c9aa26d3e9fbfe7f09570d2a2af15\"\n",
                           "get matches put");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get the encrpyted file with decompress from backup");
+
+        // Create storage object for writing to test locations when a stanza is not set
+        Storage *storageTest = storagePosixNewP(TEST_PATH_STR, .write = true);
+
+        // Write encrypted info file to encrypted repo2
+        HRN_INFO_PUT(
+            storageTest, TEST_PATH "/repo2/" STORAGE_PATH_BACKUP "/stanza1/" INFO_BACKUP_FILE,
+            "[db]\n"
+            "db-catalog-version=201510051\n"
+            "db-control-version=942\n"
+            "db-id=1\n"
+            "db-system-id=6626363367545678089\n"
+            "db-version=\"9.5\"\n"
+            "\n"
+            "[backup:current]\n"
+            "20201116-200000F={\"backrest-format\":5,\"backrest-version\":\"2.30\","
+            "\"backup-archive-start\":\"000000010000000000000004\",\"backup-archive-stop\":\"000000010000000000000004\","
+            "\"backup-error\":true,"
+            "\"backup-info-repo-size\":3159000,\"backup-info-repo-size-delta\":3100,\"backup-info-size\":26897000,"
+            "\"backup-info-size-delta\":26897020,\"backup-timestamp-start\":1605556800,\"backup-timestamp-stop\":1605556805,"
+            "\"backup-type\":\"full\",\"db-id\":1,\"option-archive-check\":true,\"option-archive-copy\":true,"
+            "\"option-backup-standby\":true,\"option-checksum-page\":false,\"option-compress\":false,\"option-hardlink\":true,"
+            "\"option-online\":true}\n"
+            "\n"
+            "[cipher]\n"
+            "cipher-pass=\"" TEST_CIPHER_PASS "\"\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-catalog-version\":201510051,\"db-control-version\":942,\"db-system-id\":6626363367545678089"
+            ",\"db-version\":\"9.5\"}\n",
+            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,            
+            .comment = "write encrypted backup.info, stanza1, repo2");
+
+        HRN_INFO_PUT(
+            storageTest, TEST_PATH "/repo2/" STORAGE_PATH_ARCHIVE "/stanza1/" INFO_ARCHIVE_FILE,
+            "[db]\n"
+            "db-id=1\n"
+            "db-system-id=" HRN_PG_SYSTEMID_15_Z "\n"
+            "db-version=\"15\"\n"
+            "\n"
+            "[cipher]\n"
+            "cipher-pass=\"" TEST_CIPHER_PASS "\"\n"
+            "\n"
+            "[db:history]\n"
+            "1={\"db-id\":" HRN_PG_SYSTEMID_15_Z ",\"db-version\":\"15\"}\n",
+            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,            
+            .comment = "write encrypted archive.info, stanza1, repo2");
+
+        // Create encrypted manifest file
+        HRN_INFO_PUT(
+            storageTest, TEST_PATH "/repo2/" STORAGE_PATH_BACKUP "/stanza1/20201116-200000F/" BACKUP_MANIFEST_FILE,
+            TEST_MANIFEST_HEADER
+            "\n"
+            "[backup:db]\n"
+            "db-catalog-version=201608131\n"
+            "db-control-version=960\n"
+            "db-id=1\n"
+            "db-system-id=" HRN_PG_SYSTEMID_94_Z "\n"               // 9.4 system id is used so version will trigger error
+            "db-version=\"9.6\"\n"
+            TEST_MANIFEST_OPTION_ALL_GZ
+            TEST_MANIFEST_OPTION_CIPHER
+            TEST_MANIFEST_TARGET
+            TEST_MANIFEST_DB
+            TEST_MANIFEST_FILE
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT
+            "\n",
+            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,
+            .comment = "write encrypted manifest, stanza1, repo2");
+
+        // Create encrypted and compressed file in the backup
+        HRN_STORAGE_PUT_Z(storageTest,
+            TEST_PATH "/repo2/" STORAGE_PATH_BACKUP "/stanza1/20201116-200000F/" "test_file_ec.txt",
+            "test file content",
+            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,
+            .compressType = compressTypeGz);
+
+        // Create encrypted and compressed file in the archive
+        HRN_STORAGE_PUT_Z(storageTest,
+            TEST_PATH "/repo2/" STORAGE_PATH_ARCHIVE "/stanza1/20201116-200000F/" "test_file_ec.txt",
+            "test file content",
+            .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS,
+            .compressType = compressTypeGz);
+
+        // Get the file
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo2");
+        hrnCfgArgRawZ(argList, cfgOptStanza, "stanza1");
+        hrnCfgArgRawZ(argList, cfgOptSet, "20201116-200000F");
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        hrnCfgArgRawStrId(argList, cfgOptRepoCipherType, cipherTypeAes256Cbc);
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, TEST_CIPHER_PASS);
+        strLstAddZ(argList, STORAGE_REPO_BACKUP "/20201116-200000F" "/test_file_ec.txt.gz");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        writeBuffer = bufNew(0);
+        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), "test file content", "get matches put");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get the encrpyted file with decompress from archive");
+        // Get the file
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo2");
+        hrnCfgArgRawZ(argList, cfgOptStanza, "stanza1");
+        hrnCfgArgRawZ(argList, cfgOptSet, "20201116-200000F");
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        hrnCfgArgRawStrId(argList, cfgOptRepoCipherType, cipherTypeAes256Cbc);
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, TEST_CIPHER_PASS);
+        strLstAddZ(argList, STORAGE_REPO_ARCHIVE "/20201116-200000F" "/test_file_ec.txt.gz");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        writeBuffer = bufNew(0);
+        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), "test file content", "get matches put");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("try to get the encrpyted file with no stanza specified");
+        // Get the file
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo2");
+        hrnCfgArgRawZ(argList, cfgOptSet, "20201116-200000F");
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        hrnCfgArgRawStrId(argList, cfgOptRepoCipherType, cipherTypeAes256Cbc);
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, TEST_CIPHER_PASS);
+        strLstAddZ(argList, STORAGE_REPO_BACKUP "/20201116-200000F" "/test_file_ec.txt.gz");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        writeBuffer = bufNew(0);
+        TEST_ERROR(storageGetProcess(ioBufferWriteNew(writeBuffer)), ParamRequiredError, "stanza required");        
     }
 
     // *****************************************************************************************************************************

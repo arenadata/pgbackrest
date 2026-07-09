@@ -32,6 +32,20 @@ storageGetProcess(IoWrite *const destination)
     if (strLstSize(cfgCommandParam()) != 1)
         THROW(ParamRequiredError, "source file required");
 
+    if (cfgOptionBool(cfgOptDecompress))
+    {
+        // Stanza and set are mandatory in with decompress
+        if (cfgOptionStrNull(cfgOptStanza) == NULL)
+        {
+            THROW(ParamRequiredError, "stanza required");
+        }
+
+        if (cfgOptionStrNull(cfgOptSet) == NULL)
+        {
+            THROW(ParamRequiredError, "set required");
+        }
+    }
+
     const String *file = strLstGet(cfgCommandParam(), 0);
 
     // Assume the file is missing
@@ -43,70 +57,18 @@ storageGetProcess(IoWrite *const destination)
         file = repoPathIsValid(file);
 
         CompressType compressType = compressTypeNone;
+        CipherType repoCipherType = cipherTypeNone;
+        const String *cipherPass = NULL;
+        const Manifest *manifest = NULL;
 
-        // Add decompression if needed
-        if (cfgOptionBool(cfgOptDecompress))
-        {
-            const CipherType repoCipherType = cfgOptionStrId(cfgOptRepoCipherType);
-
-            const String *cipherPass = cfgOptionStrNull(cfgOptCipherPass);
-
-            // Process constants
-            file = storagePathP(storageRepo(), file);
-
-            if (cfgOptionSource(cfgOptCompressType) == cfgSourceParam)
-            {
-                // Compression type was specified on command line, use this option
-                compressType = compressTypeEnum(cfgOptionStrId(cfgOptCompressType));
-            }
-            else if (!strEndsWithZ(file, BACKUP_MANIFEST_FILE) &&
-                     !strEndsWithZ(file, BACKUP_MANIFEST_FILE INFO_COPY_EXT))
-            {
-                const String *const stanza = cfgOptionStrNull(cfgOptStanza);
-                const String *const set = cfgOptionStrNull(cfgOptSet);
-
-                // Stanza and set ares mandatory in this case as we work within a backup
-                if (stanza == NULL)
-                {
-                    THROW(ParamRequiredError, "stanza required");
-                }
-
-                if (set == NULL)
-                {
-                    THROW(ParamRequiredError, "set required");
-                }
-
-                // Find the decompression from manifest
-                const Manifest *const manifest = manifestLoadFile(
-                    storageRepo(),
-                    strNewFmt(
-                        STORAGE_PATH_BACKUP "/%s/%s/" BACKUP_MANIFEST_FILE, strZ(stanza), strZ(set)),
-                    repoCipherType, cipherPass);
-
-                compressType = manifestData(manifest)->backupOptionCompressType;
-            }
-        }
-
-        // Create new file read
-        IoRead *const source = storageReadIo(
-            storageNewReadP(storageRepo(), file,
-                            .compressible = (compressType == compressTypeNone),
-                            .ignoreMissing = cfgOptionBool(cfgOptIgnoreMissing)));
-
-        if (compressType != compressTypeNone)
-        {
-            ioFilterGroupAdd(ioReadFilterGroup(source), decompressFilterP(compressType));
-        }
-
-        // Add decryption if needed
+        // Find the passphrase if encrypted
         if (!cfgOptionBool(cfgOptRaw))
         {
-            const CipherType repoCipherType = cfgOptionStrId(cfgOptRepoCipherType);
-
+            repoCipherType = cfgOptionStrId(cfgOptRepoCipherType);
             if (repoCipherType != cipherTypeNone)
             {
                 // Check for a passphrase parameter
-                const String *cipherPass = cfgOptionStrNull(cfgOptCipherPass);
+                cipherPass = cfgOptionStrNull(cfgOptCipherPass);
 
                 // If not passed as a parameter then determine the passphrase using the following pattern:
                 //
@@ -118,6 +80,11 @@ storageGetProcess(IoWrite *const destination)
                 //      / backup  / stanza / set / (manifest passphrase)
                 //      / backup  / stanza / backup.history / (backup passphrase)
                 //
+                // Or <REPO:BACKUP> / (backup passphrase)
+                //    <REPO:BACKUP> / set / (manifest passphrase)
+                //    <REPO:BACKUP> / backup.history / (backup passphrase)
+                //    <REPO:ARCHIVE> / (archive passphrase)
+                //
                 // Nothing should be stored at the top level of the repo except the backup/archive paths. The backup/archive paths
                 // should contain only stanza paths.
                 // -----------------------------------------------------------------------------------------------------------------
@@ -125,10 +92,24 @@ storageGetProcess(IoWrite *const destination)
                 {
                     const StringList *const filePathSplitLst = strLstNewSplit(file, FSLASH_STR);
 
+                    unsigned int pathSize = strLstSize(filePathSplitLst);
                     // At a minimum the path must contain archive/backup, a stanza, and a file
-                    if (strLstSize(filePathSplitLst) > 2)
+                    if (pathSize > 2)
                     {
-                        const String *const stanza = strLstGet(filePathSplitLst, 1);
+                        const String *stanza = NULL;
+                        const char *strz2 = NULL;
+
+                        if ((strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_ARCHIVE_STR) || 
+                                strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_BACKUP_STR)))
+                        {                            
+                            stanza = cfgOptionStr(cfgOptStanza);
+                            strz2 = strZ(strLstGet(filePathSplitLst, 1));
+                        } 
+                        else
+                        {
+                            stanza = strLstGet(filePathSplitLst, 1);
+                            strz2 = strZ(strLstGet(filePathSplitLst, 2));
+                        }
 
                         // If stanza option is specified then it must match the given file path
                         if (cfgOptionStrNull(cfgOptStanza) != NULL && !strEq(stanza, cfgOptionStr(cfgOptStanza)))
@@ -139,7 +120,8 @@ storageGetProcess(IoWrite *const destination)
                         }
 
                         // Archive path
-                        if (strEq(strLstGet(filePathSplitLst, 0), STORAGE_PATH_ARCHIVE_STR))
+                        if (strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_ARCHIVE_STR) || 
+                            strEq(strLstGet(filePathSplitLst, 0), STORAGE_PATH_ARCHIVE_STR))
                         {
                             cipherPass = cfgOptionStr(cfgOptRepoCipherPass);
 
@@ -154,7 +136,8 @@ storageGetProcess(IoWrite *const destination)
                         }
 
                         // Backup path
-                        if (strEq(strLstGet(filePathSplitLst, 0), STORAGE_PATH_BACKUP_STR))
+                        if (strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_BACKUP_STR) ||
+                            strEq(strLstGet(filePathSplitLst, 0), STORAGE_PATH_BACKUP_STR))
                         {
                             cipherPass = cfgOptionStr(cfgOptRepoCipherPass);
 
@@ -171,10 +154,10 @@ storageGetProcess(IoWrite *const destination)
                                     !strEndsWithZ(file, BACKUP_MANIFEST_FILE) &&
                                     !strEndsWithZ(file, BACKUP_MANIFEST_FILE INFO_COPY_EXT))
                                 {
-                                    const Manifest *const manifest = manifestLoadFile(
+                                    manifest = manifestLoadFile(
                                         storageRepo(),
                                         strNewFmt(
-                                            STORAGE_PATH_BACKUP "/%s/%s/%s", strZ(stanza), strZ(strLstGet(filePathSplitLst, 2)),
+                                            STORAGE_PATH_BACKUP "/%s/%s/%s", strZ(stanza), strz2,
                                             BACKUP_MANIFEST_FILE),
                                         repoCipherType, cipherPass);
                                     cipherPass = manifestCipherSubPass(manifest);
@@ -186,11 +169,59 @@ storageGetProcess(IoWrite *const destination)
 
                 // Error when unable to determine cipher passphrase
                 if (cipherPass == NULL)
-                    THROW_FMT(OptionInvalidValueError, "unable to determine cipher passphrase for '%s'", strZ(file));
-
-                // Add encryption filter
-                cipherBlockFilterGroupAdd(ioReadFilterGroup(source), repoCipherType, cipherModeDecrypt, cipherPass);
+                    THROW_FMT(OptionInvalidValueError, "unable to determine cipher passphrase for '%s'", strZ(file));                
             }
+        }
+
+        if (cfgOptionBool(cfgOptDecompress))
+        {
+            // Process constants
+            file = storagePathP(storageRepo(), file);
+
+            if (cfgOptionSource(cfgOptCompressType) == cfgSourceParam)
+            {
+                // Compression type was specified on command line, use this option
+                compressType = compressTypeEnum(cfgOptionStrId(cfgOptCompressType));
+            }
+            else if (!strEndsWithZ(file, BACKUP_MANIFEST_FILE) &&
+                     !strEndsWithZ(file, BACKUP_MANIFEST_FILE INFO_COPY_EXT))
+            {
+                const String *const stanza = cfgOptionStrNull(cfgOptStanza);
+                const String *const set = cfgOptionStrNull(cfgOptSet);
+
+                // Find the decompression from manifest
+                if (manifest == NULL)
+                {
+                    manifest = manifestLoadFile(
+                        storageRepo(),
+                        strNewFmt(
+                            STORAGE_PATH_BACKUP "/%s/%s/%s", strZ(stanza), strZ(set),
+                            BACKUP_MANIFEST_FILE),
+                        repoCipherType, cipherPass);
+                }
+
+                compressType = manifestData(manifest)->backupOptionCompressType;
+            }
+        }
+
+        // Create new file read
+        IoRead *const source = storageReadIo(
+            storageNewReadP(storageRepo(), file,
+                            .compressible = (compressType == compressTypeNone),
+                            .ignoreMissing = cfgOptionBool(cfgOptIgnoreMissing)));
+
+        // Add decryption if needed
+        if (repoCipherType != cipherTypeNone)
+        {
+            // Add encryption filter
+            cipherBlockFilterGroupAdd(ioReadFilterGroup(source), repoCipherType, cipherModeDecrypt, cipherPass);
+        }
+
+        // Add decompression if needed
+        if (compressType != compressTypeNone)
+        {
+            // Add decompression filter
+            ioFilterGroupAdd(ioReadFilterGroup(source), decompressFilterP(compressType));
         }
 
         // Open source
