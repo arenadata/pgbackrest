@@ -32,7 +32,7 @@ storageGetProcess(IoWrite *const destination)
     if (strLstSize(cfgCommandParam()) != 1)
         THROW(ParamRequiredError, "source file required");
 
-    if (cfgOptionBool(cfgOptDecompress))
+    if (cfgOptionBool(cfgOptDecompress) && cfgOptionSource(cfgOptCompressType) != cfgSourceParam)
     {
         // Stanza and set are mandatory in with decompress
         if (cfgOptionStrNull(cfgOptStanza) == NULL)
