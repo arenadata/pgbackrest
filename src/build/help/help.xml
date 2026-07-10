@@ -2321,7 +2321,7 @@
                 <text>
                     <p>Similar to the unix <cmd>cat</cmd> command but works on any supported repository type. This command requires a fully qualified file name and is primarily for administration, investigation, and testing. It is not a required part of a normal <backrest/> setup.</p>
 
-                    <p>If the repository is encrypted then <cmd>repo-get</cmd> will automatically decrypt the file. Files are not automatically decompressed but the output can be piped through the appropriate decompression command, e.g. <id>gzip -d</id>.</p>
+                    <p>If the repository is encrypted then <cmd>repo-get</cmd> will automatically decrypt the file. Files can be decompressed with the <br-option>{[dash]}-decompress</br-option> option.</p>
 
                     <p>If more than one repository is configured, the command will default to the highest priority repository (e.g. <id>repo1</id>) unless the <br-option>{[dash]}-repo</br-option> option is specified.</p>
                 </text>
