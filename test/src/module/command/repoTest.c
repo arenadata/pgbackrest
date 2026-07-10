@@ -1007,6 +1007,20 @@ testRun(void)
         TEST_RESULT_STR_Z(strNewBuf(writeBuffer), TEST_DATA, "get matches put");
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("stanza and set are not required if compress type specified and no <REPO:BACKUP> in path");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
+        strLstAddZ(argList, "backup/testStanza01/20260201-173010F/path/test_data_gz.txt.gz");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        writeBuffer = bufNew(0);
+        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), TEST_DATA, "get matches put");
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("no stanza specified with decompress");
 
         argList = strLstNew();
