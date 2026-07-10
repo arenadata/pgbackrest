@@ -1195,7 +1195,7 @@ testRun(void)
                           "get matches put");
 
         // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("get the encrpyted file with decompress from backup");
+        TEST_TITLE("get the encrypted file with decompress from backup");
 
         // Create storage object for writing to test locations when a stanza is not set
         Storage *storageTest = storagePosixNewP(TEST_PATH_STR, .write = true);
@@ -1299,7 +1299,7 @@ testRun(void)
         TEST_RESULT_STR_Z(strNewBuf(writeBuffer), "test file content", "get matches put");
 
         // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("get the encrpyted file with decompress from archive");
+        TEST_TITLE("get the encrypted file with decompress from archive");
         // Get the file
         argList = strLstNew();
         hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo2");
@@ -1316,7 +1316,7 @@ testRun(void)
         TEST_RESULT_STR_Z(strNewBuf(writeBuffer), "test file content", "get matches put");
 
         // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("try to get the encrpyted file with no stanza specified");
+        TEST_TITLE("try to get the encrypted file with no stanza specified");
         // Get the file
         argList = strLstNew();
         hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo2");
