@@ -1316,6 +1316,24 @@ testRun(void)
         TEST_RESULT_STR_Z(strNewBuf(writeBuffer), "test file content", "get matches put");
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("get the encrypted file with decompress from backup, no need to read manifest");
+        // Get the file
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo2");
+        hrnCfgArgRawZ(argList, cfgOptStanza, "stanza1");
+        hrnCfgArgRawZ(argList, cfgOptSet, "20201116-200000F");
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        hrnCfgArgRawStrId(argList, cfgOptRepoCipherType, cipherTypeAes256Cbc);
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, TEST_CIPHER_PASS);
+        strLstAddZ(argList, STORAGE_REPO_BACKUP "/20201116-200000F" "/test_file_ec.txt.gz");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        writeBuffer = bufNew(0);
+        TEST_RESULT_INT(storageGetProcess(ioBufferWriteNew(writeBuffer)), 0, "get");
+        TEST_RESULT_STR_Z(strNewBuf(writeBuffer), "test file content", "get matches put");
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("try to get the encrypted file with no stanza specified");
         // Get the file
         argList = strLstNew();
