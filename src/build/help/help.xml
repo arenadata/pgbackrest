@@ -2347,10 +2347,16 @@
                     <option id="set" name="Set">
                         <summary>backup set identifier.</summary>
                         <text>
-                            <p>Backup set identifier (restore point).</p>
+                            <p>Backup set identifier (restore point). Required when compression type is not specified and read from backup manifest.</p>
                         </text>
                         <example>20150131-153358F_20150131-153401I</example>
                     </option>
+                <option id="stanza" name="Stanza">
+                    <summary>Defines the stanza.</summary>
+
+                    <text>
+                        <p>Stanza is required for the decompress when template <REPO:BACKUP> is used in the file path or when compression type is not specified and read from backup manifest. </p>
+                    </text>
                 </option-list>
             </command>
 
