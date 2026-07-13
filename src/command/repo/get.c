@@ -107,7 +107,12 @@ storageGetProcess(IoWrite *const destination)
                         if ((strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_ARCHIVE_STR) ||
                              strEq(strLstGet(filePathSplitLst, 0), STORAGE_REPO_BACKUP_STR)))
                         {
-                            stanza = cfgOptionStr(cfgOptStanza);
+                            stanza = cfgOptionStrNull(cfgOptStanza);
+                            if (stanza == NULL)
+                            {
+                                THROW(ParamRequiredError, "stanza required");
+                            }
+
                             strz2 = strZ(strLstGet(filePathSplitLst, 1));
                         }
                         else

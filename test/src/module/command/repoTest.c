@@ -1347,6 +1347,22 @@ testRun(void)
 
         writeBuffer = bufNew(0);
         TEST_ERROR(storageGetProcess(ioBufferWriteNew(writeBuffer)), ParamRequiredError, "stanza required");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("try to get the encrypted file with no stanza specified but compress type specified");
+        // Get the file
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo2");
+        hrnCfgArgRawZ(argList, cfgOptSet, "20201116-200000F");
+        hrnCfgArgRawBool(argList, cfgOptDecompress, true);
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
+        hrnCfgArgRawStrId(argList, cfgOptRepoCipherType, cipherTypeAes256Cbc);
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, TEST_CIPHER_PASS);
+        strLstAddZ(argList, STORAGE_REPO_BACKUP "/20201116-200000F" "/test_file_ec.txt.gz");
+        HRN_CFG_LOAD(cfgCmdRepoGet, argList);
+
+        writeBuffer = bufNew(0);
+        TEST_ERROR(storageGetProcess(ioBufferWriteNew(writeBuffer)), ParamRequiredError, "stanza required");
     }
 
     // *****************************************************************************************************************************
