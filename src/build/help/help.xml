@@ -2355,8 +2355,9 @@
                     <summary>Defines the stanza.</summary>
 
                     <text>
-                        <p>Stanza is required for the decompress when template <REPO:BACKUP> is used in the file path or when compression type is not specified and read from backup manifest. </p>
+                        <p>Stanza is required for the decompress when template is used in the file path or when compression type is not specified and read from backup manifest. </p>
                     </text>
+                    <example>main</example>
                 </option-list>
             </command>
 
