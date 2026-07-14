@@ -1792,6 +1792,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
         (                                                                                                            // opt/compress
             PARSE_RULE_OPTION_COMMAND(ArchivePush)                                                                   // opt/compress
             PARSE_RULE_OPTION_COMMAND(Backup)                                                                        // opt/compress
+            PARSE_RULE_OPTION_COMMAND(RepoGet)                                                                       // opt/compress
             PARSE_RULE_OPTION_COMMAND(RepoPush)                                                                      // opt/compress
         ),                                                                                                           // opt/compress
                                                                                                                      // opt/compress
@@ -1819,6 +1820,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
         (                                                                                                      // opt/compress-level
             PARSE_RULE_OPTION_COMMAND(ArchivePush)                                                             // opt/compress-level
             PARSE_RULE_OPTION_COMMAND(Backup)                                                                  // opt/compress-level
+            PARSE_RULE_OPTION_COMMAND(RepoGet)                                                                 // opt/compress-level
             PARSE_RULE_OPTION_COMMAND(RepoPush)                                                                // opt/compress-level
         ),                                                                                                     // opt/compress-level
                                                                                                                // opt/compress-level
@@ -1904,6 +1906,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
         (                                                                                                       // opt/compress-type
             PARSE_RULE_OPTION_COMMAND(ArchivePush)                                                              // opt/compress-type
             PARSE_RULE_OPTION_COMMAND(Backup)                                                                   // opt/compress-type
+            PARSE_RULE_OPTION_COMMAND(RepoGet)                                                                  // opt/compress-type
             PARSE_RULE_OPTION_COMMAND(RepoPush)                                                                 // opt/compress-type
         ),                                                                                                      // opt/compress-type
                                                                                                                 // opt/compress-type
@@ -2288,6 +2291,37 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             ),                                                                                                     // opt/db-timeout
         ),                                                                                                         // opt/db-timeout
     ),                                                                                                             // opt/db-timeout
+    // -----------------------------------------------------------------------------------------------------------------------------
+    PARSE_RULE_OPTION                                                                                              // opt/decompress
+    (                                                                                                              // opt/decompress
+        PARSE_RULE_OPTION_NAME("decompress"),                                                                      // opt/decompress
+        PARSE_RULE_OPTION_TYPE(Boolean),                                                                           // opt/decompress
+        PARSE_RULE_OPTION_NEGATE(true),                                                                            // opt/decompress
+        PARSE_RULE_OPTION_RESET(true),                                                                             // opt/decompress
+        PARSE_RULE_OPTION_REQUIRED(true),                                                                          // opt/decompress
+        PARSE_RULE_OPTION_SECTION(Global),                                                                         // opt/decompress
+                                                                                                                   // opt/decompress
+        PARSE_RULE_OPTION_COMMAND_ROLE_MAIN_VALID_LIST                                                             // opt/decompress
+        (                                                                                                          // opt/decompress
+            PARSE_RULE_OPTION_COMMAND(RepoGet)                                                                     // opt/decompress
+        ),                                                                                                         // opt/decompress
+                                                                                                                   // opt/decompress
+        PARSE_RULE_OPTION_COMMAND_ROLE_REMOTE_VALID_LIST                                                           // opt/decompress
+        (                                                                                                          // opt/decompress
+            PARSE_RULE_OPTION_COMMAND(RepoGet)                                                                     // opt/decompress
+        ),                                                                                                         // opt/decompress
+                                                                                                                   // opt/decompress
+        PARSE_RULE_OPTIONAL                                                                                        // opt/decompress
+        (                                                                                                          // opt/decompress
+            PARSE_RULE_OPTIONAL_GROUP                                                                              // opt/decompress
+            (                                                                                                      // opt/decompress
+                PARSE_RULE_OPTIONAL_DEFAULT                                                                        // opt/decompress
+                (                                                                                                  // opt/decompress
+                    PARSE_RULE_VAL_BOOL_FALSE,                                                                     // opt/decompress
+                ),                                                                                                 // opt/decompress
+            ),                                                                                                     // opt/decompress
+        ),                                                                                                         // opt/decompress
+    ),                                                                                                             // opt/decompress
     // -----------------------------------------------------------------------------------------------------------------------------
     PARSE_RULE_OPTION                                                                                                   // opt/delta
     (                                                                                                                   // opt/delta
@@ -10109,6 +10143,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             PARSE_RULE_OPTION_COMMAND(Expire)                                                                             // opt/set
             PARSE_RULE_OPTION_COMMAND(Info)                                                                               // opt/set
             PARSE_RULE_OPTION_COMMAND(Manifest)                                                                           // opt/set
+            PARSE_RULE_OPTION_COMMAND(RepoGet)                                                                            // opt/set
             PARSE_RULE_OPTION_COMMAND(RepoPush)                                                                           // opt/set
             PARSE_RULE_OPTION_COMMAND(Restore)                                                                            // opt/set
             PARSE_RULE_OPTION_COMMAND(Verify)                                                                             // opt/set
@@ -11348,6 +11383,7 @@ static const uint8_t optionResolveOrder[] =
     cfgOptDbExclude,                                                                                            // opt-resolve-order
     cfgOptDbInclude,                                                                                            // opt-resolve-order
     cfgOptDbTimeout,                                                                                            // opt-resolve-order
+    cfgOptDecompress,                                                                                           // opt-resolve-order
     cfgOptDelta,                                                                                                // opt-resolve-order
     cfgOptDryRun,                                                                                               // opt-resolve-order
     cfgOptExclude,                                                                                              // opt-resolve-order

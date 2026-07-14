@@ -2321,12 +2321,20 @@
                 <text>
                     <p>Similar to the unix <cmd>cat</cmd> command but works on any supported repository type. This command requires a fully qualified file name and is primarily for administration, investigation, and testing. It is not a required part of a normal <backrest/> setup.</p>
 
-                    <p>If the repository is encrypted then <cmd>repo-get</cmd> will automatically decrypt the file. Files are not automatically decompressed but the output can be piped through the appropriate decompression command, e.g. <id>gzip -d</id>.</p>
+                    <p>If the repository is encrypted then <cmd>repo-get</cmd> will automatically decrypt the file. Files can be decompressed with the <br-option>{[dash]}-decompress</br-option> option.</p>
 
                     <p>If more than one repository is configured, the command will default to the highest priority repository (e.g. <id>repo1</id>) unless the <br-option>{[dash]}-repo</br-option> option is specified.</p>
                 </text>
 
                 <option-list>
+                    <option id="decompress" name="Decompress">
+                        <summary>decompresses the file before writing to stdout.</summary>
+
+                        <text>
+                            <p>If specified, pgBackRest automatically decompresses the file before writing to stdout. The compression algorithm is determined from the backup manifest (the same algorithm that was used when the backup was created). If decompression fails (e.g., the file is not compressed or the manifest entry is missing), an error is returned. Without this flag, the raw (possibly compressed) content is output.</p>
+                        </text>
+                        <example>y</example>
+                    </option>
                     <option id="ignore-missing" name="Ignore Missing">
                         <summary>Ignore missing source file.</summary>
 
@@ -2335,6 +2343,21 @@
                         </text>
 
                         <example>y</example>
+                    </option>
+                    <option id="set" name="Set">
+                        <summary>backup set identifier.</summary>
+                        <text>
+                            <p>Backup set identifier (restore point). Required when compression type is not specified and read from backup manifest.</p>
+                        </text>
+                        <example>20150131-153358F_20150131-153401I</example>
+                    </option>
+                    <option id="stanza" name="Stanza">
+                        <summary>Defines the stanza.</summary>
+
+                        <text>
+                            <p>Stanza is required for the decompress when template is used in the file path or when compression type is not specified and read from backup manifest. </p>
+                        </text>
+                        <example>main</example>
                     </option>
                 </option-list>
             </command>
