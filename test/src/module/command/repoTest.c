@@ -132,6 +132,23 @@ testManifestCustomFilesValidate(Manifest *manifest)
     FUNCTION_HARNESS_RETURN(STRING, result);
 }
 
+static bool
+testBackupManifestCopyValidate(const Storage *const storage, const String *const backupLabel)
+{
+    FUNCTION_HARNESS_BEGIN();
+        FUNCTION_HARNESS_PARAM(STORAGE, storage);
+        FUNCTION_HARNESS_PARAM(STRING, backupLabel);
+    FUNCTION_HARNESS_END();
+
+    const String *const manifestFile = strNewFmt(STORAGE_REPO_BACKUP "/%s/" BACKUP_MANIFEST_FILE, strZ(backupLabel));
+
+    const bool result = bufEq(
+        storageGetP(storageNewReadP(storage, manifestFile)),
+        storageGetP(storageNewReadP(storage, strNewFmt("%s" INFO_COPY_EXT, strZ(manifestFile)))));
+
+    FUNCTION_HARNESS_RETURN(BOOL, result);
+}
+
 /***********************************************************************************************************************************
 Test Run
 ***********************************************************************************************************************************/
@@ -1518,7 +1535,11 @@ testRun(void)
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
-        TEST_STORAGE_LIST(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL, "aaa.txt\nbackup.manifest\n", .comment = "check path exists and file added");
+        TEST_STORAGE_LIST(
+            storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL,
+            "aaa.txt\nbackup.manifest\nbackup.manifest.copy\n", .comment = "check path exists and file added");
+        TEST_RESULT_BOOL(
+            testBackupManifestCopyValidate(storageRepo(), STRDEF(TEST_BACKUP_LABEL_FULL)), true, "check manifest copy");
 
         TEST_STORAGE_GET(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/aaa.txt", "TESTDATA");
 
@@ -1538,7 +1559,11 @@ testRun(void)
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
-        TEST_STORAGE_LIST(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL, "aaa.txt\nbackup.manifest\n", .comment = "check path exists and file added");
+        TEST_STORAGE_LIST(
+            storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL,
+            "aaa.txt\nbackup.manifest\nbackup.manifest.copy\n", .comment = "check path exists and file added");
+        TEST_RESULT_BOOL(
+            testBackupManifestCopyValidate(storageRepo(), STRDEF(TEST_BACKUP_LABEL_FULL)), true, "check manifest copy");
 
         TEST_STORAGE_GET(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/aaa.txt", TEST_DATA);
 
@@ -1562,32 +1587,15 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptCompressLevel, "3");
         strLstAddZ(argList, "path/aaa.txt");
 
-        HRN_INFO_PUT(
-            storageRepoWrite(), STORAGE_REPO_BACKUP "/"  TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/" BACKUP_MANIFEST_FILE,
-            TEST_MANIFEST_HEADER
-            "\n"
-            "[backup:db]\n"
-            "db-catalog-version=201608131\n"
-            "db-control-version=960\n"
-            "db-id=1\n"
-            "db-system-id=" HRN_PG_SYSTEMID_94_Z "\n"               // 9.4 system id is used so version will trigger error
-            "db-version=\"9.6\"\n"
-            TEST_MANIFEST_OPTION_ALL
-            TEST_MANIFEST_TARGET
-            TEST_MANIFEST_DB
-            TEST_MANIFEST_FILE
-            TEST_MANIFEST_FILE_DEFAULT
-            TEST_MANIFEST_LINK
-            TEST_MANIFEST_LINK_DEFAULT
-            TEST_MANIFEST_PATH
-            TEST_MANIFEST_PATH_DEFAULT,
-            .comment = "manifest db section mismatch");
-
         HRN_CFG_LOAD(cfgCmdRepoPush, argList);
 
         TEST_RESULT_VOID(cmdStoragePush(), "push file");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
-        TEST_STORAGE_LIST(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL, "aaa.txt\naaa.txt.gz\nbackup.manifest\n", .comment = "check path exists and file added");
+        TEST_STORAGE_LIST(
+            storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL,
+            "aaa.txt\naaa.txt.gz\nbackup.manifest\nbackup.manifest.copy\n", .comment = "check path exists and file added");
+        TEST_RESULT_BOOL(
+            testBackupManifestCopyValidate(storageRepo(), STRDEF(TEST_BACKUP_LABEL_FULL)), true, "check manifest copy");
 
         TEST_STORAGE_GET(storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_FULL "/aaa.txt", TEST_DATA, .compressType = compressTypeGz);
 
@@ -1599,6 +1607,47 @@ testRun(void)
             testManifestCustomFilesValidate(manifest),
             "aaa.txt 445\naaa.txt.gz 445\n",
             "compare file list");
+
+        TEST_TITLE("do not push to resumable backup manifest copy");
+        HRN_INFO_PUT(
+            storageRepoWrite(), STORAGE_REPO_BACKUP "/20260201-173011F/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
+            TEST_MANIFEST_HEADER
+            "\n"
+            "[backup:db]\n"
+            "db-catalog-version=201608131\n"
+            "db-control-version=960\n"
+            "db-id=1\n"
+            "db-system-id=" HRN_PG_SYSTEMID_94_Z "\n"
+            "db-version=\"9.6\"\n"
+            TEST_MANIFEST_OPTION_ALL
+            TEST_MANIFEST_TARGET
+            TEST_MANIFEST_DB
+            TEST_MANIFEST_FILE
+            TEST_MANIFEST_FILE_DEFAULT
+            TEST_MANIFEST_LINK
+            TEST_MANIFEST_LINK_DEFAULT
+            TEST_MANIFEST_PATH
+            TEST_MANIFEST_PATH_DEFAULT,
+            .comment = "manifest copy only");
+
+        argList = strLstNew();
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 1, TEST_PATH "/bogus");
+        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo");
+        hrnCfgArgRawZ(argList, cfgOptCompressType, "none");
+        hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
+        hrnCfgArgRawZ(argList, cfgOptSet, "20260201-173011F");
+        hrnCfgArgRawZ(argList, cfgOptRepo, "2");
+        strLstAddZ(argList, "path/aaa.txt");
+
+        HRN_CFG_LOAD(cfgCmdRepoPush, argList);
+
+        TEST_ERROR(
+            cmdStoragePush(), FileMissingError,
+            "unable to open missing file '" TEST_PATH "/repo/backup/" TEST_STANZA "/20260201-173011F/backup.manifest' for read");
+        TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
+        TEST_STORAGE_LIST(
+            storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/20260201-173011F",
+            "backup.manifest.copy\n", .comment = "main manifest was not created");
 
         TEST_TITLE("push encrypted file not supported");
         argList = strLstNew();

@@ -76,9 +76,10 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
         IoFilterGroup *const writeFilterGroup = ioWriteFilterGroup(destinationIo);
 
         const String *manifestFileName = strNewFmt(STORAGE_REPO_BACKUP "/%s/" BACKUP_MANIFEST_FILE, strZ(backupLabel));
-        Manifest *manifest = manifestLoadFile(
-            storage, manifestFileName,
-            cipherTypeNone, NULL);
+        const String *manifestFileNameCopy = strNewFmt("%s" INFO_COPY_EXT, strZ(manifestFileName));
+
+        // Load main manifest only. Don't fallback to copy. So resumable backup cannot be made to appear complete.
+        Manifest *manifest = manifestNewLoad(storageReadIo(storageNewReadP(storage, manifestFileName)));
 
         // Add SHA1 filter
         ioFilterGroupAdd(writeFilterGroup, cryptoHashNew(hashTypeSha1));
@@ -151,6 +152,7 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
                 manifestFile.sizeRepo = customFile.sizeRepo;
                 manifestFile.timestamp = customFile.timestamp;
                 manifestFile.checksumSha1 = customFile.checksumSha1;
+                manifestFile.checksumRepoSha1 = customFile.checksumRepoSha1;
 
                 manifestCustomFileUpdate(manifest, &manifestFile);
                 found = true;
@@ -161,14 +163,18 @@ storagePushProcess(const String *file, CompressType compressType, int compressLe
         if (!found)
             manifestCustomFileAdd(manifest, &customFile);
 
-        // Save manifest
+        // Save copy first and then copy it to the main manifest, matching backup completion semantics.
         IoWrite *const manifestWrite = storageWriteIo(
             storageNewWriteP(
                 storageRepoWrite(),
-                manifestFileName
+                manifestFileNameCopy
                 ));
 
         manifestSave(manifest, manifestWrite);
+
+        storageCopy(
+            storageNewReadP(storage, manifestFileNameCopy),
+            storageNewWriteP(storageRepoWrite(), manifestFileName));
     }
     MEM_CONTEXT_TEMP_END();
 
