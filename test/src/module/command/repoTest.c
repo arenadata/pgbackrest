@@ -18,6 +18,7 @@ Test Repo Commands
 #include "info/infoBackup.h"
 
 #define TEST_BACKUP_LABEL_FULL                              "20260201-173010F"
+#define TEST_BACKUP_LABEL_RESUME                            "20260201-173011F"
 #define TEST_STANZA                                         "testStanza01"
 
 #define TEST_DATA                                                                                                              \
@@ -1610,7 +1611,7 @@ testRun(void)
 
         TEST_TITLE("do not push to resumable backup manifest copy");
         HRN_INFO_PUT(
-            storageRepoWrite(), STORAGE_REPO_BACKUP "/20260201-173011F/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
+            storageRepoWrite(), STORAGE_REPO_BACKUP "/" TEST_BACKUP_LABEL_RESUME "/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
             TEST_MANIFEST_HEADER
             "\n"
             "[backup:db]\n"
@@ -1635,7 +1636,7 @@ testRun(void)
         hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo");
         hrnCfgArgRawZ(argList, cfgOptCompressType, "none");
         hrnCfgArgRawZ(argList, cfgOptStanza, TEST_STANZA);
-        hrnCfgArgRawZ(argList, cfgOptSet, "20260201-173011F");
+        hrnCfgArgRawZ(argList, cfgOptSet, TEST_BACKUP_LABEL_RESUME);
         hrnCfgArgRawZ(argList, cfgOptRepo, "2");
         strLstAddZ(argList, "path/aaa.txt");
 
@@ -1643,10 +1644,11 @@ testRun(void)
 
         TEST_ERROR(
             cmdStoragePush(), FileMissingError,
-            "unable to open missing file '" TEST_PATH "/repo/backup/" TEST_STANZA "/20260201-173011F/backup.manifest' for read");
+            "unable to open missing file '" TEST_PATH "/repo/backup/" TEST_STANZA "/" TEST_BACKUP_LABEL_RESUME
+            "/backup.manifest' for read");
         TEST_RESULT_LOG("P00   INFO: push file path/aaa.txt to the archive.");
         TEST_STORAGE_LIST(
-            storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/20260201-173011F",
+            storageRepo(), STORAGE_PATH_BACKUP "/" TEST_STANZA "/" TEST_BACKUP_LABEL_RESUME,
             "backup.manifest.copy\n", .comment = "main manifest was not created");
 
         TEST_TITLE("push encrypted file not supported");
