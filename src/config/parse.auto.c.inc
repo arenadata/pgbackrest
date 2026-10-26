@@ -66,6 +66,8 @@ static const StringPub parseRuleValueStr[] =
     PARSE_RULE_STRPUB("GPDB"),                                                                                            // val/str
     PARSE_RULE_STRPUB("PostgreSQL"),                                                                                      // val/str
     PARSE_RULE_STRPUB("accept-new"),                                                                                      // val/str
+    PARSE_RULE_STRPUB("aes-128-cbc"),                                                                                     // val/str
+    PARSE_RULE_STRPUB("aes-192-cbc"),                                                                                     // val/str
     PARSE_RULE_STRPUB("aes-256-cbc"),                                                                                     // val/str
     PARSE_RULE_STRPUB("asc"),                                                                                             // val/str
     PARSE_RULE_STRPUB("auto"),                                                                                            // val/str
@@ -192,6 +194,8 @@ typedef enum
     parseRuleValStrQT_GPDB_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_PostgreSQL_QT,                                                                                 // val/str/enum
     parseRuleValStrQT_accept_DS_new_QT,                                                                              // val/str/enum
+    parseRuleValStrQT_aes_DS_128_DS_cbc_QT,                                                                          // val/str/enum
+    parseRuleValStrQT_aes_DS_192_DS_cbc_QT,                                                                          // val/str/enum
     parseRuleValStrQT_aes_DS_256_DS_cbc_QT,                                                                          // val/str/enum
     parseRuleValStrQT_asc_QT,                                                                                        // val/str/enum
     parseRuleValStrQT_auto_QT,                                                                                       // val/str/enum
@@ -271,6 +275,8 @@ static const StringId parseRuleValueStrId[] =
     STRID6("GPDB", 0x9e9d6c1),                                                                                          // val/strid
     STRID6("PostgreSQL", 0xc76e054875133f51),                                                                           // val/strid
     STRID5("accept-new", 0x2e576e9028c610),                                                                             // val/strid
+    STRID6("aes-128-cbc", 0x836e479d6d31415),                                                                           // val/strid
+    STRID6("aes-192-cbc", 0x836de95d6d31415),                                                                           // val/strid
     STRID5("aes-256-cbc", 0xc43dfbbcdcca10),                                                                            // val/strid
     STRID5("asc", 0xe610),                                                                                              // val/strid
     STRID5("auto", 0x7d2a10),                                                                                           // val/strid
@@ -336,6 +342,8 @@ static const uint8_t parseRuleValueStrIdStrMap[] =
     parseRuleValStrQT_GPDB_QT,                                                                                   // val/strid/strmap
     parseRuleValStrQT_PostgreSQL_QT,                                                                             // val/strid/strmap
     parseRuleValStrQT_accept_DS_new_QT,                                                                          // val/strid/strmap
+    parseRuleValStrQT_aes_DS_128_DS_cbc_QT,                                                                      // val/strid/strmap
+    parseRuleValStrQT_aes_DS_192_DS_cbc_QT,                                                                      // val/strid/strmap
     parseRuleValStrQT_aes_DS_256_DS_cbc_QT,                                                                      // val/strid/strmap
     parseRuleValStrQT_asc_QT,                                                                                    // val/strid/strmap
     parseRuleValStrQT_auto_QT,                                                                                   // val/strid/strmap
@@ -401,6 +409,8 @@ typedef enum
     parseRuleValStrIdGPDB,                                                                                         // val/strid/enum
     parseRuleValStrIdPostgreSQL,                                                                                   // val/strid/enum
     parseRuleValStrIdAcceptNew,                                                                                    // val/strid/enum
+    parseRuleValStrIdAes128Cbc,                                                                                    // val/strid/enum
+    parseRuleValStrIdAes192Cbc,                                                                                    // val/strid/enum
     parseRuleValStrIdAes256Cbc,                                                                                    // val/strid/enum
     parseRuleValStrIdAsc,                                                                                          // val/strid/enum
     parseRuleValStrIdAuto,                                                                                         // val/strid/enum
@@ -5993,6 +6003,8 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 (                                                                                            // opt/repo-cipher-pass
                     PARSE_RULE_VAL_OPT(RepoCipherType),                                                      // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(Aes256Cbc),                                                         // opt/repo-cipher-pass
+                    PARSE_RULE_VAL_STRID(Aes128Cbc),                                                         // opt/repo-cipher-pass
+                    PARSE_RULE_VAL_STRID(Aes192Cbc),                                                         // opt/repo-cipher-pass
                 ),                                                                                           // opt/repo-cipher-pass
             ),                                                                                               // opt/repo-cipher-pass
         ),                                                                                                   // opt/repo-cipher-pass
@@ -6073,6 +6085,8 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 (                                                                                            // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(None),                                                              // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(Aes256Cbc),                                                         // opt/repo-cipher-type
+                    PARSE_RULE_VAL_STRID(Aes128Cbc),                                                         // opt/repo-cipher-type
+                    PARSE_RULE_VAL_STRID(Aes192Cbc),                                                         // opt/repo-cipher-type
                 ),                                                                                           // opt/repo-cipher-type
                                                                                                              // opt/repo-cipher-type
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                  // opt/repo-cipher-type

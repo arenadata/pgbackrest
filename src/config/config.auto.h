@@ -248,6 +248,10 @@ Option value constants
 #define CFGOPTVAL_REPO_AZURE_URI_STYLE_PATH                         STRID5("path", 0x450300)
 #define CFGOPTVAL_REPO_AZURE_URI_STYLE_PATH_Z                       "path"
 
+#define CFGOPTVAL_REPO_CIPHER_TYPE_AES_128_CBC                      STRID6("aes-128-cbc", 0x836e479d6d31415)
+#define CFGOPTVAL_REPO_CIPHER_TYPE_AES_128_CBC_Z                    "aes-128-cbc"
+#define CFGOPTVAL_REPO_CIPHER_TYPE_AES_192_CBC                      STRID6("aes-192-cbc", 0x836de95d6d31415)
+#define CFGOPTVAL_REPO_CIPHER_TYPE_AES_192_CBC_Z                    "aes-192-cbc"
 #define CFGOPTVAL_REPO_CIPHER_TYPE_AES_256_CBC                      STRID5("aes-256-cbc", 0xc43dfbbcdcca10)
 #define CFGOPTVAL_REPO_CIPHER_TYPE_AES_256_CBC_Z                    "aes-256-cbc"
 #define CFGOPTVAL_REPO_CIPHER_TYPE_NONE                             STRID5("none", 0x2b9ee0)
