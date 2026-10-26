@@ -1195,7 +1195,7 @@ backupFilePut(
             }
 
             // Add encryption filter if required
-            if (manifestCipherSubPass(manifest) != NULL)
+            if (cfgOptionStrId(cfgOptRepoCipherType) != cipherTypeNone)
             {
                 ioFilterGroupAdd(
                     ioWriteFilterGroup(storageWriteIo(write)),
@@ -2011,7 +2011,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
 
                     pckWriteU32P(param, jobData->compressType);
                     pckWriteI32P(param, jobData->compressLevel);
-                    pckWriteU64P(param, jobData->cipherSubPass == NULL ? cipherTypeNone : cipherTypeAes256Cbc);
+                    pckWriteU64P(param, jobData->cipherType);
                     pckWriteStrP(param, jobData->cipherSubPass);
                     pckWriteU32P(param, jobData->pageSize);
                     pckWriteStrP(param, cfgOptionStrNull(cfgOptPgVersionForce));

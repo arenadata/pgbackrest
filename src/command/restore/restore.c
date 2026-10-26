@@ -2223,6 +2223,7 @@ typedef struct RestoreJobData
     Manifest *manifest;                                             // Backup manifest
     List *queueList;                                                // List of processing queues
     RegExp *zeroExp;                                                // Identify files that should be sparse zeroed
+    CipherType cipherType;                                          // Cipher type used to decrypt files in the backup
     const String *cipherSubPass;                                    // Passphrase used to decrypt files in the backup
     const String *rootReplaceUser;                                  // User to replace invalid users when root
     const String *rootReplaceGroup;                                 // Group to replace invalid group when root
@@ -2316,6 +2317,7 @@ restoreJobCallback(void *const data, const unsigned int clientIdx)
                     pckWriteBoolP(param, cfgOptionBool(cfgOptDelta));
                     pckWriteBoolP(param, cfgOptionBool(cfgOptDelta) && cfgOptionBool(cfgOptForce));
                     pckWriteBoolP(param, file.bundleId != 0 && manifestData(jobData->manifest)->bundleRaw);
+                    pckWriteU64P(param, jobData->cipherType);
                     pckWriteStrP(param, jobData->cipherSubPass);
                     pckWriteStrLstP(param, manifestReferenceList(jobData->manifest));
 
@@ -2444,7 +2446,8 @@ cmdRestore(void)
         // Validate manifest. Don't use strict mode because we'd rather ignore problems that won't affect a restore.
         manifestValidate(jobData.manifest, false);
 
-        // Get the cipher subpass used to decrypt files in the backup
+        // Get the cipher type and subpass used to decrypt files in the backup
+        jobData.cipherType = backupData.repoCipherType;
         jobData.cipherSubPass = manifestCipherSubPass(jobData.manifest);
 
         // Validate the manifest
