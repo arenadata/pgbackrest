@@ -73,6 +73,17 @@ static const struct CipherTypeLocal
     {.type = cipherTypeAes128Cbc,     .name = "aes-128-cbc"},
     {.type = cipherTypeAes192Cbc,     .name = "aes-192-cbc"},
     {.type = cipherTypeAes256Cbc,     .name = "aes-256-cbc"},
+    {.type = cipherTypeKuznyechikCbc, .name = "kuznyechik-cbc"},
+    {.type = cipherTypeMagmaCbc,      .name = "magma-cbc"},
+};
+
+/***********************************************************************************************************************************
+List of external cipher types that are not included in default openssl package
+***********************************************************************************************************************************/
+static const CipherType CipherTypeExternal[] =
+{
+    cipherTypeKuznyechikCbc, 
+    cipherTypeMagmaCbc
 };
 /***********************************************************************************************************************************
 Covert cipherId to cipherName as some of them are too long to be encoded
@@ -100,6 +111,27 @@ cipherConvertFromIdToStr(const CipherType cipherType)
     String * result = strNewZ(cipherTypeLocal[typeIdx].name);
     
     FUNCTION_TEST_RETURN_P(STRING, result);
+}
+
+/***********************************************************************************************************************************
+Check if selected cipher is external
+***********************************************************************************************************************************/
+static bool
+cipherIsExternal(const CipherType cipherType)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(STRING_ID, cipherType);
+    FUNCTION_TEST_END();
+
+    unsigned int typeIdx = 0;
+
+    for (; typeIdx < LENGTH_OF(CipherTypeExternal); typeIdx++)
+    {
+        if (CipherTypeExternal[typeIdx] == cipherType)
+            break;
+    }
+
+    FUNCTION_TEST_RETURN(BOOL, typeIdx != LENGTH_OF(CipherTypeExternal));
 }
 
 /***********************************************************************************************************************************
@@ -447,7 +479,12 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
 
     if (!cipher)
-        THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr));
+    {
+        if(cipherIsExternal(cipherType))
+            THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
+        else
+            THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr));
+    }
 
     strFree(cipherTypeStr);
 

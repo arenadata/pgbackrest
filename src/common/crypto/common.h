@@ -24,6 +24,8 @@ typedef enum
     cipherTypeAes128Cbc = STRID5("aes-128-cbc", 0x836e479d6d31415),
     cipherTypeAes192Cbc = STRID5("aes-192-cbc", 0x836de95d6d31415),
     cipherTypeAes256Cbc = STRID5("aes-256-cbc", 0xc43dfbbcdcca10),
+    cipherTypeKuznyechikCbc = STRID5("kuznyechik-cbc", 0x1ed6940cb976aab4),
+    cipherTypeMagmaCbc = STRID5("magma-cbc", 0x310f6169c2d0),
 } CipherType;
 
 /***********************************************************************************************************************************

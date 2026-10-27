@@ -254,6 +254,10 @@ Option value constants
 #define CFGOPTVAL_REPO_CIPHER_TYPE_AES_192_CBC_Z                    "aes-192-cbc"
 #define CFGOPTVAL_REPO_CIPHER_TYPE_AES_256_CBC                      STRID5("aes-256-cbc", 0xc43dfbbcdcca10)
 #define CFGOPTVAL_REPO_CIPHER_TYPE_AES_256_CBC_Z                    "aes-256-cbc"
+#define CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC                   STRID5("kuznyechik-cbc", 0x1ed6940cb976aab4)
+#define CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC_Z                 "kuznyechik-cbc"
+#define CFGOPTVAL_REPO_CIPHER_TYPE_MAGMA_CBC                        STRID5("magma-cbc", 0x310f6169c2d0)
+#define CFGOPTVAL_REPO_CIPHER_TYPE_MAGMA_CBC_Z                      "magma-cbc"
 #define CFGOPTVAL_REPO_CIPHER_TYPE_NONE                             STRID5("none", 0x2b9ee0)
 #define CFGOPTVAL_REPO_CIPHER_TYPE_NONE_Z                           "none"
 

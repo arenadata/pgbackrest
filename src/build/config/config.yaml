@@ -2063,6 +2063,8 @@ option:
         - aes-256-cbc
         - aes-128-cbc
         - aes-192-cbc
+        - kuznyechik-cbc
+        - magma-cbc
     group: repo
     deprecate:
       repo-cipher-pass: {}
@@ -2077,6 +2079,8 @@ option:
       - aes-256-cbc
       - aes-128-cbc
       - aes-192-cbc
+      - kuznyechik-cbc
+      - magma-cbc
     command: repo-type
     deprecate:
       repo-cipher-type: {}

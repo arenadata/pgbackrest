@@ -91,10 +91,12 @@ static const StringPub parseRuleValueStr[] =
     PARSE_RULE_STRPUB("incr"),                                                                                            // val/str
     PARSE_RULE_STRPUB("info"),                                                                                            // val/str
     PARSE_RULE_STRPUB("json"),                                                                                            // val/str
+    PARSE_RULE_STRPUB("kuznyechik-cbc"),                                                                                  // val/str
     PARSE_RULE_STRPUB("latest"),                                                                                          // val/str
     PARSE_RULE_STRPUB("localhost"),                                                                                       // val/str
     PARSE_RULE_STRPUB("lsn"),                                                                                             // val/str
     PARSE_RULE_STRPUB("lz4"),                                                                                             // val/str
+    PARSE_RULE_STRPUB("magma-cbc"),                                                                                       // val/str
     PARSE_RULE_STRPUB("md5"),                                                                                             // val/str
     PARSE_RULE_STRPUB("n"),                                                                                               // val/str
     PARSE_RULE_STRPUB("name"),                                                                                            // val/str
@@ -219,10 +221,12 @@ typedef enum
     parseRuleValStrQT_incr_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_info_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_json_QT,                                                                                       // val/str/enum
+    parseRuleValStrQT_kuznyechik_DS_cbc_QT,                                                                          // val/str/enum
     parseRuleValStrQT_latest_QT,                                                                                     // val/str/enum
     parseRuleValStrQT_localhost_QT,                                                                                  // val/str/enum
     parseRuleValStrQT_lsn_QT,                                                                                        // val/str/enum
     parseRuleValStrQT_lz4_QT,                                                                                        // val/str/enum
+    parseRuleValStrQT_magma_DS_cbc_QT,                                                                               // val/str/enum
     parseRuleValStrQT_md5_QT,                                                                                        // val/str/enum
     parseRuleValStrQT_n_QT,                                                                                          // val/str/enum
     parseRuleValStrQT_name_QT,                                                                                       // val/str/enum
@@ -299,8 +303,10 @@ static const StringId parseRuleValueStrId[] =
     STRID5("incr", 0x90dc90),                                                                                           // val/strid
     STRID5("info", 0x799c90),                                                                                           // val/strid
     STRID5("json", 0x73e6a0),                                                                                           // val/strid
+    STRID5("kuznyechik-cbc", 0x1ed6940cb976aab4),                                                                       // val/strid
     STRID5("lsn", 0x3a6c0),                                                                                             // val/strid
     STRID6("lz4", 0x2068c1),                                                                                            // val/strid
+    STRID5("magma-cbc", 0x310f6169c2d0),                                                                                // val/strid
     STRID5("md5", 0x748d0),                                                                                             // val/strid
     STRID5("n", 0xe0),                                                                                                  // val/strid
     STRID5("name", 0x2b42e0),                                                                                           // val/strid
@@ -366,8 +372,10 @@ static const uint8_t parseRuleValueStrIdStrMap[] =
     parseRuleValStrQT_incr_QT,                                                                                   // val/strid/strmap
     parseRuleValStrQT_info_QT,                                                                                   // val/strid/strmap
     parseRuleValStrQT_json_QT,                                                                                   // val/strid/strmap
+    parseRuleValStrQT_kuznyechik_DS_cbc_QT,                                                                      // val/strid/strmap
     parseRuleValStrQT_lsn_QT,                                                                                    // val/strid/strmap
     parseRuleValStrQT_lz4_QT,                                                                                    // val/strid/strmap
+    parseRuleValStrQT_magma_DS_cbc_QT,                                                                           // val/strid/strmap
     parseRuleValStrQT_md5_QT,                                                                                    // val/strid/strmap
     parseRuleValStrQT_n_QT,                                                                                      // val/strid/strmap
     parseRuleValStrQT_name_QT,                                                                                   // val/strid/strmap
@@ -433,8 +441,10 @@ typedef enum
     parseRuleValStrIdIncr,                                                                                         // val/strid/enum
     parseRuleValStrIdInfo,                                                                                         // val/strid/enum
     parseRuleValStrIdJson,                                                                                         // val/strid/enum
+    parseRuleValStrIdKuznyechikCbc,                                                                                // val/strid/enum
     parseRuleValStrIdLsn,                                                                                          // val/strid/enum
     parseRuleValStrIdLz4,                                                                                          // val/strid/enum
+    parseRuleValStrIdMagmaCbc,                                                                                     // val/strid/enum
     parseRuleValStrIdMd5,                                                                                          // val/strid/enum
     parseRuleValStrIdN,                                                                                            // val/strid/enum
     parseRuleValStrIdName,                                                                                         // val/strid/enum
@@ -6005,6 +6015,8 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                     PARSE_RULE_VAL_STRID(Aes256Cbc),                                                         // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(Aes128Cbc),                                                         // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(Aes192Cbc),                                                         // opt/repo-cipher-pass
+                    PARSE_RULE_VAL_STRID(KuznyechikCbc),                                                     // opt/repo-cipher-pass
+                    PARSE_RULE_VAL_STRID(MagmaCbc),                                                          // opt/repo-cipher-pass
                 ),                                                                                           // opt/repo-cipher-pass
             ),                                                                                               // opt/repo-cipher-pass
         ),                                                                                                   // opt/repo-cipher-pass
@@ -6087,6 +6099,8 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                     PARSE_RULE_VAL_STRID(Aes256Cbc),                                                         // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(Aes128Cbc),                                                         // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(Aes192Cbc),                                                         // opt/repo-cipher-type
+                    PARSE_RULE_VAL_STRID(KuznyechikCbc),                                                     // opt/repo-cipher-type
+                    PARSE_RULE_VAL_STRID(MagmaCbc),                                                          // opt/repo-cipher-type
                 ),                                                                                           // opt/repo-cipher-type
                                                                                                              // opt/repo-cipher-type
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                  // opt/repo-cipher-type
