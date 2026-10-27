@@ -38,7 +38,11 @@ typedef struct CipherBlock
     const Buffer *pass;                                             // Passphrase used to generate encryption key
     size_t headerSize;                                              // Size of header read during decrypt
     unsigned char header[CIPHER_BLOCK_HEADER_SIZE];                 // Buffer to hold partial header during decrypt
-    const EVP_CIPHER *cipher;                                       // Cipher object
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_CIPHER *cipher;      
+#else
+    const EVP_CIPHER *cipher;  
+#endif                                                              // Cipher object
     const EVP_MD *digest;                                           // Message digest object
     EVP_CIPHER_CTX *cipherContext;                                  // Encrypt/decrypt context
 
@@ -150,6 +154,10 @@ cipherBlockFreeResource(THIS_VOID)
     ASSERT(this != NULL);
 
     EVP_CIPHER_CTX_free(this->cipherContext);
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_CIPHER_free(this->cipher);
+#endif
 
     FUNCTION_LOG_RETURN_VOID();
 }
@@ -264,6 +272,9 @@ cipherBlockProcessBlock(CipherBlock *const this, const unsigned char *source, si
             cryptoError(!(this->cipherContext = EVP_CIPHER_CTX_new()), "unable to create context");
 
             // Set free callback to ensure cipher context is freed
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+            memContextCallbackClear(objMemContext(this));
+#endif
             memContextCallbackSet(objMemContext(this), cipherBlockFreeResource, this);
 
             // Initialize cipher
@@ -477,7 +488,11 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     // Lookup cipher by name. This means the ciphers passed in must exactly match a name expected by OpenSSL. This is a good thing
     // since the name required by the openssl command-line tool will match what is used by pgBackRest.
     String *const cipherTypeStr = cipherConvertFromIdToStr(cipherType);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_CIPHER *cipher = EVP_CIPHER_fetch(NULL, strZ(cipherTypeStr), NULL);
+#else
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
+#endif
 
     if (!cipher)
     {
@@ -512,6 +527,10 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         };
     }
     OBJ_NEW_END();
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    memContextCallbackSet(objMemContext(this), cipherBlockFreeResource, this);
+#endif
 
     // Create param list
     Pack *paramList;
