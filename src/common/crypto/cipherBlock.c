@@ -485,6 +485,17 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     // Init crypto subsystem
     cryptoInit();
 
+    // Lookup digest. If not defined it will be set to sha1.
+    const EVP_MD *digest = NULL;
+
+    if (param.digest)
+        digest = EVP_get_digestbyname(strZ(param.digest));
+    else
+        digest = EVP_sha1();
+
+    if (!digest)
+        THROW_FMT(AssertError, "unable to load digest '%s'", strZ(param.digest));
+
     // Lookup cipher by name. This means the ciphers passed in must exactly match a name expected by OpenSSL. This is a good thing
     // since the name required by the openssl command-line tool will match what is used by pgBackRest.
     String *const cipherTypeStr = cipherConvertFromIdToStr(cipherType);
@@ -503,17 +514,6 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     }
 
     strFree(cipherTypeStr);
-
-    // Lookup digest. If not defined it will be set to sha1.
-    const EVP_MD *digest = NULL;
-
-    if (param.digest)
-        digest = EVP_get_digestbyname(strZ(param.digest));
-    else
-        digest = EVP_sha1();
-
-    if (!digest)
-        THROW_FMT(AssertError, "unable to load digest '%s'", strZ(param.digest));
 
     OBJ_NEW_BEGIN(CipherBlock, .childQty = MEM_CONTEXT_QTY_MAX, .callbackQty = 1)
     {
