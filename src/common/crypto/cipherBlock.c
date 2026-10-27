@@ -82,9 +82,10 @@ List of external cipher types that are not included in default openssl package
 ***********************************************************************************************************************************/
 static const CipherType CipherTypeExternal[] =
 {
-    cipherTypeKuznyechikCbc, 
+    cipherTypeKuznyechikCbc,
     cipherTypeMagmaCbc
 };
+
 /***********************************************************************************************************************************
 Covert cipherId to cipherName as some of them are too long to be encoded
 ***********************************************************************************************************************************/
@@ -108,8 +109,8 @@ cipherConvertFromIdToStr(const CipherType cipherType)
     if (typeIdx == LENGTH_OF(cipherTypeLocal))
         THROW_FMT(AssertError, "invalid cipher type '%s'", strZ(strIdToStr(cipherType)));
 
-    String * result = strNewZ(cipherTypeLocal[typeIdx].name);
-    
+    String *result = strNewZ(cipherTypeLocal[typeIdx].name);
+
     FUNCTION_TEST_RETURN_P(STRING, result);
 }
 
@@ -480,7 +481,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
 
     if (!cipher)
     {
-        if(cipherIsExternal(cipherType))
+        if (cipherIsExternal(cipherType))
             THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
         else
             THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr));
