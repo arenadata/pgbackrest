@@ -122,7 +122,7 @@ cipherConvertFromIdToStr(const CipherType cipherType)
 
     String *result = strNewZ(cipherTypeLocal[typeIdx].name);
 
-    FUNCTION_TEST_RETURN_P(STRING, result);
+    FUNCTION_TEST_RETURN(STRING, result);
 }
 
 /***********************************************************************************************************************************
