@@ -467,14 +467,19 @@ sub containerBuild
         if ($$oVm{$strOS}{&VM_OS_BASE} eq VM_OS_BASE_RHEL)
         {
             $strScript .=
-                q{dnf install -y openssl-gost-engine && OPENSSL_SO_PATH=$(rpm -ql openssl-gost-engine | grep '/gost\.so$') && OPENSSL_CNF_PATH=/etc/pki/tls/openssl.cnf}
+                q{OPENSSL_SO_PATH=$(rpm -ql openssl-gost-engine | grep '/gost\.so$') && OPENSSL_CNF_PATH=/etc/pki/tls/openssl.cnf && }
         }
         else
         {
-            $strScript .= q{apt-get install -y libengine-gost-openssl1.1 && OPENSSL_SO_PATH=$(dpkg -L libengine-gost-openssl1.1 | grep '/gost\.so$') && OPENSSL_CNF_PATH=/etc/ssl/openssl.cnf;};
+            $strScript .= 
+                q{OPENSSL_SO_PATH=$(dpkg -L libengine-gost-openssl1.1 | grep '/gost\.so$') && OPENSSL_CNF_PATH=/etc/ssl/openssl.cnf && };
         }
 
-        $strScript .= q{grep -q gost_section "$OPENSSL_CNF_PATH" || { sed -i '/^\[ *openssl_init *\]/a engines = engine_section' "$OPENSSL_CNF_PATH"; printf '\n[engine_section]\ngost = gost_section\n\n[gost_section]\nengine_id = gost\ndynamic_path = %s\ndefault_algorithms = ALL\n' "$OPENSSL_SO_PATH" >> "$OPENSSL_CNF_PATH"; }};
+        $strScript .=
+            q{cp $OPENSSL_CNF_PATH /OPENSSL_CNF_PATH.no-gost && };
+
+        $strScript .=
+            q{grep -q gost_section "$OPENSSL_CNF_PATH" || { sed -i '/^\[ *openssl_init *\]/a engines = engine_section' "$OPENSSL_CNF_PATH"; printf '\n[engine_section]\ngost = gost_section\n\n[gost_section]\nengine_id = gost\ndynamic_path = %s\ndefault_algorithms = ALL\n' "$OPENSSL_SO_PATH" >> "$OPENSSL_CNF_PATH"\n }};
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)
