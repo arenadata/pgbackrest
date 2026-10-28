@@ -2065,9 +2065,6 @@ option:
         - aes-192-cbc
         - kuznyechik-cbc
         - magma-cbc
-        - camel-128-cbc
-        - camel-196-cbc
-        - camel-256-cbc
         - aria-128-cbc
         - aria-192-cbc
         - aria-256-cbc
@@ -2088,9 +2085,6 @@ option:
       - aes-192-cbc
       - kuznyechik-cbc
       - magma-cbc
-      - camel-128-cbc
-      - camel-196-cbc
-      - camel-256-cbc
       - aria-128-cbc
       - aria-192-cbc
       - aria-256-cbc

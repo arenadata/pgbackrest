@@ -77,9 +77,6 @@ static const StringPub parseRuleValueStr[] =
     PARSE_RULE_STRPUB("azure"),                                                                                           // val/str
     PARSE_RULE_STRPUB("blob.core.windows.net"),                                                                           // val/str
     PARSE_RULE_STRPUB("bz2"),                                                                                             // val/str
-    PARSE_RULE_STRPUB("camel-128-cbc"),                                                                                   // val/str
-    PARSE_RULE_STRPUB("camel-196-cbc"),                                                                                   // val/str
-    PARSE_RULE_STRPUB("camel-256-cbc"),                                                                                   // val/str
     PARSE_RULE_STRPUB("cifs"),                                                                                            // val/str
     PARSE_RULE_STRPUB("count"),                                                                                           // val/str
     PARSE_RULE_STRPUB("debug"),                                                                                           // val/str
@@ -214,9 +211,6 @@ typedef enum
     parseRuleValStrQT_azure_QT,                                                                                      // val/str/enum
     parseRuleValStrQT_blob_DT_core_DT_windows_DT_net_QT,                                                             // val/str/enum
     parseRuleValStrQT_bz2_QT,                                                                                        // val/str/enum
-    parseRuleValStrQT_camel_DS_128_DS_cbc_QT,                                                                        // val/str/enum
-    parseRuleValStrQT_camel_DS_196_DS_cbc_QT,                                                                        // val/str/enum
-    parseRuleValStrQT_camel_DS_256_DS_cbc_QT,                                                                        // val/str/enum
     parseRuleValStrQT_cifs_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_count_QT,                                                                                      // val/str/enum
     parseRuleValStrQT_debug_QT,                                                                                      // val/str/enum
@@ -303,9 +297,6 @@ static const StringId parseRuleValueStrId[] =
     STRID5("auto", 0x7d2a10),                                                                                           // val/strid
     STRID5("azure", 0x5957410),                                                                                         // val/strid
     STRID5("bz2", 0x73420),                                                                                             // val/strid
-    STRID6("camel-128-cbc", 0x6e479d6cc14d0435),                                                                        // val/strid
-    STRID6("camel-196-cbc", 0x6e295d6cc14d0435),                                                                        // val/strid
-    STRID5("camel-256-cbc", 0x10f7eef36c2b4234),                                                                        // val/strid
     STRID5("cifs", 0x999230),                                                                                           // val/strid
     STRID5("count", 0x14755e30),                                                                                        // val/strid
     STRID5("debug", 0x7a88a40),                                                                                         // val/strid
@@ -379,9 +370,6 @@ static const uint8_t parseRuleValueStrIdStrMap[] =
     parseRuleValStrQT_auto_QT,                                                                                   // val/strid/strmap
     parseRuleValStrQT_azure_QT,                                                                                  // val/strid/strmap
     parseRuleValStrQT_bz2_QT,                                                                                    // val/strid/strmap
-    parseRuleValStrQT_camel_DS_128_DS_cbc_QT,                                                                    // val/strid/strmap
-    parseRuleValStrQT_camel_DS_196_DS_cbc_QT,                                                                    // val/strid/strmap
-    parseRuleValStrQT_camel_DS_256_DS_cbc_QT,                                                                    // val/strid/strmap
     parseRuleValStrQT_cifs_QT,                                                                                   // val/strid/strmap
     parseRuleValStrQT_count_QT,                                                                                  // val/strid/strmap
     parseRuleValStrQT_debug_QT,                                                                                  // val/strid/strmap
@@ -455,9 +443,6 @@ typedef enum
     parseRuleValStrIdAuto,                                                                                         // val/strid/enum
     parseRuleValStrIdAzure,                                                                                        // val/strid/enum
     parseRuleValStrIdBz2,                                                                                          // val/strid/enum
-    parseRuleValStrIdCamel128Cbc,                                                                                  // val/strid/enum
-    parseRuleValStrIdCamel196Cbc,                                                                                  // val/strid/enum
-    parseRuleValStrIdCamel256Cbc,                                                                                  // val/strid/enum
     parseRuleValStrIdCifs,                                                                                         // val/strid/enum
     parseRuleValStrIdCount,                                                                                        // val/strid/enum
     parseRuleValStrIdDebug,                                                                                        // val/strid/enum
@@ -6052,9 +6037,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                     PARSE_RULE_VAL_STRID(Aes192Cbc),                                                         // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(KuznyechikCbc),                                                     // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(MagmaCbc),                                                          // opt/repo-cipher-pass
-                    PARSE_RULE_VAL_STRID(Camel128Cbc),                                                       // opt/repo-cipher-pass
-                    PARSE_RULE_VAL_STRID(Camel196Cbc),                                                       // opt/repo-cipher-pass
-                    PARSE_RULE_VAL_STRID(Camel256Cbc),                                                       // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(Aria128Cbc),                                                        // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(Aria192Cbc),                                                        // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(Aria256Cbc),                                                        // opt/repo-cipher-pass
@@ -6143,9 +6125,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                     PARSE_RULE_VAL_STRID(Aes192Cbc),                                                         // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(KuznyechikCbc),                                                     // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(MagmaCbc),                                                          // opt/repo-cipher-type
-                    PARSE_RULE_VAL_STRID(Camel128Cbc),                                                       // opt/repo-cipher-type
-                    PARSE_RULE_VAL_STRID(Camel196Cbc),                                                       // opt/repo-cipher-type
-                    PARSE_RULE_VAL_STRID(Camel256Cbc),                                                       // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(Aria128Cbc),                                                        // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(Aria192Cbc),                                                        // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(Aria256Cbc),                                                        // opt/repo-cipher-type

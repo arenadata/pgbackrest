@@ -74,18 +74,15 @@ static const struct CipherTypeLocal
     const char *name;                                               // OpenSSL cipher name
 } cipherTypeLocal[] =
 {
-    {.type = cipherTypeAes128Cbc,      .name = "aes-128-cbc"},
-    {.type = cipherTypeAes192Cbc,      .name = "aes-192-cbc"},
-    {.type = cipherTypeAes256Cbc,      .name = "aes-256-cbc"},
-    {.type = cipherTypeKuznyechikCbc,  .name = "kuznyechik-cbc"},
-    {.type = cipherTypeMagmaCbc,       .name = "magma-cbc"},
-    {.type = cipherTypeAria128Cbc,     .name = "aria-128-cbc"},
-    {.type = cipherTypeAria192Cbc,     .name = "aria-192-cbc"},
-    {.type = cipherTypeAria256Cbc,     .name = "aria-256-cbc"},
-    {.type = cipherTypeCamellia128Cbc, .name = "camellia-128-cbc"},
-    {.type = cipherTypeCamellia192Cbc, .name = "camellia-196-cbc"},
-    {.type = cipherTypeCamellia256Cbc, .name = "camellia-256-cbc"},
-    {.type = cipherTypeSM4Cbc,         .name = "sm4-cbc"},
+    {.type = cipherTypeAes128Cbc,     .name = "aes-128-cbc"},
+    {.type = cipherTypeAes192Cbc,     .name = "aes-192-cbc"},
+    {.type = cipherTypeAes256Cbc,     .name = "aes-256-cbc"},
+    {.type = cipherTypeKuznyechikCbc, .name = "kuznyechik-cbc"},
+    {.type = cipherTypeMagmaCbc,      .name = "magma-cbc"},
+    {.type = cipherTypeAria128Cbc,    .name = "aria-128-cbc"},
+    {.type = cipherTypeAria192Cbc,    .name = "aria-192-cbc"},
+    {.type = cipherTypeAria256Cbc,    .name = "aria-256-cbc"},
+    {.type = cipherTypeSM4Cbc,        .name = "sm4-cbc"},
 };
 
 /***********************************************************************************************************************************

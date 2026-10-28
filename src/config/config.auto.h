@@ -260,12 +260,6 @@ Option value constants
 #define CFGOPTVAL_REPO_CIPHER_TYPE_ARIA_192_CBC_Z                   "aria-192-cbc"
 #define CFGOPTVAL_REPO_CIPHER_TYPE_ARIA_256_CBC                     STRID5("aria-256-cbc", 0x1887bf779b0a6410)
 #define CFGOPTVAL_REPO_CIPHER_TYPE_ARIA_256_CBC_Z                   "aria-256-cbc"
-#define CFGOPTVAL_REPO_CIPHER_TYPE_CAMEL_128_CBC                    STRID6("camel-128-cbc", 0x6e479d6cc14d0435)
-#define CFGOPTVAL_REPO_CIPHER_TYPE_CAMEL_128_CBC_Z                  "camel-128-cbc"
-#define CFGOPTVAL_REPO_CIPHER_TYPE_CAMEL_196_CBC                    STRID6("camel-196-cbc", 0x6e295d6cc14d0435)
-#define CFGOPTVAL_REPO_CIPHER_TYPE_CAMEL_196_CBC_Z                  "camel-196-cbc"
-#define CFGOPTVAL_REPO_CIPHER_TYPE_CAMEL_256_CBC                    STRID5("camel-256-cbc", 0x10f7eef36c2b4234)
-#define CFGOPTVAL_REPO_CIPHER_TYPE_CAMEL_256_CBC_Z                  "camel-256-cbc"
 #define CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC                   STRID5("kuznyechik-cbc", 0x1ed6940cb976aab4)
 #define CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC_Z                 "kuznyechik-cbc"
 #define CFGOPTVAL_REPO_CIPHER_TYPE_MAGMA_CBC                        STRID5("magma-cbc", 0x310f6169c2d0)
