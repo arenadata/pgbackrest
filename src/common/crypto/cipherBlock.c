@@ -39,10 +39,10 @@ typedef struct CipherBlock
     size_t headerSize;                                              // Size of header read during decrypt
     unsigned char header[CIPHER_BLOCK_HEADER_SIZE];                 // Buffer to hold partial header during decrypt
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-    EVP_CIPHER *cipher;      
+    EVP_CIPHER *cipher;
 #else
-    const EVP_CIPHER *cipher;  
-#endif                                                              // Cipher object
+    const EVP_CIPHER *cipher;
+#endif // Cipher object
     const EVP_MD *digest;                                           // Message digest object
     EVP_CIPHER_CTX *cipherContext;                                  // Encrypt/decrypt context
 
