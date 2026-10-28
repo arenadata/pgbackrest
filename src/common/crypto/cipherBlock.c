@@ -107,8 +107,6 @@ cipherConvertFromIdToStr(const CipherType cipherType)
         FUNCTION_TEST_PARAM(STRING_ID, cipherType);
     FUNCTION_TEST_END();
 
-    ASSERT(cipherType != cipherTypeNone);
-
     unsigned int typeIdx = 0;
 
     for (; typeIdx < LENGTH_OF(cipherTypeLocal); typeIdx++)
