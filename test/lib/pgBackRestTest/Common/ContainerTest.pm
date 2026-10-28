@@ -408,7 +408,7 @@ sub containerBuild
                 "    yum -y update && \\\n" .
                 "    yum -y install openssh-server openssh-clients wget sudo git \\\n" .
                 "        perl perl-Digest-SHA perl-DBD-Pg perl-YAML-LibYAML openssl \\\n" .
-                "        gcc make perl-ExtUtils-MakeMaker perl-Test-Simple openssl-devel perl-ExtUtils-Embed rpm-build \\\n" .
+                "        gcc make perl-ExtUtils-MakeMaker perl-Test-Simple openssl-devel openssl-gost-engine perl-ExtUtils-Embed rpm-build \\\n" .
                 "        libyaml-devel zlib-devel libxml2-devel lz4-devel lz4 bzip2-devel bzip2 perl-JSON-PP ccache meson \\\n" .
                 "        libssh2-devel";
         }
@@ -418,7 +418,7 @@ sub containerBuild
                 "    export DEBCONF_NONINTERACTIVE_SEEN=true DEBIAN_FRONTEND=noninteractive && \\\n" .
                 "    apt-get update && \\\n" .
                 "    apt-get install -y --no-install-recommends openssh-server wget sudo gcc make git \\\n" .
-                "        libdbd-pg-perl libhtml-parser-perl libssl-dev libperl-dev python3-distutils \\\n" .
+                "        libdbd-pg-perl libhtml-parser-perl libssl-dev ibengine-gost-openssl1.1 libperl-dev python3-distutils \\\n" .
                 "        libyaml-libyaml-perl tzdata devscripts lintian libxml-checker-perl txt2man debhelper \\\n" .
                 "        libppi-html-perl libtemplate-perl libtest-differences-perl zlib1g-dev libxml2-dev pkg-config \\\n" .
                 "        libbz2-dev bzip2 libyaml-dev libjson-pp-perl liblz4-dev liblz4-tool gnupg lsb-release ccache meson \\\n" .
@@ -459,6 +459,22 @@ sub containerBuild
                 "# Suppress dpkg interactive output\n" .
                 "    rm /etc/apt/apt.conf.d/70debconf";
         }
+
+        #---------------------------------------------------------------------------------------------------------------------------
+        $strScript .= sectionHeader() .
+            "# Add GOST ciphers to openssl.cnf\n";
+
+        if ($$oVm{$strOS}{&VM_OS_BASE} eq VM_OS_BASE_RHEL)
+        {
+            $strScript .=
+                q{dnf install -y openssl-gost-engine && OPENSSL_SO_PATH=$(rpm -ql openssl-gost-engine | grep '/gost\.so$') && OPENSSL_CNF_PATH=/etc/pki/tls/openssl.cnf}
+        }
+        else
+        {
+            $strScript .= q{apt-get install -y libengine-gost-openssl1.1 && OPENSSL_SO_PATH=$(dpkg -L libengine-gost-openssl1.1 | grep '/gost\.so$') && OPENSSL_CNF_PATH=/etc/ssl/openssl.cnf;};
+        }
+
+        $strScript .= q{grep -q gost_section "$OPENSSL_CNF_PATH" || { sed -i '/^\[ *openssl_init *\]/a engines = engine_section' "$OPENSSL_CNF_PATH"; printf '\n[engine_section]\ngost = gost_section\n\n[gost_section]\nengine_id = gost\ndynamic_path = %s\ndefault_algorithms = ALL\n' "$OPENSSL_SO_PATH" >> "$OPENSSL_CNF_PATH"; }};
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)
