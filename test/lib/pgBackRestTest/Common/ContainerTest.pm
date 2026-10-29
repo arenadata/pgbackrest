@@ -467,19 +467,19 @@ sub containerBuild
         if ($$oVm{$strOS}{&VM_OS_BASE} eq VM_OS_BASE_RHEL)
         {
             $strScript .=
-                q{OPENSSL_SO_PATH=$(rpm -ql openssl-gost-engine | grep '/gost\.so$') && OPENSSL_CNF_PATH=/etc/pki/tls/openssl.cnf && }
+                q{OPENSSL_SO_PATH=$(rpm -ql openssl-gost-engine | grep '/gost\.so$') && OPENSSL_CNF_PATH=/etc/pki/tls/openssl.cnf && OPENSSL_GOST_CNF_PATH=/openssl-gost.cnf && }
         }
         else
         {
             $strScript .= 
-                q{OPENSSL_SO_PATH=$(dpkg -L libengine-gost-openssl1.1 | grep '/gost\.so$') && OPENSSL_CNF_PATH=/etc/ssl/openssl.cnf && };
+                q{OPENSSL_SO_PATH=$(dpkg -L libengine-gost-openssl1.1 | grep '/gost\.so$') && OPENSSL_CNF_PATH=/etc/ssl/openssl.cnf && OPENSSL_GOST_CNF_PATH=/openssl-gost.cnf && };
         }
 
         $strScript .=
-            q{cp -n $OPENSSL_CNF_PATH "$OPENSSL_CNF_PATH.no-gost" && };
+            q{cp -n $OPENSSL_CNF_PATH $OPENSSL_GOST_CNF_PATH && };
 
         $strScript .=
-            q{grep -q gost_section "$OPENSSL_CNF_PATH" || { sed -i '/^\[ *openssl_init *\]/a engines = engine_section' "$OPENSSL_CNF_PATH"; printf '\n[engine_section]\ngost = gost_section\n\n[gost_section]\nengine_id = gost\ndefault_algorithms = ALL\n' >> "$OPENSSL_CNF_PATH"; }};
+            q{grep -q gost_section "$OPENSSL_GOST_CNF_PATH" || { sed -i '/^\[ *openssl_init *\]/a engines = engine_section' "$OPENSSL_GOST_CNF_PATH"; printf '\n[engine_section]\ngost = gost_section\n\n[gost_section]\nengine_id = gost\ndynamic_path = %s\ndefault_algorithms = ALL\n' "$OPENSSL_SO_PATH" >> "$OPENSSL_GOST_CNF_PATH"; }};
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)
