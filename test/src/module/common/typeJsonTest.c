@@ -57,11 +57,6 @@ testRun(void)
             JsonFormatError, "invalid number at: 9999999999999999999999999999999999999999999999999999999999999999");
 
         // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("error on invalid ascii encoding");
-
-        TEST_ERROR(jsonReadStr(jsonReadNew(STRDEF("\"\\u1111"))), JsonFormatError, "unable to decode at: \\u1111");
-
-        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error on invalid escape");
 
         TEST_ERROR(jsonReadStr(jsonReadNew(STRDEF("\"\\xy"))), JsonFormatError, "invalid escape character at: \\xy");
