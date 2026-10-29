@@ -509,6 +509,9 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
 
     if (!cipher)
     {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
+#endif
         if (cipherIsExternal(cipherType))
             THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
         else
