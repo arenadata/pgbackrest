@@ -79,6 +79,8 @@ testRun(void)
         TEST_ERROR(
             cipherBlockNewP(cipherModeEncrypt, cipherTypeNone, BUFSTRZ(TEST_PASS)), AssertError, "invalid cipher type 'none'");
         TEST_ERROR(
+            cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, BUFSTRZ(TEST_PASS)), AssertError, "invalid cipher type 'aes-256-cbc'");
+        TEST_ERROR(
             cipherBlockNewP(cipherModeEncrypt, cipherTypeKuznyechikCbc, testPass, .digest = STRDEF(BOGUS_STR)), AssertError,
             "unable to load digest 'BOGUS'");
 
