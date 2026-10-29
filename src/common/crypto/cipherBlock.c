@@ -503,15 +503,14 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     String *const cipherTypeStr = cipherConvertFromIdToStr(cipherType);
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(NULL, strZ(cipherTypeStr), NULL);
+    if (!cipher)
+        cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
 #else
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
 #endif
 
     if (!cipher)
     {
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-        cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
-#endif
         if (cipherIsExternal(cipherType))
             THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
         else
