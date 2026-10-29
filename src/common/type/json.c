@@ -1016,6 +1016,8 @@ jsonReadStr(JsonRead *const this)
 
                 case 'u':
                 {
+                    this->json++;
+
                     unsigned int high = cvtZSubNToUIntBase(this->json, 0, 4, 16);
                     this->json += 4;
                     unsigned int codepoint = high;
@@ -1073,6 +1075,8 @@ jsonReadStr(JsonRead *const this)
                         strCatChr(result, (char)(0x80 | ((codepoint >> 6) & 0x3F)));
                         strCatChr(result, (char)(0x80 | (codepoint & 0x3F)));
                     }
+
+                    this->json--;
 
                     break;
                 }
