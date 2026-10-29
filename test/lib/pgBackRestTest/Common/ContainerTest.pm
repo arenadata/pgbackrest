@@ -349,7 +349,7 @@ sub containerBuild
     my $strTempPath = $oStorageDocker->pathGet('test/result/docker');
     $oStorageDocker->pathCreate($strTempPath, {strMode => '0770', bIgnoreExists => true, bCreateParent => true});
 
-    my $strScriptPath = $oStorageDocker->pathGet('test/install-gost.sh');
+    my $strScriptPath = $oStorageDocker->pathGet('test');
 
     # Load container definitions from yaml
     require YAML::XS;
@@ -469,7 +469,7 @@ sub containerBuild
 
 
         $strScript .=
-            "   pwd && ls ${strScriptPath}/.. -al && ${strScriptPath}";
+            "   ls -al ${strScriptPath} && ${strScriptPath}/install-gost.sh";
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)
