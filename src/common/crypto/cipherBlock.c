@@ -39,10 +39,9 @@ typedef struct CipherBlock
     size_t headerSize;                                              // Size of header read during decrypt
     unsigned char header[CIPHER_BLOCK_HEADER_SIZE];                 // Buffer to hold partial header during decrypt
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-    EVP_CIPHER *cipher;
-#else
+    EVP_CIPHER *cipherFetch;
+#endif
     const EVP_CIPHER *cipher;
-#endif // Cipher object
     const EVP_MD *digest;                                           // Message digest object
     EVP_CIPHER_CTX *cipherContext;                                  // Encrypt/decrypt context
 
@@ -158,7 +157,7 @@ cipherBlockFreeResource(THIS_VOID)
     EVP_CIPHER_CTX_free(this->cipherContext);
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-    EVP_CIPHER_free(this->cipher);
+    EVP_CIPHER_free(this->cipherFetch);
 #endif
 
     FUNCTION_LOG_RETURN_VOID();
@@ -502,9 +501,12 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     // since the name required by the openssl command-line tool will match what is used by pgBackRest.
     String *const cipherTypeStr = cipherConvertFromIdToStr(cipherType);
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-    EVP_CIPHER *cipher = EVP_CIPHER_fetch(NULL, strZ(cipherTypeStr), NULL);
-    if (!cipher)
-        cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
+    // Fetch the cipher from a provider. Ciphers from legacy engines (e.g. GOST) cannot be fetched, so fall back to looking up the
+    // name. Only a fetched cipher is owned and freed.
+    EVP_CIPHER *cipherFetch = EVP_CIPHER_fetch(NULL, strZ(cipherTypeStr), NULL);
+    ERR_clear_error();
+
+    const EVP_CIPHER *cipher = cipherFetch != NULL ? cipherFetch : EVP_get_cipherbyname(strZ(cipherTypeStr));
 #else
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
 #endif
@@ -525,6 +527,9 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         {
             .mode = mode,
             .raw = param.raw,
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+            .cipherFetch = cipherFetch,
+#endif
             .cipher = cipher,
             .digest = digest,
             .pass = bufDup(pass),
