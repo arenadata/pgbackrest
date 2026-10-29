@@ -62,6 +62,39 @@ testRun(void)
         TEST_ERROR(jsonReadStr(jsonReadNew(STRDEF("\"\\xy"))), JsonFormatError, "invalid escape character at: \\xy");
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("unicode escape followed by escape");
+
+        TEST_RESULT_STR_Z(jsonReadStr(jsonReadNew(STRDEF("\"\\u0076\\n\""))), "v\n", "unicode then newline");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("error on high surrogate without low surrogate");
+
+        TEST_ERROR(
+            jsonReadStr(jsonReadNew(STRDEF("\"\\uD83D\""))), JsonFormatError,
+            "missing low surrogate for high surrogate at: \\uD83D\"");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("error on high surrogate followed by non-unicode escape");
+
+        TEST_ERROR(
+            jsonReadStr(jsonReadNew(STRDEF("\"\\uD83D\\n\""))), JsonFormatError,
+            "missing low surrogate for high surrogate at: \\uD83D\\n\"");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("error on invalid low surrogate");
+
+        TEST_ERROR(
+            jsonReadStr(jsonReadNew(STRDEF("\"\\uD83D\\u0041\""))), JsonFormatError,
+            "invalid low surrogate in unicode escape at: \\u0041\"");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("error on low surrogate without high surrogate");
+
+        TEST_ERROR(
+            jsonReadStr(jsonReadNew(STRDEF("\"\\uDE00\""))), JsonFormatError,
+            "unexpected low surrogate without high surrogate at: DE00\"");
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error on unterminated string");
 
         TEST_ERROR(jsonReadStr(jsonReadNew(STRDEF("\""))), JsonFormatError, "expected '\"' but found null delimiter");

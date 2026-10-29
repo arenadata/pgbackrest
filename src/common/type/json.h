@@ -89,6 +89,9 @@ FN_EXTERN Variant *jsonReadVar(JsonRead *this);
 /***********************************************************************************************************************************
 Read Helper Functions
 ***********************************************************************************************************************************/
+// Unicode escape
+FN_EXTERN void jsonDecodeUnicode(JsonRead *this, String *result);
+
 // Convert JSON to Variant
 FN_EXTERN Variant *jsonToVar(const String *json);
 
