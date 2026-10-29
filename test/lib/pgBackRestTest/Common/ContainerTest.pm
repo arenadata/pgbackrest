@@ -462,10 +462,10 @@ sub containerBuild
 
         #---------------------------------------------------------------------------------------------------------------------------
         $strScript .= sectionHeader() .
-            "# Download, build and install GOST ciphers\n"
+            "# Download, build and install GOST ciphers\n";
 
         $strScript .=
-            "   pwd && ls -al && ./install-gost.sh"
+            "   pwd && ls -al && ./install-gost.sh";
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)
