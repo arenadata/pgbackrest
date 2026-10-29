@@ -371,6 +371,22 @@ unit:
           - common/crypto/xxhash
 
       # ----------------------------------------------------------------------------------------------------------------------------
+      - name: cryptoGost
+        total: 4
+        feature: STORAGE
+        harness:
+          name: storage
+          shim:
+            storage/posix/storage: ~
+
+        coverage:
+          - common/crypto/cipherBlock
+          - common/crypto/common
+          - common/crypto/hash
+          - common/crypto/md5.vendor: included
+          - common/crypto/xxhash
+
+      # ----------------------------------------------------------------------------------------------------------------------------
       - name: io-tls
         total: 6
         feature: SOCKET
