@@ -349,6 +349,8 @@ sub containerBuild
     my $strTempPath = $oStorageDocker->pathGet('test/result/docker');
     $oStorageDocker->pathCreate($strTempPath, {strMode => '0770', bIgnoreExists => true, bCreateParent => true});
 
+    my $strScriptPath = $oStorageDocker->pathGet('test/install-gost.sh');
+
     # Load container definitions from yaml
     require YAML::XS;
     YAML::XS->import(qw(Load));
@@ -464,8 +466,10 @@ sub containerBuild
         $strScript .= sectionHeader() .
             "# Download, build and install GOST ciphers\n";
 
+
+
         $strScript .=
-            "   pwd && ls ${oStorageDocker} -al && ${oStorageDocker}/install-gost.sh";
+            "   pwd && ls ${strScriptPath}/.. -al && ${strScriptPath}";
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)
