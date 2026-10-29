@@ -516,7 +516,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         if (cipherIsExternal(cipherType))
             THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
         else
-            THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr)); // {uncoverable - a very rare case when openssl is configured wrongly and default ciphers are unavailable}
+            THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr));
     }
 
     strFree(cipherTypeStr);

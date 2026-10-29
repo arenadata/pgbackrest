@@ -479,7 +479,7 @@ sub containerBuild
             q{cp -n $OPENSSL_CNF_PATH $OPENSSL_GOST_CNF_PATH && };
 
         $strScript .=
-            q{grep -q gost_section "$OPENSSL_GOST_CNF_PATH" || { sed -i '/^\[ *openssl_init *\]/a engines = engine_section' "$OPENSSL_GOST_CNF_PATH"; printf '\n[engine_section]\ngost = gost_section\n\n[gost_section]\nengine_id = gost\ndynamic_path = %s\ndefault_algorithms = ALL\n' "$OPENSSL_SO_PATH" >> "$OPENSSL_GOST_CNF_PATH"; }};
+            q{grep -q gost_section "$OPENSSL_GOST_CNF_PATH" || { sed -i '/^\[ *openssl_init *\]/a engines = engine_section' "$OPENSSL_GOST_CNF_PATH"; printf '\n[engine_section]\ngost = gost_section\n\n[gost_section]\nengine_id = gost\ndynamic_path = %s\n' "$OPENSSL_SO_PATH" >> "$OPENSSL_GOST_CNF_PATH"; }};
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)
