@@ -819,12 +819,12 @@ jsonReadSkipStr(JsonRead *const this)
                 {
                     this->json++;
 
-                    // Expect four digits
+                    // Expect four hex digits
                     unsigned int digitIdx = 0;
 
                     for (; digitIdx < 4; digitIdx++)
                     {
-                        if (!isdigit(this->json[digitIdx]))
+                        if (!isxdigit(this->json[digitIdx]))
                             break;
                     }
 
@@ -938,6 +938,60 @@ jsonReadSkip(JsonRead *const this)
 }
 
 /**********************************************************************************************************************************/
+FN_EXTERN void
+jsonDecodeUnicode(JsonRead *const this, String *const result)
+{
+    this->json++; // get past /u
+    const unsigned int high = cvtZSubNToUIntBase(this->json, 0, 4, 16);
+    unsigned int codepoint = high;
+    this->json += 4;
+
+    // Check for supplementary planes
+    if (high >= 0xD800 && high <= 0xDBFF)
+    {
+        if (*this->json != '\\' || *(this->json + 1) != 'u')
+            THROW_FMT(JsonFormatError, "missing low surrogate for high surrogate at: %s", this->json - 6);
+
+        this->json += 2;
+        const unsigned int low = cvtZSubNToUIntBase(this->json, 0, 4, 16);
+        this->json += 4;
+
+        if (low < 0xDC00 || low > 0xDFFF)
+            THROW_FMT(JsonFormatError, "invalid low surrogate in unicode escape at: %s", this->json - 6);
+
+        codepoint = 0x10000 + ((high - 0xD800) << 10) + (low - 0xDC00);
+    }
+    else if (high >= 0xDC00 && high <= 0xDFFF)
+        THROW_FMT(JsonFormatError, "unexpected low surrogate without high surrogate at: %s", this->json - 4);
+
+    // Append 1-4 bytes to the result
+    if (codepoint <= 0x7F)
+    {
+        strCatChr(result, (char)codepoint);
+    }
+    else if (codepoint <= 0x7FF)
+    {
+        strCatChr(result, (char)(0xC0 | (codepoint >> 6)));
+        strCatChr(result, (char)(0x80 | (codepoint & 0x3F)));
+    }
+    else if (codepoint <= 0xFFFF)
+    {
+        strCatChr(result, (char)(0xE0 | (codepoint >> 12)));
+        strCatChr(result, (char)(0x80 | ((codepoint >> 6) & 0x3F)));
+        strCatChr(result, (char)(0x80 | (codepoint & 0x3F)));
+    }
+    else
+    {
+        strCatChr(result, (char)(0xF0 | (codepoint >> 18)));
+        strCatChr(result, (char)(0x80 | ((codepoint >> 12) & 0x3F)));
+        strCatChr(result, (char)(0x80 | ((codepoint >> 6) & 0x3F)));
+        strCatChr(result, (char)(0x80 | (codepoint & 0x3F)));
+    }
+
+    this->json--;
+}
+
+/**********************************************************************************************************************************/
 FN_EXTERN String *
 jsonReadStr(JsonRead *const this)
 {
@@ -1016,17 +1070,7 @@ jsonReadStr(JsonRead *const this)
 
                 case 'u':
                 {
-                    this->json++;
-
-                    // We don't know how to decode anything except ASCII so fail if it looks like Unicode
-                    if (strncmp(this->json, "00", 2) != 0)
-                        THROW_FMT(JsonFormatError, "unable to decode at: %s", this->json - 2);
-
-                    // Decode char
-                    this->json += 2;
-                    strCatChr(result, (char)cvtZSubNToUIntBase(this->json, 0, 2, 16));
-                    this->json++;
-
+                    jsonDecodeUnicode(this, result);
                     break;
                 }
 
