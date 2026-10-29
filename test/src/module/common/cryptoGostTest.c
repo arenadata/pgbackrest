@@ -22,7 +22,7 @@ testRun(void)
 {
     FUNCTION_HARNESS_VOID();
 
-    setenv("OPENSSL_CNF", "/openssl-gost.cnf", 1);
+    setenv("OPENSSL_CONF", "/openssl-gost.cnf", 1);
 
     const Buffer *testPass = BUFSTRDEF(TEST_PASS);
     const Buffer *testPlainText = BUFSTRDEF(TEST_PLAINTEXT);
@@ -577,7 +577,7 @@ testRun(void)
             "1a3e11127b", "check small hash 5");
     }
 
-    unsetenv("OPENSSL_CNF");
+    unsetenv("OPENSSL_CONF");
 
     FUNCTION_HARNESS_RETURN_VOID();
 }
