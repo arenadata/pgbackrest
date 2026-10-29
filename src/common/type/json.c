@@ -819,12 +819,12 @@ jsonReadSkipStr(JsonRead *const this)
                 {
                     this->json++;
 
-                    // Expect four hex digits (0-9, A-F, a-f)
+                    // Expect four hex digits
                     unsigned int digitIdx = 0;
 
                     for (; digitIdx < 4; digitIdx++)
                     {
-                        if (!isxdigit(this->json[digitIdx])) // <-- Use isxdigit instead of isdigit
+                        if (!isxdigit(this->json[digitIdx]))
                             break;
                     }
 
@@ -1016,8 +1016,6 @@ jsonReadStr(JsonRead *const this)
 
                 case 'u':
                 {
-                    this->json++;
-
                     unsigned int high = cvtZSubNToUIntBase(this->json, 0, 4, 16);
                     this->json += 4;
                     unsigned int codepoint = high;
