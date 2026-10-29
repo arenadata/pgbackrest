@@ -317,7 +317,7 @@ testRun(void)
         TEST_ERROR(
             cipherBlockNewP(cipherModeEncrypt, cipherTypeMagmaCbc, BUFSTRZ(TEST_PASS)), AssertError, "unable to load cipher 'magma-cbc'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf");
 
-        putenv("OPENSSL_CNF=/openssl-gost.cnf");
+        setenv("OPENSSL_CNF", "/openssl-gost.cnf", 1);
 
         // Initialization of object
         // -------------------------------------------------------------------------------------------------------------------------
