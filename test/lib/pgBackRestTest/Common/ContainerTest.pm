@@ -465,7 +465,7 @@ sub containerBuild
             "# Download, build and install GOST ciphers\n";
 
         $strScript .=
-            "   pwd && ls -al && ./install-gost.sh";
+            "   pwd && ls ${oStorageDocker} -al && ${oStorageDocker}/install-gost.sh";
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)
