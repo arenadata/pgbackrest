@@ -52,7 +52,7 @@ testRun(void)
 
         TEST_ERROR(cryptoError(true, "no error"), CryptoError, "no error: [0] no details available");
 
-        //No cryptoRandomBytes test because gost doesn't have function for rand and this check gives buffer with all zeros
+        // No cryptoRandomBytes test because gost doesn't have function for rand and this check gives buffer with all zeros
     }
 
     // *****************************************************************************************************************************
