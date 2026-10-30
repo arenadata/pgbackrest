@@ -466,10 +466,61 @@ sub containerBuild
         $strScript .= sectionHeader() .
             "# Download, build and install GOST ciphers\n";
 
+        my $strGostPath = '/usr/local/lib/gost';
+        my $strGostBranch = 'v3.0.3';
+        my $strGostTarget = 'gost_engine gost_prov';
+        my $bGostProvider = true;
 
+        # Providers require OpenSSL >= 3
+        if ($strOS eq VM_D11 || $strOS eq VM_RH8)
+        {
+            $strGostBranch = 'openssl_1_1_1';
+            $strGostTarget = 'gost_engine';
+            $bGostProvider = false;
+        }
 
-        $strScript .=
-            "   ls -al ${strScriptPath} && ${strScriptPath}/test/install-gost.sh";
+        # The engine prints "GOST engine already loaded" to stdout when it is loaded twice in one process, which breaks programs that
+        # use stdout as a protocol (e.g. git over https on RHEL 8), so remove it
+        $strScript .= sectionHeader() .
+            "# Build GOST ciphers\n" .
+            "    git -c advice.detachedHead=false clone -q --depth 1 --branch ${strGostBranch} \\\n" .
+            "        --recurse-submodules --shallow-submodules https://github.com/gost-engine/engine.git ${strGostPath} && \\\n" .
+            "    sed -i '/GOST engine already loaded/d' ${strGostPath}/gost_eng.c && \\\n" .
+            "    cmake -S ${strGostPath} -B ${strGostPath}/build -DCMAKE_BUILD_TYPE=Release && \\\n" .
+            "    cmake --build ${strGostPath}/build -j \$(nproc) --target ${strGostTarget}";
+
+        # Write the configurations with printf, so each \\n below is a literal backslash-n that printf turns into a newline
+        $strScript .= sectionHeader() .
+            "# Write GOST engine configuration\n" .
+            "    printf '" .
+                "openssl_conf = init\\n" .
+                "[init]\\n" .
+                "engines = engines\\n" .
+                "[engines]\\n" .
+                "gost = gost\\n" .
+                "[gost]\\n" .
+                "dynamic_path = ${strGostPath}/build/bin/gost.so\\n" .
+                "default_algorithms = ALL\\n" .
+                "' > /openssl-gost-engine.cnf";
+
+        # Once the configuration loads a provider, the default provider is loaded only if the configuration activates it too. The
+        # provider configuration is the provider-only configuration plus the default provider, which OpenSSL merges into the
+        # [providers] section above it.
+        if ($bGostProvider)
+        {
+            $strScript .= sectionHeader() .
+                "# Write GOST provider configurations\n" .
+                "    printf '" .
+                    "openssl_conf = init\\n" .
+                    "[init]\\n" .
+                    "providers = providers\\n" .
+                    "[providers]\\n" .
+                    "gostprov = gostprov\\n" .
+                    "[gostprov]\\n" .
+                    "module = ${strGostPath}/build/bin/gostprov.so\\n" .
+                    "activate = 1\\n" .
+                    "' > /openssl-gost-provider-only.cnf";
+        }
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)
