@@ -22,7 +22,7 @@ testRun(void)
 {
     FUNCTION_HARNESS_VOID();
 
-    setenv("OPENSSL_CONF", "/openssl-gost.cnf", 1);
+    setenv("OPENSSL_CONF", "/openssl-gost-engine.cnf", 1);
 
     const Buffer *testPass = BUFSTRDEF(TEST_PASS);
     const Buffer *testPlainText = BUFSTRDEF(TEST_PLAINTEXT);
