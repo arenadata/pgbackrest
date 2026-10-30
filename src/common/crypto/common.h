@@ -21,7 +21,16 @@ Cipher types
 typedef enum
 {
     cipherTypeNone = STRID5("none", 0x2b9ee0),
+    cipherTypeAes128Cbc = STRID5("aes-128-cbc", 0x836e479d6d31415),
+    cipherTypeAes192Cbc = STRID5("aes-192-cbc", 0x836de95d6d31415),
     cipherTypeAes256Cbc = STRID5("aes-256-cbc", 0xc43dfbbcdcca10),
+    cipherTypeAria128Cbc = STRID6("aria-128-cbc", 0xdb91e75b0494815),
+    cipherTypeAria192Cbc = STRID6("aria-192-cbc", 0xdb7a575b0494815),
+    cipherTypeAria256Cbc = STRID5("aria-256-cbc", 0x1887bf779b0a6410),
+    cipherTypeSM4Cbc = STRID6("sm4-cbc", 0x30836e03531),
+    cipherTypeKuznyechikCbc = STRID5("kuznyechik-cbc", 0x1ed6940cb976aab4),
+    cipherTypeGrasshopperCbc = STRID5("grasshopper-cbc", 0xdc8b083d13986474),
+    cipherTypeMagmaCbc = STRID5("magma-cbc", 0x310f6169c2d0),
 } CipherType;
 
 /***********************************************************************************************************************************

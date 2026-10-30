@@ -38,7 +38,10 @@ typedef struct CipherBlock
     const Buffer *pass;                                             // Passphrase used to generate encryption key
     size_t headerSize;                                              // Size of header read during decrypt
     unsigned char header[CIPHER_BLOCK_HEADER_SIZE];                 // Buffer to hold partial header during decrypt
-    const EVP_CIPHER *cipher;                                       // Cipher object
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_CIPHER *cipherFetch;
+#endif
+    const EVP_CIPHER *cipher;
     const EVP_MD *digest;                                           // Message digest object
     EVP_CIPHER_CTX *cipherContext;                                  // Encrypt/decrypt context
 
@@ -62,6 +65,83 @@ cipherBlockToLog(const CipherBlock *const this, StringStatic *const debugLog)
     FUNCTION_LOG_OBJECT_FORMAT(value, cipherBlockToLog, buffer, bufferSize)
 
 /***********************************************************************************************************************************
+Decoding table
+***********************************************************************************************************************************/
+static const struct CipherTypeLocal
+{
+    CipherType type;                                                // Cipher type
+    const char *name;                                               // OpenSSL cipher name
+} cipherTypeLocal[] =
+{
+    {.type = cipherTypeAes128Cbc,      .name = "aes-128-cbc"},
+    {.type = cipherTypeAes192Cbc,      .name = "aes-192-cbc"},
+    {.type = cipherTypeAes256Cbc,      .name = "aes-256-cbc"},
+    {.type = cipherTypeKuznyechikCbc,  .name = "kuznyechik-cbc"},
+    {.type = cipherTypeGrasshopperCbc, .name = "grasshopper-cbc"},
+    {.type = cipherTypeMagmaCbc,       .name = "magma-cbc"},
+    {.type = cipherTypeAria128Cbc,     .name = "aria-128-cbc"},
+    {.type = cipherTypeAria192Cbc,     .name = "aria-192-cbc"},
+    {.type = cipherTypeAria256Cbc,     .name = "aria-256-cbc"},
+    {.type = cipherTypeSM4Cbc,         .name = "sm4-cbc"},
+};
+
+/***********************************************************************************************************************************
+List of external cipher types that are not included in default openssl package
+***********************************************************************************************************************************/
+static const CipherType CipherTypeExternal[] =
+{
+    cipherTypeKuznyechikCbc,
+    cipherTypeMagmaCbc
+};
+
+/***********************************************************************************************************************************
+Covert cipherId to cipherName as some of them are too long to be encoded
+***********************************************************************************************************************************/
+static String *
+cipherConvertFromIdToStr(const CipherType cipherType)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(STRING_ID, cipherType);
+    FUNCTION_TEST_END();
+
+    unsigned int typeIdx = 0;
+
+    for (; typeIdx < LENGTH_OF(cipherTypeLocal); typeIdx++)
+    {
+        if (cipherTypeLocal[typeIdx].type == cipherType)
+            break;
+    }
+
+    if (typeIdx == LENGTH_OF(cipherTypeLocal))
+        THROW_FMT(AssertError, "invalid cipher type '%s'", strZ(strIdToStr(cipherType)));
+
+    String *result = strNewZ(cipherTypeLocal[typeIdx].name);
+
+    FUNCTION_TEST_RETURN(STRING, result);
+}
+
+/***********************************************************************************************************************************
+Check if selected cipher is external
+***********************************************************************************************************************************/
+static bool
+cipherIsExternal(const CipherType cipherType)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(STRING_ID, cipherType);
+    FUNCTION_TEST_END();
+
+    unsigned int typeIdx = 0;
+
+    for (; typeIdx < LENGTH_OF(CipherTypeExternal); typeIdx++)
+    {
+        if (CipherTypeExternal[typeIdx] == cipherType)
+            break;
+    }
+
+    FUNCTION_TEST_RETURN(BOOL, typeIdx != LENGTH_OF(CipherTypeExternal));
+}
+
+/***********************************************************************************************************************************
 Free cipher context
 ***********************************************************************************************************************************/
 static void
@@ -76,6 +156,10 @@ cipherBlockFreeResource(THIS_VOID)
     ASSERT(this != NULL);
 
     EVP_CIPHER_CTX_free(this->cipherContext);
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_CIPHER_free(this->cipherFetch);
+#endif
 
     FUNCTION_LOG_RETURN_VOID();
 }
@@ -190,6 +274,9 @@ cipherBlockProcessBlock(CipherBlock *const this, const unsigned char *source, si
             cryptoError(!(this->cipherContext = EVP_CIPHER_CTX_new()), "unable to create context");
 
             // Set free callback to ensure cipher context is freed
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+            memContextCallbackClear(objMemContext(this));
+#endif
             memContextCallbackSet(objMemContext(this), cipherBlockFreeResource, this);
 
             // Initialize cipher
@@ -400,16 +487,6 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     // Init crypto subsystem
     cryptoInit();
 
-    // Lookup cipher by name. This means the ciphers passed in must exactly match a name expected by OpenSSL. This is a good thing
-    // since the name required by the openssl command-line tool will match what is used by pgBackRest.
-    String *const cipherTypeStr = strIdToStr(cipherType);
-    const EVP_CIPHER *cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
-
-    if (!cipher)
-        THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr));
-
-    strFree(cipherTypeStr);
-
     // Lookup digest. If not defined it will be set to sha1.
     const EVP_MD *digest = NULL;
 
@@ -421,18 +498,62 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     if (!digest)
         THROW_FMT(AssertError, "unable to load digest '%s'", strZ(param.digest));
 
+    CipherType actualCipherType = cipherType;
+
+    if (OPENSSL_version_major() < 3 && cipherType == cipherTypeKuznyechikCbc)
+    {
+        actualCipherType = cipherTypeGrasshopperCbc;
+        LOG_WARN_FMT("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from '%s' to '%s'", strZ(cipherConvertFromIdToStr(cipherType)), strZ(cipherConvertFromIdToStr(actualCipherType)));
+    }
+    else if (OPENSSL_version_major() >= 3 && cipherType == cipherTypeGrasshopperCbc)
+    {
+        actualCipherType = cipherTypeKuznyechikCbc;
+        LOG_WARN_FMT("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from '%s' to '%s'", strZ(cipherConvertFromIdToStr(cipherType)), strZ(cipherConvertFromIdToStr(actualCipherType)));
+    }
+
+    // Lookup cipher by name. This means the ciphers passed in must exactly match a name expected by OpenSSL. This is a good thing
+    // since the name required by the openssl command-line tool will match what is used by pgBackRest.
+    String *const cipherTypeStr = cipherConvertFromIdToStr(actualCipherType);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    // Fetch the cipher from a provider. Ciphers from legacy engines (e.g. GOST) cannot be fetched, so fall back to looking up the
+    // name. Only a fetched cipher is owned and freed.
+    EVP_CIPHER *cipherFetch = EVP_CIPHER_fetch(NULL, strZ(cipherTypeStr), NULL);
+    ERR_clear_error();
+
+    const EVP_CIPHER *cipher = cipherFetch != NULL || !cipherIsExternal(actualCipherType) ? cipherFetch : EVP_get_cipherbyname(strZ(cipherTypeStr));
+#else
+    const EVP_CIPHER *cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
+#endif
+
+    if (!cipher)
+    {
+        if (cipherIsExternal(actualCipherType))
+            THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
+        else
+            THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr));
+    }
+
+    strFree(cipherTypeStr);
+
     OBJ_NEW_BEGIN(CipherBlock, .childQty = MEM_CONTEXT_QTY_MAX, .callbackQty = 1)
     {
         *this = (CipherBlock)
         {
             .mode = mode,
             .raw = param.raw,
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+            .cipherFetch = cipherFetch,
+#endif
             .cipher = cipher,
             .digest = digest,
             .pass = bufDup(pass),
         };
     }
     OBJ_NEW_END();
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    memContextCallbackSet(objMemContext(this), cipherBlockFreeResource, this);
+#endif
 
     // Create param list
     Pack *paramList;
@@ -442,7 +563,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         PackWrite *const packWrite = pckWriteNewP();
 
         pckWriteU64P(packWrite, mode);
-        pckWriteU64P(packWrite, cipherType);
+        pckWriteU64P(packWrite, actualCipherType == cipherTypeGrasshopperCbc ? cipherTypeKuznyechikCbc : actualCipherType);
         pckWriteBinP(packWrite, pass);
         pckWriteStrP(packWrite, param.digest);
         pckWriteBoolP(packWrite, param.raw);

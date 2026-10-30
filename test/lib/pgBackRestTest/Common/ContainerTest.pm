@@ -408,7 +408,7 @@ sub containerBuild
                 "    yum -y update && \\\n" .
                 "    yum -y install openssh-server openssh-clients wget sudo git \\\n" .
                 "        perl perl-Digest-SHA perl-DBD-Pg perl-YAML-LibYAML openssl \\\n" .
-                "        gcc make perl-ExtUtils-MakeMaker perl-Test-Simple openssl-devel perl-ExtUtils-Embed rpm-build \\\n" .
+                "        gcc make cmake perl-ExtUtils-MakeMaker perl-Test-Simple openssl-devel openssl-devel-engine perl-ExtUtils-Embed rpm-build \\\n" .
                 "        libyaml-devel zlib-devel libxml2-devel lz4-devel lz4 bzip2-devel bzip2 perl-JSON-PP ccache meson \\\n" .
                 "        libssh2-devel";
         }
@@ -417,7 +417,7 @@ sub containerBuild
             $strScript .=
                 "    export DEBCONF_NONINTERACTIVE_SEEN=true DEBIAN_FRONTEND=noninteractive && \\\n" .
                 "    apt-get update && \\\n" .
-                "    apt-get install -y --no-install-recommends openssh-server wget sudo gcc make git \\\n" .
+                "    apt-get install -y --no-install-recommends openssh-server wget sudo gcc make cmake git \\\n" .
                 "        libdbd-pg-perl libhtml-parser-perl libssl-dev libperl-dev python3-distutils \\\n" .
                 "        libyaml-libyaml-perl tzdata devscripts lintian libxml-checker-perl txt2man debhelper \\\n" .
                 "        libppi-html-perl libtemplate-perl libtest-differences-perl zlib1g-dev libxml2-dev pkg-config \\\n" .
@@ -458,6 +458,63 @@ sub containerBuild
             $strScript .= sectionHeader() .
                 "# Suppress dpkg interactive output\n" .
                 "    rm /etc/apt/apt.conf.d/70debconf";
+        }
+
+        #---------------------------------------------------------------------------------------------------------------------------
+        my $strGostPath = '/usr/local/lib/gost';
+        my $strGostBranch = 'v3.0.3';
+        my $strGostTarget = 'gost_engine gost_prov';
+        my $bGostProvider = true;
+
+        # Providers require OpenSSL >= 3
+        if ($strOS eq VM_D11 || $strOS eq VM_RH8)
+        {
+            $strGostBranch = 'openssl_1_1_1';
+            $strGostTarget = 'gost_engine';
+            $bGostProvider = false;
+        }
+
+        # The engine prints "GOST engine already loaded" to stdout when it is loaded twice in one process, which breaks programs that
+        # use stdout as a protocol (e.g. git over https on RHEL 8), so remove it
+        $strScript .= sectionHeader() .
+            "# Build GOST ciphers\n" .
+            "    git -c advice.detachedHead=false clone -q --depth 1 --branch ${strGostBranch} \\\n" .
+            "        --recurse-submodules --shallow-submodules https://github.com/gost-engine/engine.git ${strGostPath} && \\\n" .
+            "    sed -i '/GOST engine already loaded/d' ${strGostPath}/gost_eng.c && \\\n" .
+            "    cmake -S ${strGostPath} -B ${strGostPath}/build -DCMAKE_BUILD_TYPE=Release && \\\n" .
+            "    cmake --build ${strGostPath}/build -j \$(nproc) --target ${strGostTarget}";
+
+        # Write the configurations with printf, so each \\n below is a literal backslash-n that printf turns into a newline
+        $strScript .= sectionHeader() .
+            "# Write GOST engine configuration\n" .
+            "    printf '" .
+                "openssl_conf = init\\n" .
+                "[init]\\n" .
+                "engines = engines\\n" .
+                "[engines]\\n" .
+                "gost = gost\\n" .
+                "[gost]\\n" .
+                "dynamic_path = ${strGostPath}/build/bin/gost.so\\n" .
+                "default_algorithms = ALL\\n" .
+                "' > /openssl-gost-engine.cnf";
+
+        # Once the configuration loads a provider, the default provider is loaded only if the configuration activates it too. The
+        # provider configuration is the provider-only configuration plus the default provider, which OpenSSL merges into the
+        # [providers] section above it.
+        if ($bGostProvider)
+        {
+            $strScript .= sectionHeader() .
+                "# Write GOST provider configurations\n" .
+                "    printf '" .
+                    "openssl_conf = init\\n" .
+                    "[init]\\n" .
+                    "providers = providers\\n" .
+                    "[providers]\\n" .
+                    "gostprov = gostprov\\n" .
+                    "[gostprov]\\n" .
+                    "module = ${strGostPath}/build/bin/gostprov.so\\n" .
+                    "activate = 1\\n" .
+                    "' > /openssl-gost-provider-only.cnf";
         }
 
         #---------------------------------------------------------------------------------------------------------------------------

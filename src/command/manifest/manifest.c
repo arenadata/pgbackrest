@@ -231,12 +231,13 @@ cmdManifestBlockDeltaRender(const Manifest *const manifest, const ManifestFile *
                 .offset = file->bundleOffset + file->sizeRepo - file->blockIncrMapSize,
                 .limit = VARUINT64(file->blockIncrMapSize));
 
-            if (manifestCipherSubPass(manifest) != NULL)
+            const CipherType cipherType = cfgOptionStrId(cfgOptRepoCipherType);
+
+            if (cipherType != cipherTypeNone)
             {
                 ioFilterGroupAdd(
                     ioReadFilterGroup(storageReadIo(read)),
-                    cipherBlockNewP(
-                        cipherModeDecrypt, cipherTypeAes256Cbc, BUFSTR(manifestCipherSubPass(manifest)), .raw = true));
+                    cipherBlockNewP(cipherModeDecrypt, cipherType, BUFSTR(manifestCipherSubPass(manifest)), .raw = true));
             }
 
             ioReadOpen(storageReadIo(read));
@@ -437,12 +438,14 @@ cmdManifestRender(void)
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        // Load backup.info and cipher
+        // Get the repo storage in case it is remote and encryption settings need to be pulled down
+        storageRepo();
+
+        // Load backup.info and cipher. The manifest is encrypted with the same cipher type as backup.info.
+        const CipherType cipherType = cfgOptionStrId(cfgOptRepoCipherType);
         const InfoBackup *const infoBackup = infoBackupLoadFile(
-            storageRepo(), INFO_BACKUP_PATH_FILE_STR, cfgOptionStrId(cfgOptRepoCipherType),
-            cfgOptionStrNull(cfgOptRepoCipherPass));
+            storageRepo(), INFO_BACKUP_PATH_FILE_STR, cipherType, cfgOptionStrNull(cfgOptRepoCipherPass));
         const String *const cipherPass = infoPgCipherPass(infoBackupPg(infoBackup));
-        const CipherType cipherType = cipherPass == NULL ? cipherTypeNone : cipherTypeAes256Cbc;
 
         // Load manifest
         const Manifest *const manifest = manifestLoadFile(
