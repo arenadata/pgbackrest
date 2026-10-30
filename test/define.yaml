@@ -384,6 +384,19 @@ unit:
           - common/crypto/common
 
       # ----------------------------------------------------------------------------------------------------------------------------
+      - name: cryptoGostprov
+        total: 2
+        feature: STORAGE
+        harness:
+          name: storage
+          shim:
+            storage/posix/storage: ~
+
+        coverage:
+          - common/crypto/cipherBlock
+          - common/crypto/common
+
+      # ----------------------------------------------------------------------------------------------------------------------------
       - name: io-tls
         total: 6
         feature: SOCKET
