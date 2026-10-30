@@ -503,12 +503,12 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     if (OPENSSL_version_major() < 3 && cipherType == cipherTypeKuznyechikCbc)
     {
         actualCipherType = cipherTypeGrasshopperCbc;
-        LOG_WARN_FMT("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from '%s' to '%s'", cipherConvertFromIdToStr(cipherType), cipherConvertFromIdToStr(actualCipherType));
+        LOG_WARN_FMT("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from '%s' to '%s'", strZ(cipherConvertFromIdToStr(cipherType)), strZ(cipherConvertFromIdToStr(actualCipherType)));
     }
     else if (OPENSSL_version_major() >= 3 && cipherType == cipherTypeGrasshopperCbc)
     {
         actualCipherType = cipherTypeKuznyechikCbc;
-        LOG_WARN_FMT("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from '%s' to '%s'", cipherConvertFromIdToStr(cipherType), cipherConvertFromIdToStr(actualCipherType));
+        LOG_WARN_FMT("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from '%s' to '%s'", strZ(cipherConvertFromIdToStr(cipherType)), strZ(cipherConvertFromIdToStr(actualCipherType)));
     }
 
     // Lookup cipher by name. This means the ciphers passed in must exactly match a name expected by OpenSSL. This is a good thing
