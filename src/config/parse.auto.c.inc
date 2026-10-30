@@ -88,6 +88,7 @@ static const StringPub parseRuleValueStr[] =
     PARSE_RULE_STRPUB("fingerprint"),                                                                                     // val/str
     PARSE_RULE_STRPUB("full"),                                                                                            // val/str
     PARSE_RULE_STRPUB("gcs"),                                                                                             // val/str
+    PARSE_RULE_STRPUB("grasshopper-cbc"),                                                                                 // val/str
     PARSE_RULE_STRPUB("gz"),                                                                                              // val/str
     PARSE_RULE_STRPUB("host"),                                                                                            // val/str
     PARSE_RULE_STRPUB("immediate"),                                                                                       // val/str
@@ -222,6 +223,7 @@ typedef enum
     parseRuleValStrQT_fingerprint_QT,                                                                                // val/str/enum
     parseRuleValStrQT_full_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_gcs_QT,                                                                                        // val/str/enum
+    parseRuleValStrQT_grasshopper_DS_cbc_QT,                                                                         // val/str/enum
     parseRuleValStrQT_gz_QT,                                                                                         // val/str/enum
     parseRuleValStrQT_host_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_immediate_QT,                                                                                  // val/str/enum
@@ -308,6 +310,7 @@ static const StringId parseRuleValueStrId[] =
     STRID5("fingerprint", 0x51c9942453b9260),                                                                           // val/strid
     STRID5("full", 0x632a60),                                                                                           // val/strid
     STRID5("gcs", 0x4c670),                                                                                             // val/strid
+    STRID5("grasshopper-cbc", 0xdc8b083d13986474),                                                                      // val/strid
     STRID5("gz", 0x3470),                                                                                               // val/strid
     STRID5("host", 0xa4de80),                                                                                           // val/strid
     STRID5("immediate", 0x5a05242b5a90),                                                                                // val/strid
@@ -381,6 +384,7 @@ static const uint8_t parseRuleValueStrIdStrMap[] =
     parseRuleValStrQT_fingerprint_QT,                                                                            // val/strid/strmap
     parseRuleValStrQT_full_QT,                                                                                   // val/strid/strmap
     parseRuleValStrQT_gcs_QT,                                                                                    // val/strid/strmap
+    parseRuleValStrQT_grasshopper_DS_cbc_QT,                                                                     // val/strid/strmap
     parseRuleValStrQT_gz_QT,                                                                                     // val/strid/strmap
     parseRuleValStrQT_host_QT,                                                                                   // val/strid/strmap
     parseRuleValStrQT_immediate_QT,                                                                              // val/strid/strmap
@@ -454,6 +458,7 @@ typedef enum
     parseRuleValStrIdFingerprint,                                                                                  // val/strid/enum
     parseRuleValStrIdFull,                                                                                         // val/strid/enum
     parseRuleValStrIdGcs,                                                                                          // val/strid/enum
+    parseRuleValStrIdGrasshopperCbc,                                                                               // val/strid/enum
     parseRuleValStrIdGz,                                                                                           // val/strid/enum
     parseRuleValStrIdHost,                                                                                         // val/strid/enum
     parseRuleValStrIdImmediate,                                                                                    // val/strid/enum
@@ -6036,6 +6041,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                     PARSE_RULE_VAL_STRID(Aes128Cbc),                                                         // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(Aes192Cbc),                                                         // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(KuznyechikCbc),                                                     // opt/repo-cipher-pass
+                    PARSE_RULE_VAL_STRID(GrasshopperCbc),                                                    // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(MagmaCbc),                                                          // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(Aria128Cbc),                                                        // opt/repo-cipher-pass
                     PARSE_RULE_VAL_STRID(Aria192Cbc),                                                        // opt/repo-cipher-pass
@@ -6124,6 +6130,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                     PARSE_RULE_VAL_STRID(Aes128Cbc),                                                         // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(Aes192Cbc),                                                         // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(KuznyechikCbc),                                                     // opt/repo-cipher-type
+                    PARSE_RULE_VAL_STRID(GrasshopperCbc),                                                    // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(MagmaCbc),                                                          // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(Aria128Cbc),                                                        // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(Aria192Cbc),                                                        // opt/repo-cipher-type

@@ -260,6 +260,8 @@ Option value constants
 #define CFGOPTVAL_REPO_CIPHER_TYPE_ARIA_192_CBC_Z                   "aria-192-cbc"
 #define CFGOPTVAL_REPO_CIPHER_TYPE_ARIA_256_CBC                     STRID5("aria-256-cbc", 0x1887bf779b0a6410)
 #define CFGOPTVAL_REPO_CIPHER_TYPE_ARIA_256_CBC_Z                   "aria-256-cbc"
+#define CFGOPTVAL_REPO_CIPHER_TYPE_GRASSHOPPER_CBC                  STRID5("grasshopper-cbc", 0xdc8b083d13986474)
+#define CFGOPTVAL_REPO_CIPHER_TYPE_GRASSHOPPER_CBC_Z                "grasshopper-cbc"
 #define CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC                   STRID5("kuznyechik-cbc", 0x1ed6940cb976aab4)
 #define CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC_Z                 "kuznyechik-cbc"
 #define CFGOPTVAL_REPO_CIPHER_TYPE_MAGMA_CBC                        STRID5("magma-cbc", 0x310f6169c2d0)

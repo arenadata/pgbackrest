@@ -29,6 +29,7 @@ typedef enum
     cipherTypeAria256Cbc = STRID5("aria-256-cbc", 0x1887bf779b0a6410),
     cipherTypeSM4Cbc = STRID6("sm4-cbc", 0x30836e03531),
     cipherTypeKuznyechikCbc = STRID5("kuznyechik-cbc", 0x1ed6940cb976aab4),
+    cipherTypeGrasshopperCbc = STRID5("grasshopper-cbc", 0xdc8b083d13986474),
     cipherTypeMagmaCbc = STRID5("magma-cbc", 0x310f6169c2d0),
 } CipherType;
 

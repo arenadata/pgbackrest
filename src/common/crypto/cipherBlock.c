@@ -73,15 +73,16 @@ static const struct CipherTypeLocal
     const char *name;                                               // OpenSSL cipher name
 } cipherTypeLocal[] =
 {
-    {.type = cipherTypeAes128Cbc,     .name = "aes-128-cbc"},
-    {.type = cipherTypeAes192Cbc,     .name = "aes-192-cbc"},
-    {.type = cipherTypeAes256Cbc,     .name = "aes-256-cbc"},
-    {.type = cipherTypeKuznyechikCbc, .name = "kuznyechik-cbc"},
-    {.type = cipherTypeMagmaCbc,      .name = "magma-cbc"},
-    {.type = cipherTypeAria128Cbc,    .name = "aria-128-cbc"},
-    {.type = cipherTypeAria192Cbc,    .name = "aria-192-cbc"},
-    {.type = cipherTypeAria256Cbc,    .name = "aria-256-cbc"},
-    {.type = cipherTypeSM4Cbc,        .name = "sm4-cbc"},
+    {.type = cipherTypeAes128Cbc,      .name = "aes-128-cbc"},
+    {.type = cipherTypeAes192Cbc,      .name = "aes-192-cbc"},
+    {.type = cipherTypeAes256Cbc,      .name = "aes-256-cbc"},
+    {.type = cipherTypeKuznyechikCbc,  .name = "kuznyechik-cbc"},
+    {.type = cipherTypeGrasshopperCbc, .name = "grasshopper-cbc"},
+    {.type = cipherTypeMagmaCbc,       .name = "magma-cbc"},
+    {.type = cipherTypeAria128Cbc,     .name = "aria-128-cbc"},
+    {.type = cipherTypeAria192Cbc,     .name = "aria-192-cbc"},
+    {.type = cipherTypeAria256Cbc,     .name = "aria-256-cbc"},
+    {.type = cipherTypeSM4Cbc,         .name = "sm4-cbc"},
 };
 
 /***********************************************************************************************************************************
@@ -497,23 +498,36 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     if (!digest)
         THROW_FMT(AssertError, "unable to load digest '%s'", strZ(param.digest));
 
+    CipherType actualCipherType = cipherType;
+
+    if (OPENSSL_version_major() < 3 && cipherType == cipherTypeKuznyechikCbc)
+    {
+        actualCipherType = cipherTypeGrasshopperCbc;
+        LOG_WARN_FMT("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from '%s' to '%s'", cipherConvertFromIdToStr(cipherType), cipherConvertFromIdToStr(actualCipherType));
+    }
+    else if (OPENSSL_version_major() >= 3 && cipherType == cipherTypeGrasshopperCbc)
+    {
+        actualCipherType = cipherTypeKuznyechikCbc;
+        LOG_WARN_FMT("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from '%s' to '%s'", cipherConvertFromIdToStr(cipherType), cipherConvertFromIdToStr(actualCipherType));
+    }
+
     // Lookup cipher by name. This means the ciphers passed in must exactly match a name expected by OpenSSL. This is a good thing
     // since the name required by the openssl command-line tool will match what is used by pgBackRest.
-    String *const cipherTypeStr = cipherConvertFromIdToStr(cipherType);
+    String *const cipherTypeStr = cipherConvertFromIdToStr(actualCipherType);
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
     // Fetch the cipher from a provider. Ciphers from legacy engines (e.g. GOST) cannot be fetched, so fall back to looking up the
     // name. Only a fetched cipher is owned and freed.
     EVP_CIPHER *cipherFetch = EVP_CIPHER_fetch(NULL, strZ(cipherTypeStr), NULL);
     ERR_clear_error();
 
-    const EVP_CIPHER *cipher = cipherFetch != NULL || !cipherIsExternal(cipherType) ? cipherFetch : EVP_get_cipherbyname(strZ(cipherTypeStr));
+    const EVP_CIPHER *cipher = cipherFetch != NULL || !cipherIsExternal(actualCipherType) ? cipherFetch : EVP_get_cipherbyname(strZ(cipherTypeStr));
 #else
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
 #endif
 
     if (!cipher)
     {
-        if (cipherIsExternal(cipherType))
+        if (cipherIsExternal(actualCipherType))
             THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
         else
             THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr));
@@ -549,7 +563,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         PackWrite *const packWrite = pckWriteNewP();
 
         pckWriteU64P(packWrite, mode);
-        pckWriteU64P(packWrite, cipherType);
+        pckWriteU64P(packWrite, actualCipherType == cipherTypeGrasshopperCbc ? cipherTypeKuznyechikCbc : actualCipherType);
         pckWriteBinP(packWrite, pass);
         pckWriteStrP(packWrite, param.digest);
         pckWriteBoolP(packWrite, param.raw);
