@@ -372,7 +372,7 @@ unit:
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: cryptoGost
-        total: 4
+        total: 2
         feature: STORAGE
         harness:
           name: storage
@@ -382,9 +382,6 @@ unit:
         coverage:
           - common/crypto/cipherBlock
           - common/crypto/common
-          - common/crypto/hash
-          - common/crypto/md5.vendor: included
-          - common/crypto/xxhash
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: io-tls

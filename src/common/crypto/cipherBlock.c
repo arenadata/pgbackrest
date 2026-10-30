@@ -506,7 +506,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     EVP_CIPHER *cipherFetch = EVP_CIPHER_fetch(NULL, strZ(cipherTypeStr), NULL);
     ERR_clear_error();
 
-    const EVP_CIPHER *cipher = cipherFetch != NULL ? cipherFetch : EVP_get_cipherbyname(strZ(cipherTypeStr));
+    const EVP_CIPHER *cipher = cipherFetch != NULL || !cipherIsExternal(cipherType) ? cipherFetch : EVP_get_cipherbyname(strZ(cipherTypeStr));
 #else
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
 #endif

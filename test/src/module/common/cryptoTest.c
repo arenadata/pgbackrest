@@ -79,6 +79,7 @@ testRun(void)
         TEST_ERROR(
             cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, testPass, .digest = STRDEF(BOGUS_STR)), AssertError,
             "unable to load digest 'BOGUS'");
+
         TEST_ERROR(
             cipherBlockNewP(cipherModeEncrypt, cipherTypeKuznyechikCbc, BUFSTRZ(TEST_PASS)), AssertError, "unable to load cipher 'kuznyechik-cbc'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf");
         TEST_ERROR(
