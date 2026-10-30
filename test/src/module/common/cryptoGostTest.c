@@ -101,7 +101,7 @@ testRun(void)
         // Initialization of object with old kuznechik name
         // -------------------------------------------------------------------------------------------------------------------------
         cipherFilter = cipherBlockNewP(cipherModeEncrypt, cipherTypeGrasshopperCbc, testPass);
-        TEST_RESULT_WARN("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
+        TEST_RESULT_LOG("P00   WARN: GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
         cipherBlock = (CipherBlock *)ioFilterDriver(cipherFilter);
         TEST_RESULT_INT(cipherBlock->mode, cipherModeEncrypt, "mode is valid");
         TEST_RESULT_UINT(bufSize(cipherBlock->pass), strlen(TEST_PASS), "passphrase size is valid");
