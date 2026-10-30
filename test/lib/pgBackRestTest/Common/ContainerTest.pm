@@ -349,8 +349,6 @@ sub containerBuild
     my $strTempPath = $oStorageDocker->pathGet('test/result/docker');
     $oStorageDocker->pathCreate($strTempPath, {strMode => '0770', bIgnoreExists => true, bCreateParent => true});
 
-    my $strScriptPath = $oStorageDocker->pathGet('.');
-
     # Load container definitions from yaml
     require YAML::XS;
     YAML::XS->import(qw(Load));
@@ -463,9 +461,6 @@ sub containerBuild
         }
 
         #---------------------------------------------------------------------------------------------------------------------------
-        $strScript .= sectionHeader() .
-            "# Download, build and install GOST ciphers\n";
-
         my $strGostPath = '/usr/local/lib/gost';
         my $strGostBranch = 'v3.0.3';
         my $strGostTarget = 'gost_engine gost_prov';
