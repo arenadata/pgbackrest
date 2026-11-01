@@ -503,14 +503,14 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
     if (cipherType == cipherTypeGrasshopperCbc)
     {
-        LOG_WARN("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from 'kuznyechik-cbc' to 'grasshopper-cbc'");
+        LOG_WARN("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
 
         actualCipherType = cipherTypeKuznyechikCbc;
     }
 #else
     if (cipherType == cipherTypeKuznyechikCbc)
     {
-        LOG_WARN("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
+        LOG_WARN("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from 'kuznyechik-cbc' to 'grasshopper-cbc'");
 
         actualCipherType = cipherTypeGrasshopperCbc;
     }
