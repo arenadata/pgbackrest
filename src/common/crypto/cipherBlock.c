@@ -499,7 +499,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         THROW_FMT(AssertError, "unable to load digest '%s'", strZ(param.digest));
 
     CipherType actualCipherType = cipherType;
-        
+
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
     if (cipherType == cipherTypeGrasshopperCbc)
     {
