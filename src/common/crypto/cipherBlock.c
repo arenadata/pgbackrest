@@ -499,17 +499,22 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         THROW_FMT(AssertError, "unable to load digest '%s'", strZ(param.digest));
 
     CipherType actualCipherType = cipherType;
+        
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    if (cipherType == cipherTypeGrasshopperCbc)
+    {
+        LOG_WARN("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from 'kuznyechik-cbc' to 'grasshopper-cbc'");
 
-    if (OPENSSL_version_major() < 3 && cipherType == cipherTypeKuznyechikCbc)
-    {
-        actualCipherType = cipherTypeGrasshopperCbc;
-        LOG_WARN_FMT("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from '%s' to '%s'", strZ(cipherConvertFromIdToStr(cipherType)), strZ(cipherConvertFromIdToStr(actualCipherType)));
-    }
-    else if (OPENSSL_version_major() >= 3 && cipherType == cipherTypeGrasshopperCbc)
-    {
         actualCipherType = cipherTypeKuznyechikCbc;
-        LOG_WARN_FMT("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from '%s' to '%s'", strZ(cipherConvertFromIdToStr(cipherType)), strZ(cipherConvertFromIdToStr(actualCipherType)));
     }
+#else
+    if (cipherType == cipherTypeKuznyechikCbc)
+    {
+        LOG_WARN("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
+
+        actualCipherType = cipherTypeGrasshopperCbc;
+    }
+#endif
 
     // Lookup cipher by name. This means the ciphers passed in must exactly match a name expected by OpenSSL. This is a good thing
     // since the name required by the openssl command-line tool will match what is used by pgBackRest.
@@ -563,7 +568,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         PackWrite *const packWrite = pckWriteNewP();
 
         pckWriteU64P(packWrite, mode);
-        pckWriteU64P(packWrite, actualCipherType == cipherTypeGrasshopperCbc ? cipherTypeKuznyechikCbc : actualCipherType);
+        pckWriteU64P(packWrite, actualCipherType);
         pckWriteBinP(packWrite, pass);
         pckWriteStrP(packWrite, param.digest);
         pckWriteBoolP(packWrite, param.raw);
