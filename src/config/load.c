@@ -392,20 +392,31 @@ cfgLoadUpdateOption(void)
     if (cfgOptionValid(cfgOptRepoCipherType))
     {
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-        if ((CipherType)cfgOptionStrId(cfgOptRepoCipherType) == cipherTypeGrasshopperCbc)
-        {
-            LOG_WARN("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
-
-            cfgOptionSet(cfgOptRepoCipherType, cfgSourceDefault, VARUINT64(cipherTypeKuznyechikCbc));
-        }
+        const CipherType cipherTypeFrom = cipherTypeGrasshopperCbc;
+        const CipherType cipherTypeTo = cipherTypeKuznyechikCbc;
+        const char *const cipherNameFrom = "grasshopper-cbc";
+        const char *const cipherNameTo = "kuznyechik-cbc";
 #else
-        if ((CipherType)cfgOptionStrId(cfgOptRepoCipherType) == cipherTypeKuznyechikCbc)
-        {
-            LOG_WARN("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from 'kuznyechik-cbc' to 'grasshopper-cbc'");
-
-            cfgOptionSet(cfgOptRepoCipherType, cfgSourceDefault, VARUINT64(cipherTypeGrasshopperCbc));
-        }
+        const CipherType cipherTypeFrom = cipherTypeKuznyechikCbc;
+        const CipherType cipherTypeTo = cipherTypeGrasshopperCbc;
+        const char *const cipherNameFrom = "kuznyechik-cbc";
+        const char *const cipherNameTo = "grasshopper-cbc";
 #endif
+
+        for (unsigned int repoIdx = 0; repoIdx < cfgOptionGroupIdxTotal(cfgOptGrpRepo); repoIdx++)
+        {
+            if (cfgOptionIdxStrId(cfgOptRepoCipherType, repoIdx) == cipherTypeFrom)
+            {
+                LOG_WARN_FMT(
+                    "option '%s' is '%s', which this version of OpenSSL names '%s', so '%s' will be used",
+                    cfgOptionIdxName(cfgOptRepoCipherType, repoIdx), cipherNameFrom, cipherNameTo, cipherNameTo);
+
+                // Keep the source so the option is still passed to local and remote processes
+                cfgOptionIdxSet(
+                    cfgOptRepoCipherType, repoIdx, cfgOptionIdxSource(cfgOptRepoCipherType, repoIdx),
+                    VARUINT64(cipherTypeTo));
+            }
+        }
     }
 
     // Error if repo-sftp--host-key-check-type is explicitly set to anything other than fingerprint and repo-sftp-host-fingerprint
