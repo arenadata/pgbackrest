@@ -585,6 +585,58 @@ testRun(void)
             "P00   WARN: 'compress' and 'compress-type' options should not both be set\n"
             "            HINT: 'compress-type' is preferred and 'compress' is deprecated.");
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("no warning when loading kuznechik on OPENSSL > 3.0.0");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptStanza, "db");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "kuznechik-cbc");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherPass, "123");
+        HRN_CFG_LOAD(cfgCmdArchivePush, argList);
+
+        TEST_RESULT_STR_Z(cfgOptionStr(cfgOptionCipherPass), "123", "check cipher pass");
+        TEST_RESULT_UINT(cfgOptionStr(cfgOptionCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "check cipher type");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("warning when loading grasshopper on OPENSSL > 3.0.0");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptStanza, "db");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "kuznechik-cbc");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherPass, "123");
+        HRN_CFG_LOAD(cfgCmdArchivePush, argList);
+        TEST_RESULT_LOG("P00   WARN: GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
+
+        TEST_RESULT_STR_Z(cfgOptionStr(cfgOptionCipherPass), "123", "check cipher pass");
+        TEST_RESULT_UINT(cfgOptionStr(cfgOptionCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "check cipher type");
+#else
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("no warning when loading grasshopper on OPENSSL < 3.0.0");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptStanza, "db");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "grasshopper-cbc");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherPass, "123");
+        HRN_CFG_LOAD(cfgCmdArchivePush, argList);
+
+        TEST_RESULT_STR_Z(cfgOptionStr(cfgOptionCipherPass), "123", "check cipher pass");
+        TEST_RESULT_UINT(cfgOptionStr(cfgOptionCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_GRASSHOPPER_CBC, "check cipher type");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("warning when loading kuznechik on OPENSSL < 3.0.0");
+
+        argList = strLstNew();
+        hrnCfgArgRawZ(argList, cfgOptStanza, "db");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "kuznechik-cbc");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherPass, "123");
+        HRN_CFG_LOAD(cfgCmdArchivePush, argList);
+        TEST_RESULT_LOG("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from 'kuznyechik-cbc' to 'grasshopper-cbc'");
+
+        TEST_RESULT_STR_Z(cfgOptionStr(cfgOptionCipherPass), "123", "check cipher pass");
+        TEST_RESULT_UINT(cfgOptionStr(cfgOptionCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_GRASSHOPPER_CBC, "check cipher type");
+
+#endif
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("S3 default chunk size");
 

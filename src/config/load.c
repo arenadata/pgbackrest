@@ -3,6 +3,7 @@ Configuration Load
 ***********************************************************************************************************************************/
 #include "build.auto.h"
 
+#include <openssl/opensslv.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -386,6 +387,25 @@ cfgLoadUpdateOption(void)
                     cfgOptionInt(cfgOptCompressLevel), strZ(strIdToStr(cfgOptionStrId(cfgOptCompressType))));
             }
         }
+    }
+
+    if (cfgOptionValid(cfgOptRepoCipherType))
+    {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        if ((CipherType)cfgOptionStrId(cfgOptRepoCipherType) == cipherTypeGrasshopperCbc)
+        {
+            LOG_WARN("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
+
+            cfgOptionSet(cfgOptRepoCipherType, cfgSourceDefault, VARUINT64(cipherTypeKuznyechikCbc));
+        }
+#else
+        if ((CipherType)cfgOptionStrId(cfgOptRepoCipherType) == cipherTypeKuznyechikCbc)
+        {
+            LOG_WARN("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from 'kuznyechik-cbc' to 'grasshopper-cbc'");
+
+            cfgOptionSet(cfgOptRepoCipherType, cfgSourceDefault, VARUINT64(cipherTypeGrasshopperCbc));
+        }
+#endif
     }
 
     // Error if repo-sftp--host-key-check-type is explicitly set to anything other than fingerprint and repo-sftp-host-fingerprint

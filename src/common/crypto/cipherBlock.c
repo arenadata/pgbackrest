@@ -500,41 +500,23 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     if (!digest)
         THROW_FMT(AssertError, "unable to load digest '%s'", strZ(param.digest));
 
-    CipherType actualCipherType = cipherType;
-
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-    if (cipherType == cipherTypeGrasshopperCbc)
-    {
-        LOG_WARN("GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
-
-        actualCipherType = cipherTypeKuznyechikCbc;
-    }
-#else
-    if (cipherType == cipherTypeKuznyechikCbc)
-    {
-        LOG_WARN("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from 'kuznyechik-cbc' to 'grasshopper-cbc'");
-
-        actualCipherType = cipherTypeGrasshopperCbc;
-    }
-#endif
-
     // Lookup cipher by name. This means the ciphers passed in must exactly match a name expected by OpenSSL. This is a good thing
     // since the name required by the openssl command-line tool will match what is used by pgBackRest.
-    String *const cipherTypeStr = cipherConvertFromIdToStr(actualCipherType);
+    String *const cipherTypeStr = cipherConvertFromIdToStr(cipherType);
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
     // Fetch the cipher from a provider. Ciphers from legacy engines (e.g. GOST) cannot be fetched, so fall back to looking up the
     // name. Only a fetched cipher is owned and freed.
     EVP_CIPHER *cipherFetch = EVP_CIPHER_fetch(NULL, strZ(cipherTypeStr), NULL);
     ERR_clear_error();
 
-    const EVP_CIPHER *cipher = cipherFetch != NULL || !cipherIsExternal(actualCipherType) ? cipherFetch : EVP_get_cipherbyname(strZ(cipherTypeStr));
+    const EVP_CIPHER *cipher = cipherFetch != NULL || !cipherIsExternal(cipherType) ? cipherFetch : EVP_get_cipherbyname(strZ(cipherTypeStr));
 #else
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
 #endif
 
     if (!cipher)
     {
-        if (cipherIsExternal(actualCipherType))
+        if (cipherIsExternal(cipherType))
             THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
         else
             THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr)); // {uncovered - this means that standart
@@ -572,7 +554,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         PackWrite *const packWrite = pckWriteNewP();
 
         pckWriteU64P(packWrite, mode);
-        pckWriteU64P(packWrite, actualCipherType);
+        pckWriteU64P(packWrite, cipherType);
         pckWriteBinP(packWrite, pass);
         pckWriteStrP(packWrite, param.digest);
         pckWriteBoolP(packWrite, param.raw);
