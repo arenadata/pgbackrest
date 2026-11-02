@@ -564,7 +564,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptCompressType, "none");
         hrnCfgArgRawZ(argList, cfgOptCompressLevel, "3");
 
-        HRN_CFG_LOAD(cfgCmdBackup, argList);
+        HRN_CFG_LOAD(cfgCmdArchivePush, argList);
         TEST_RESULT_UINT(cfgOptionStrId(cfgOptCompressType), CFGOPTVAL_COMPRESS_TYPE_NONE, "compress-type=none");
         TEST_RESULT_INT(cfgOptionInt(cfgOptCompressLevel), 3, "compress-level=3");
 
@@ -575,7 +575,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptStanza, "db");
         hrnCfgArgRawNegate(argList, cfgOptCompress);
         hrnCfgArgRawZ(argList, cfgOptCompressType, "gz");
-        HRN_CFG_LOAD(cfgCmdBackup, argList);
+        HRN_CFG_LOAD(cfgCmdArchivePush, argList);
 
         TEST_RESULT_UINT(cfgOptionStrId(cfgOptCompressType), CFGOPTVAL_COMPRESS_TYPE_GZ, "compress-type=gz");
         TEST_RESULT_INT(cfgOptionInt(cfgOptCompressLevel), 6, "compress-level=6");
