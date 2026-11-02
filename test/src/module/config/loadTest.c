@@ -595,7 +595,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptRepoCipherPass, "123");
         HRN_CFG_LOAD(cfgCmdArchivePush, argList);
 
-        TEST_RESULT_UINT(cfgOptionIdxStrId(cfgOptRepoCipherType, 0), FGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "kuznyechik-cbc");
+        TEST_RESULT_UINT(cfgOptionIdxStrId(cfgOptRepoCipherType, 0), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "kuznyechik-cbc");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("grasshopper-cbc switches to kuznyechik-cbc on OpenSSL >= 3");
