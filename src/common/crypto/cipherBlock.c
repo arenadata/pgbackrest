@@ -86,16 +86,6 @@ static const struct CipherTypeLocal
 };
 
 /***********************************************************************************************************************************
-List of external cipher types that are not included in default openssl package
-***********************************************************************************************************************************/
-static const CipherType CipherTypeExternal[] =
-{
-    cipherTypeKuznyechikCbc,
-    cipherTypeGrasshopperCbc,
-    cipherTypeMagmaCbc
-};
-
-/***********************************************************************************************************************************
 Covert cipherId to cipherName as some of them are too long to be encoded
 ***********************************************************************************************************************************/
 static String *
@@ -119,27 +109,6 @@ cipherConvertFromIdToStr(const CipherType cipherType)
     String *result = strNewZ(cipherTypeLocal[typeIdx].name);
 
     FUNCTION_TEST_RETURN(STRING, result);
-}
-
-/***********************************************************************************************************************************
-Check if selected cipher is external
-***********************************************************************************************************************************/
-static bool
-cipherIsExternal(const CipherType cipherType)
-{
-    FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(STRING_ID, cipherType);
-    FUNCTION_TEST_END();
-
-    unsigned int typeIdx = 0;
-
-    for (; typeIdx < LENGTH_OF(CipherTypeExternal); typeIdx++)
-    {
-        if (CipherTypeExternal[typeIdx] == cipherType)
-            break;
-    }
-
-    FUNCTION_TEST_RETURN(BOOL, typeIdx != LENGTH_OF(CipherTypeExternal));
 }
 
 /***********************************************************************************************************************************
@@ -508,21 +477,19 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     EVP_CIPHER *cipherFetch = EVP_CIPHER_fetch(NULL, strZ(cipherTypeStr), NULL);
     ERR_clear_error();
 
-    const EVP_CIPHER *cipher = cipherFetch != NULL || !cipherIsExternal(cipherType) ? cipherFetch : EVP_get_cipherbyname(strZ(cipherTypeStr));
+    const EVP_CIPHER *cipher = cipherFetch != NULL ? cipherFetch : EVP_get_cipherbyname(strZ(cipherTypeStr));
 #else
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(strZ(cipherTypeStr));
 #endif
 
     if (!cipher)
     {
-        if (cipherIsExternal(cipherType))
-        {
-            THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
-        }
-        else // {uncoverable_branch - this means that standart cipher didn't load, which shouldn't happen normaly}
-        {
-            THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr));
-        }
+        THROW_FMT(
+            AssertError,
+            "unable to load cipher '%s'\n"
+            "HINT: some ciphers (e.g. GOST) are not included with OpenSSL, check that they are installed and configured in"
+            " openssl.cnf.",
+            strZ(cipherTypeStr));
     }
 
     strFree(cipherTypeStr);
