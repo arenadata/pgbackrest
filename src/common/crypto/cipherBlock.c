@@ -107,8 +107,8 @@ cipherConvertFromIdToStr(const CipherType cipherType)
 
     unsigned int typeIdx = 0;
 
-    for (; typeIdx < LENGTH_OF(cipherTypeLocal); typeIdx++) // {uncovered - this means that standart cipher didn't load, which
-                                                            // shouldn't happen normaly}
+    for (; typeIdx < LENGTH_OF(cipherTypeLocal); typeIdx++) // {uncovered_branch - this means that standart cipher didn't load,
+                                                            // which shouldn't happen normaly}
     {
         if (cipherTypeLocal[typeIdx].type == cipherType)
             break;
