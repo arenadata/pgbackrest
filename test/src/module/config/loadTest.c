@@ -596,7 +596,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdBackup, argList);
 
         TEST_RESULT_STR_Z(cfgOptionStr(cfgOptRepoCipherPass), "123", "check cipher pass");
-        TEST_RESULT_UINT(cfgOptionStr(cfgOptRepoCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "check cipher type");
+        TEST_RESULT_UINT(cfgOptionStrId(cfgOptRepoCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "check cipher type");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("warning when loading grasshopper on OPENSSL > 3.0.0");
@@ -609,7 +609,7 @@ testRun(void)
         TEST_RESULT_LOG("P00   WARN: GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
 
         TEST_RESULT_STR_Z(cfgOptionStr(cfgOptRepoCipherPass), "123", "check cipher pass");
-        TEST_RESULT_UINT(cfgOptionStr(cfgOptRepoCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "check cipher type");
+        TEST_RESULT_UINT(cfgOptionStrId(cfgOptRepoCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "check cipher type");
 #else
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("no warning when loading grasshopper on OPENSSL < 3.0.0");
@@ -621,7 +621,7 @@ testRun(void)
         HRN_CFG_LOAD(cfgCmdBackup, argList);
 
         TEST_RESULT_STR_Z(cfgOptionStr(cfgOptRepoCipherPass), "123", "check cipher pass");
-        TEST_RESULT_UINT(cfgOptionStr(cfgOptRepoCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_GRASSHOPPER_CBC, "check cipher type");
+        TEST_RESULT_UINT(cfgOptionStrId(cfgOptRepoCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_GRASSHOPPER_CBC, "check cipher type");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("warning when loading kuznechik on OPENSSL < 3.0.0");
@@ -634,7 +634,7 @@ testRun(void)
         TEST_RESULT_LOG("GOST cipher kuznechik for openssl 1.1.1 or lower has a name 'grasshopper-cbc', switching from 'kuznyechik-cbc' to 'grasshopper-cbc'");
 
         TEST_RESULT_STR_Z(cfgOptionStr(cfgOptRepoCipherPass), "123", "check cipher pass");
-        TEST_RESULT_UINT(cfgOptionStr(cfgOptRepoCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_GRASSHOPPER_CBC, "check cipher type");
+        TEST_RESULT_UINT(cfgOptionStrId(cfgOptRepoCipherType), CFGOPTVAL_REPO_CIPHER_TYPE_GRASSHOPPER_CBC, "check cipher type");
 
 #endif
         // -------------------------------------------------------------------------------------------------------------------------
