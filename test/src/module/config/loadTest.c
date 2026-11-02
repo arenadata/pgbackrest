@@ -592,8 +592,9 @@ testRun(void)
         argList = strLstNew();
         hrnCfgArgRawZ(argList, cfgOptStanza, "db");
         hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "kuznyechik-cbc");
-        hrnCfgArgRawZ(argList, cfgOptRepoCipherPass, "123");
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, "123");
         HRN_CFG_LOAD(cfgCmdArchivePush, argList);
+        hrnCfgEnvRemoveRaw(cfgOptRepoCipherPass);
 
         TEST_RESULT_UINT(cfgOptionIdxStrId(cfgOptRepoCipherType, 0), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "kuznyechik-cbc");
 
@@ -603,8 +604,9 @@ testRun(void)
         argList = strLstNew();
         hrnCfgArgRawZ(argList, cfgOptStanza, "db");
         hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "grasshopper-cbc");
-        hrnCfgArgRawZ(argList, cfgOptRepoCipherPass, "123");
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, "123");
         HRN_CFG_LOAD(cfgCmdArchivePush, argList);
+        hrnCfgEnvRemoveRaw(cfgOptRepoCipherPass);
 
         TEST_RESULT_UINT(cfgOptionIdxStrId(cfgOptRepoCipherType, 0), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "kuznyechik-cbc");
         TEST_RESULT_LOG("P00   WARN: option 'repo1-cipher-type' is 'grasshopper-cbc', which this version of OpenSSL names 'kuznyechik-cbc', so 'kuznyechik-cbc' will be used");
@@ -615,8 +617,9 @@ testRun(void)
         argList = strLstNew();
         hrnCfgArgRawZ(argList, cfgOptStanza, "db");
         hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "grasshopper-cbc");
-        hrnCfgArgRawZ(argList, cfgOptRepoCipherPass, "123");
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, "123");
         HRN_CFG_LOAD(cfgCmdArchivePush, argList);
+        hrnCfgEnvRemoveRaw(cfgOptRepoCipherPass);
 
         TEST_RESULT_UINT(cfgOptionIdxStrId(cfgOptRepoCipherType, 0), CFGOPTVAL_REPO_CIPHER_TYPE_GRASSHOPPER_CBC, "grasshopper-cbc");
 
@@ -626,8 +629,9 @@ testRun(void)
         argList = strLstNew();
         hrnCfgArgRawZ(argList, cfgOptStanza, "db");
         hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "kuznyechik-cbc");
-        hrnCfgArgRawZ(argList, cfgOptRepoCipherPass, "123");
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, "123");
         HRN_CFG_LOAD(cfgCmdArchivePush, argList);
+        hrnCfgEnvRemoveRaw(cfgOptRepoCipherPass);
 
         TEST_RESULT_UINT(cfgOptionIdxStrId(cfgOptRepoCipherType, 0), CFGOPTVAL_REPO_CIPHER_TYPE_GRASSHOPPER_CBC, "grasshopper-cbc");
         TEST_RESULT_LOG("P00   WARN: option 'repo1-cipher-type' is 'kuznyechik-cbc', which this version of OpenSSL names 'grasshopper-cbc', so 'grasshopper-cbc' will be used");
