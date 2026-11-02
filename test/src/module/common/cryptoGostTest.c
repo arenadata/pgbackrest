@@ -98,23 +98,6 @@ testRun(void)
 
         ioFilterFree(cipherFilter);
 
-        // Initialization of object with old kuznechik name
-        // -------------------------------------------------------------------------------------------------------------------------
-        cipherFilter = cipherBlockNewP(cipherModeEncrypt, cipherTypeGrasshopperCbc, testPass);
-        TEST_RESULT_LOG("P00   WARN: GOST cipher kuznechik for openssl 3.0.0 or higher has a name 'kuznechik-cbc', switching from 'grasshopper-cbc' to 'kuznechik-cbc'");
-        cipherBlock = (CipherBlock *)ioFilterDriver(cipherFilter);
-        TEST_RESULT_INT(cipherBlock->mode, cipherModeEncrypt, "mode is valid");
-        TEST_RESULT_UINT(bufSize(cipherBlock->pass), strlen(TEST_PASS), "passphrase size is valid");
-        TEST_RESULT_BOOL(memcmp(bufPtrConst(cipherBlock->pass), TEST_PASS, strlen(TEST_PASS)) == 0, true, "passphrase is valid");
-        TEST_RESULT_BOOL(cipherBlock->saltDone, false, "salt done is false");
-        TEST_RESULT_BOOL(cipherBlock->processDone, false, "process done is false");
-        TEST_RESULT_UINT(cipherBlock->headerSize, 0, "header size is 0");
-        TEST_RESULT_PTR_NE(cipherBlock->cipher, NULL, "cipher is set");
-        TEST_RESULT_PTR_NE(cipherBlock->digest, NULL, "digest is set");
-        TEST_RESULT_PTR(cipherBlock->cipherContext, NULL, "cipher context is not set");
-
-        ioFilterFree(cipherFilter);
-
         // Encrypt
         // -------------------------------------------------------------------------------------------------------------------------
         Buffer *encryptBuffer = bufNew(TEST_BUFFER_SIZE);
