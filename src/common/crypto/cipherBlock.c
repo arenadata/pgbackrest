@@ -519,7 +519,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         {
             THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
         }
-        else // {uncovered_branch - this means that standart cipher didn't load, which shouldn't happen normaly}
+        else // {uncoverable_branch - this means that standart cipher didn't load, which shouldn't happen normaly}
         {
             THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr));
         }
