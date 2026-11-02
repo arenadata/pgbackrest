@@ -7,6 +7,7 @@ Info Handler
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/crypto/cipherBlock.h"
 #include "common/crypto/hash.h"
 #include "common/debug.h"
 #include "common/ini.h"
@@ -118,6 +119,9 @@ infoNew(const String *const cipherPass)
 #define INFO_KEY_CHECKSUM                                           "backrest-checksum"
 #define INFO_SECTION_CIPHER                                         "cipher"
 #define INFO_KEY_CIPHER_PASS                                        "cipher-pass"
+
+// Every info file begins with the backrest section followed by a backrest-* key, so the start of the content is known
+#define INFO_CIPHER_CHECK_PLAIN                                     "[" INFO_SECTION_BACKREST "]\nbackr"
 
 FN_EXTERN Info *
 infoNewLoad(IoRead *const read, InfoLoadNewCallback *const callbackFunction, void *const callbackData)
@@ -485,4 +489,62 @@ infoLoad(const String *const error, InfoLoadCallback *const callbackFunction, vo
     MEM_CONTEXT_TEMP_END();
 
     FUNCTION_LOG_RETURN_VOID();
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN void
+infoLoadErrorRethrow(
+    const Storage *const storage, const String *const fileName, const CipherType cipherType, const String *const cipherPass)
+{
+    FUNCTION_LOG_BEGIN(logLevelTrace);
+        FUNCTION_LOG_PARAM(STORAGE, storage);
+        FUNCTION_LOG_PARAM(STRING, fileName);
+        FUNCTION_LOG_PARAM(STRING_ID, cipherType);
+        FUNCTION_TEST_PARAM(STRING, cipherPass);                    // Use FUNCTION_TEST so passphrase is not logged
+    FUNCTION_LOG_END();
+
+    ASSERT(storage != NULL);
+    ASSERT(fileName != NULL);
+    ASSERT((cipherType == cipherTypeNone && cipherPass == NULL) || (cipherType != cipherTypeNone && cipherPass != NULL));
+
+    // Only an encrypted file that exists can be checked
+    if (cipherType != cipherTypeNone && errorType() != &FileMissingError)
+    {
+        // Preserve the error since checking the file throws and catches other errors
+        const ErrorType *const loadErrorType = errorType();
+        const String *const loadErrorMessage = strNewZ(errorMessage());
+        Buffer *const fileStart = bufNew(sizeof(INFO_CIPHER_CHECK_PLAIN) - 1);
+
+        // Decrypt only the start of the file. Damage elsewhere in the file does not change how the start decrypts, and reading
+        // stops before the end of the file so the padding is not checked.
+        TRY_BEGIN()
+        {
+            IoRead *const read = storageReadIo(storageNewReadP(storage, fileName));
+            cipherBlockFilterGroupAdd(ioReadFilterGroup(read), cipherType, cipherModeDecrypt, cipherPass);
+            ioReadOpen(read);
+            ioRead(read, fileStart);
+        }
+        CATCH_ANY()
+        {
+            // The start of the file cannot be decrypted at all (e.g. it is not encrypted or is too short) so keep the original
+            // error
+            THROWP(loadErrorType, strZ(loadErrorMessage));
+        }
+        TRY_END();
+
+        if (!bufEq(fileStart, BUFSTRDEF(INFO_CIPHER_CHECK_PLAIN)))
+        {
+            THROW_FMT(
+                CryptoError,
+                "unable to decrypt '%s' with the configured cipher type and passphrase\n"
+                "HINT: check repo-cipher-type and repo-cipher-pass.",
+                strZ(storagePathP(storage, fileName)));
+        }
+
+        THROWP_FMT(
+            loadErrorType, "%s\nHINT: '%s' decrypts with the configured cipher type and passphrase so it may be corrupt.",
+            strZ(loadErrorMessage), strZ(storagePathP(storage, fileName)));
+    }
+
+    RETHROW();
 }

@@ -319,7 +319,7 @@
             {
                "key" : {
                   "id" : "s3",
-                  "image" : "minio/minio:RELEASE.2024-07-15T19-02-30Z",
+                  "image" : "greengagedb/minio:RELEASE.2024-07-15T19-02-30Z",
                   "name" : "s3-server",
                   "option" : "-v {[host-repo-path]}/doc/resource/fake-cert/s3-server.crt:/root/.minio/certs/public.crt:ro -v {[host-repo-path]}/doc/resource/fake-cert/s3-server.key:/root/.minio/certs/private.key:ro -e MINIO_REGION=us-east-1 -e MINIO_DOMAIN=s3.us-east-1.amazonaws.com -e MINIO_BROWSER=off -e MINIO_ACCESS_KEY=accessKey1 -e MINIO_SECRET_KEY=verySecretKey1",
                   "os" : "debian",
@@ -6877,7 +6877,7 @@
             {
                "key" : {
                   "id" : "s3",
-                  "image" : "minio/minio:RELEASE.2024-07-15T19-02-30Z",
+                  "image" : "greengagedb/minio:RELEASE.2024-07-15T19-02-30Z",
                   "name" : "s3-server",
                   "option" : "-v {[host-repo-path]}/doc/resource/fake-cert/s3-server.crt:/root/.minio/certs/public.crt:ro -v {[host-repo-path]}/doc/resource/fake-cert/s3-server.key:/root/.minio/certs/private.key:ro -e MINIO_REGION=us-east-1 -e MINIO_DOMAIN=s3.us-east-1.amazonaws.com -e MINIO_BROWSER=off -e MINIO_ACCESS_KEY=accessKey1 -e MINIO_SECRET_KEY=verySecretKey1",
                   "os" : "rhel",

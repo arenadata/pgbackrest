@@ -68,6 +68,23 @@ testInfoSaveCallback(void *data, const String *sectionNext, InfoSave *infoSaveDa
 }
 
 /***********************************************************************************************************************************
+Call infoLoadErrorRethrow() from a CATCH block as the load callbacks do
+***********************************************************************************************************************************/
+static void
+testInfoLoadErrorRethrow(const ErrorType *const errorType, const Storage *const storage, const char *const fileName, const CipherType cipherType, const String *const cipherPass)
+{
+    TRY_BEGIN()
+    {
+        THROWP(errorType, "load error");
+    }
+    CATCH_ANY()
+    {
+        infoLoadErrorRethrow(storage, STR(fileName), cipherType, cipherPass);
+    }
+    TRY_END();
+}
+
+/***********************************************************************************************************************************
 Test Run
 ***********************************************************************************************************************************/
 static void
@@ -245,5 +262,37 @@ testRun(void)
         testInfoLoad = (TestInfoLoad){0};
 
         infoLoad(STRDEF("SHOULD BE NO ERROR"), testInfoLoadCallback, &testInfoLoad);
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("load error with cipher check");
+
+        const Storage *const storageTest = storagePosixNewP(STRDEF(TEST_PATH), .write = true);
+        Buffer *const encrypted = bufNew(0);
+        IoWrite *const write = ioBufferWriteNew(encrypted);
+
+        ioFilterGroupAdd(ioWriteFilterGroup(write), cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, BUFSTRDEF("pass")));
+        ioWriteOpen(write);
+        ioWrite(write, BUFSTRDEF("[backrest]\nbackrest-format=5\nbackrest-version=\"2.54.0\"\n"));
+        ioWriteClose(write);
+
+        storagePutP(storageNewWriteP(storageTest, STRDEF("encrypted")), encrypted);
+        storagePutP(storageNewWriteP(storageTest, STRDEF("plain")), BUFSTRDEF("[backrest]\nbackrest-format=5\n"));
+
+        TEST_ERROR(
+            testInfoLoadErrorRethrow(&FormatError, storageTest, "encrypted", cipherTypeNone, NULL), FormatError, "load error");
+        TEST_ERROR(
+            testInfoLoadErrorRethrow(&FileMissingError, storageTest, "missing", cipherTypeAes256Cbc, STRDEF("pass")),
+            FileMissingError, "load error");
+        TEST_ERROR(
+            testInfoLoadErrorRethrow(&CryptoError, storageTest, "plain", cipherTypeAes256Cbc, STRDEF("pass")), CryptoError,
+            "load error");
+        TEST_ERROR(
+            testInfoLoadErrorRethrow(&FormatError, storageTest, "encrypted", cipherTypeAes256Cbc, STRDEF("wrong")), CryptoError,
+            "unable to decrypt '" TEST_PATH "/encrypted' with the configured cipher type and passphrase\n"
+            "HINT: check repo-cipher-type and repo-cipher-pass.");
+        TEST_ERROR(
+            testInfoLoadErrorRethrow(&ChecksumError, storageTest, "encrypted", cipherTypeAes256Cbc, STRDEF("pass")), ChecksumError,
+            "load error\n"
+            "HINT: '" TEST_PATH "/encrypted' decrypts with the configured cipher type and passphrase so it may be corrupt.");
     }
 }

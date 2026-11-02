@@ -309,7 +309,7 @@ testRun(void)
         TEST_ERROR(
             restoreFile(
                 strNewFmt(STORAGE_REPO_BACKUP "/%s/%s.gz", strZ(repoFileReferenceFull), strZ(repoFile1)), repoIdx, compressTypeGz,
-                0, false, false, false, STRDEF("badpass"), NULL, fileList),
+                0, false, false, false, cipherTypeAes256Cbc, STRDEF("badpass"), NULL, fileList),
             ChecksumError,
             "error restoring 'normal': actual checksum 'd1cd8a7d11daa26814b93eb604e1d49ab4b43770' does not match expected checksum"
             " 'ffffffffffffffffffffffffffffffffffffffff'");
