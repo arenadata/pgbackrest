@@ -91,6 +91,7 @@ List of external cipher types that are not included in default openssl package
 static const CipherType CipherTypeExternal[] =
 {
     cipherTypeKuznyechikCbc,
+    cipherTypeGrasshopperCbc,
     cipherTypeMagmaCbc
 };
 
@@ -535,7 +536,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
         if (cipherIsExternal(actualCipherType))
             THROW_FMT(AssertError, "unable to load cipher '%s'. This is an external cipher, not included in default openssl packaging. Verify that you installed it and configured openssl.cnf", strZ(cipherTypeStr));
         else
-            THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr));
+            THROW_FMT(AssertError, "unable to load cipher '%s'", strZ(cipherTypeStr)); // {uncovered - this means that standart cipher didn't load, which shouldn't happen normaly}
     }
 
     strFree(cipherTypeStr);

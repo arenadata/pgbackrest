@@ -464,14 +464,12 @@ sub containerBuild
         my $strGostPath = '/usr/local/lib/gost';
         my $strGostBranch = 'v3.0.3';
         my $strGostTarget = 'gost_engine gost_prov';
-        my $bGostProvider = true;
 
         # Providers require OpenSSL >= 3
         if ($strOS eq VM_D11 || $strOS eq VM_RH8)
         {
             $strGostBranch = 'openssl_1_1_1';
             $strGostTarget = 'gost_engine';
-            $bGostProvider = false;
         }
 
         # The engine prints "GOST engine already loaded" to stdout when it is loaded twice in one process, which breaks programs that
@@ -497,25 +495,6 @@ sub containerBuild
                 "dynamic_path = ${strGostPath}/build/bin/gost.so\\n" .
                 "default_algorithms = ALL\\n" .
                 "' > /openssl-gost-engine.cnf";
-
-        # Once the configuration loads a provider, the default provider is loaded only if the configuration activates it too. The
-        # provider configuration is the provider-only configuration plus the default provider, which OpenSSL merges into the
-        # [providers] section above it.
-        if ($bGostProvider)
-        {
-            $strScript .= sectionHeader() .
-                "# Write GOST provider configurations\n" .
-                "    printf '" .
-                    "openssl_conf = init\\n" .
-                    "[init]\\n" .
-                    "providers = providers\\n" .
-                    "[providers]\\n" .
-                    "gostprov = gostprov\\n" .
-                    "[gostprov]\\n" .
-                    "module = ${strGostPath}/build/bin/gostprov.so\\n" .
-                    "activate = 1\\n" .
-                    "' > /openssl-gost-provider-only.cnf";
-        }
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)
