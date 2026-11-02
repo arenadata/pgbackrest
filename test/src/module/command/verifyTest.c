@@ -1203,6 +1203,59 @@ testRun(void)
             "            status: error\n"
             "              No usable backup.info file");
 
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("info files encrypted with a different passphrase");
+
+        argList = strLstDup(argListBase);
+        hrnCfgArgRawStrId(argList, cfgOptRepoCipherType, cipherTypeAes256Cbc);
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, "wrong-pass");
+        HRN_CFG_LOAD(cfgCmdVerify, argList);
+        hrnCfgEnvRemoveRaw(cfgOptRepoCipherPass);
+
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_BACKUP_PATH_FILE,
+            "[backup:current]\n"
+            TEST_BACKUP_DB1_CURRENT_FULL1
+            "\n"
+            "[db]\n"
+            TEST_BACKUP_DB1_94
+            "\n"
+            "[db:history]\n"
+            TEST_BACKUP_DB1_HISTORY,
+            .cipherType = cipherTypeAes256Cbc, .cipherPass = "pass", .comment = "backup.info encrypted with another passphrase");
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE, TEST_ARCHIVE_INFO_MULTI_HISTORY_BASE, .cipherType = cipherTypeAes256Cbc,
+            .cipherPass = "pass", .comment = "archive.info encrypted with another passphrase");
+        HRN_STORAGE_REMOVE(storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, .comment = "remove archive.info.copy");
+
+        // Redirect stdout to a file
+        stdoutSave = dup(STDOUT_FILENO);
+        stdoutFile = STRDEF(TEST_PATH "/stdout.info");
+
+        THROW_ON_SYS_ERROR(freopen(strZ(stdoutFile), "w", stdout) == NULL, FileWriteError, "unable to reopen stdout");
+
+        // Not in a test wrapper to avoid writing to stdout
+        cmdVerify();
+
+        // Restore normal stdout
+        dup2(stdoutSave, STDOUT_FILENO);
+
+        // Check output of verify command stored in file
+        TEST_STORAGE_GET(storageTest, strZ(stdoutFile), "", .remove = true);
+        TEST_RESULT_LOG(
+            "P00 DETAIL: unable to decrypt '" TEST_PATH "/repo/backup/db/backup.info' with the configured cipher type and"
+            " passphrase\n"
+            "            HINT: check repo-cipher-type and repo-cipher-pass.\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\n"
+            "P00 DETAIL: unable to decrypt '" TEST_PATH "/repo/archive/db/archive.info' with the configured cipher type and"
+            " passphrase\n"
+            "            HINT: check repo-cipher-type and repo-cipher-pass.\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read\n"
+            "P00   INFO: stanza: db\n"
+            "            status: error\n"
+            "              No usable backup.info file\n"
+            "              No usable archive.info file");
+
         harnessLogLevelReset();
     }
 

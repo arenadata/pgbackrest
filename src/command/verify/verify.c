@@ -22,6 +22,7 @@ Verify contents of the repository.
 #include "common/log.h"
 #include "common/regExp.h"
 #include "config/config.h"
+#include "info/info.h"
 #include "info/infoArchive.h"
 #include "info/infoBackup.h"
 #include "info/manifest.h"
@@ -244,13 +245,26 @@ verifyInfoFile(const String *const pathFileName, const bool keepFile, const Stri
         }
         CATCH_ANY()
         {
-            result.errorCode = errorCode();
-            String *const errorMsg = strCatZ(strNew(), errorMessage());
+            TRY_BEGIN()
+            {
+                // Replace the error with a clearer one when the cipher settings do not match the file. A checksum error means the
+                // file was decrypted so there is no need to check.
+                if (errorType() != &ChecksumError)
+                    infoLoadErrorRethrow(storageRepo(), pathFileName, cfgOptionStrId(cfgOptRepoCipherType), cipherPass);
 
-            if (result.errorCode == errorTypeCode(&ChecksumError))
-                strCat(errorMsg, strNewFmt(" %s", strZ(pathFileName)));
+                RETHROW();
+            }
+            CATCH_ANY()
+            {
+                result.errorCode = errorCode();
+                String *const errorMsg = strCatZ(strNew(), errorMessage());
 
-            LOG_DETAIL(strZ(errorMsg));
+                if (result.errorCode == errorTypeCode(&ChecksumError))
+                    strCat(errorMsg, strNewFmt(" %s", strZ(pathFileName)));
+
+                LOG_DETAIL(strZ(errorMsg));
+            }
+            TRY_END();
         }
         TRY_END();
     }
