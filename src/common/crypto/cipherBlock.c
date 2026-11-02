@@ -107,7 +107,7 @@ cipherConvertFromIdToStr(const CipherType cipherType)
 
     unsigned int typeIdx = 0;
 
-    for (; typeIdx < LENGTH_OF(cipherTypeLocal); typeIdx++)
+    for (; typeIdx <= LENGTH_OF(cipherTypeLocal) - 1; typeIdx++)
     {
         if (cipherTypeLocal[typeIdx].type == cipherType)
             break;
