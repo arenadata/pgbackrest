@@ -47,8 +47,6 @@ testRun(void)
         TEST_RESULT_VOID(cryptoInit(), "initialize crypto again");
 
         // -------------------------------------------------------------------------------------------------------------------------
-        cryptoInit();
-
         TEST_RESULT_VOID(cryptoError(false, "no error here"), "no error");
 
         EVP_MD_CTX *context = EVP_MD_CTX_create();
