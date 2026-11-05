@@ -278,7 +278,7 @@ testRun(void)
         Buffer *const encrypted_partial = bufNew(0);
         IoWrite *const write_partial = ioBufferWriteNew(encrypted_partial);
 
-         ioFilterGroupAdd(ioWriteFilterGroup(write_partial), cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, BUFSTRDEF("pass")));
+        ioFilterGroupAdd(ioWriteFilterGroup(write_partial), cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, BUFSTRDEF("pass")));
         ioWriteOpen(write_partial);
         ioWrite(write_partial, BUFSTRDEF("[backrest]\nb"));
         ioWriteClose(write_partial);
