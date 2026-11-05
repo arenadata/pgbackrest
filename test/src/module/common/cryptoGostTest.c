@@ -161,7 +161,7 @@ testRun(void)
             TEST_RESULT_UINT(bufUsed(encryptBuffer), CIPHER_BLOCK_MAGIC_SIZE, "cipher size is magic size");
             TEST_RESULT_BOOL(ioFilterInputSame(blockEncryptFilter), true, "filter needs same input");
 
-            bufLimitSet(encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN + strlen(TEST_PLAINTEXT));
+            bufLimitSet(encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + 1);
             ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
             TEST_RESULT_BOOL(ioFilterInputSame(blockEncryptFilter), false, "filter does not need same input");
 
