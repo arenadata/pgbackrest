@@ -1373,7 +1373,7 @@ testRun(void)
             "'aes-128-cbz' is not allowed for 'repo1-cipher-type' option\n"
             "HINT: allowed values are 'none', 'aes-256-cbc', 'aes-128-cbc', 'aes-192-cbc', 'kuznyechik-cbc', 'grasshopper-cbc',"
             " 'magma-cbc', 'aria-128-cbc', 'aria-192-cbc', 'aria-256-cbc', 'sm4-cbc'");
-        
+
         TEST_TITLE("very long option value only starts like a long allowed value (StringId)");
 
         argList = strLstNew();
