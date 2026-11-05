@@ -74,17 +74,18 @@ testRun(void)
         // Test if the buffer was overrun
         // -------------------------------------------------------------------------------------------------------------------------
         unsigned char buffer[256] = {0};
+        memset(buffer, 0xCD, 256); // Poisoning memory, because 0 is a rather common value
 
         cryptoRandomBytes(buffer, sizeof(buffer) - 1);
         TEST_RESULT_BOOL(
-            buffer[sizeof(buffer) - 1] == 0, true, "check that buffer did not overrun (though random byte could be 0)");
+            buffer[sizeof(buffer) - 1] == 0xCD, true, "check that buffer did not overrun (though random byte could be 0)");
 
-        // Count bytes that are not zero (there shouldn't be all zeroes)
+        // Count bytes that are not 0xCD (there shouldn't be all 0xCD)
         // -------------------------------------------------------------------------------------------------------------------------
         int nonZeroTotal = 0;
 
         for (unsigned int charIdx = 0; charIdx < sizeof(buffer) - 1; charIdx++)
-            if (buffer[charIdx] != 0)                               // {uncoverable_branch - ok if there are no zeros}
+            if (buffer[charIdx] != 0xCD)                               // {uncoverable_branch - ok if there are no 0xCD}
                 nonZeroTotal++;
 
         TEST_RESULT_INT_NE(nonZeroTotal, 0, "check that there are non-zero values in the buffer");

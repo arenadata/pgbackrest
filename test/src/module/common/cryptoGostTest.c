@@ -9,10 +9,25 @@ Test Block Cipher
 /***********************************************************************************************************************************
 Data for testing
 ***********************************************************************************************************************************/
-#define TEST_CIPHER                                                 "kuznyechik-cbc"
 #define TEST_PASS                                                   "areallybadpassphrase"
 #define TEST_PLAINTEXT                                              "plaintext"
 #define TEST_BUFFER_SIZE                                            256
+
+static const struct
+{
+    CipherType type;                                                // Cipher type
+    const char *name;                                               // Name for test titles
+} testGostList[] =
+{
+    {
+        .type = cipherTypeKuznyechikCbc,
+        .name = "kuznyechik-cbc",
+    },
+    {
+        .type = cipherTypeMagmaCbc,
+        .name = "magma-cbc",
+    },
+};
 
 /***********************************************************************************************************************************
 Test Run
@@ -53,20 +68,34 @@ testRun(void)
         // Test if the buffer was overrun
         // -------------------------------------------------------------------------------------------------------------------------
         unsigned char buffer[256] = {0};
+        memset(buffer, 0xCD, 256); // Poisoning memory, because 0 is a rather common value
 
         cryptoRandomBytes(buffer, sizeof(buffer) - 1);
         TEST_RESULT_BOOL(
-            buffer[sizeof(buffer) - 1] == 0, true, "check that buffer did not overrun (though random byte could be 0)");
+            buffer[sizeof(buffer) - 1] == 0xCD, true, "check that buffer did not overrun (though random byte could be 0)");
 
-        // Count bytes that are not zero (there shouldn't be all zeroes)
+        // Count bytes that are not 0xCD (there shouldn't be all 0xCD)
         // -------------------------------------------------------------------------------------------------------------------------
         int nonZeroTotal = 0;
 
         for (unsigned int charIdx = 0; charIdx < sizeof(buffer) - 1; charIdx++)
-            if (buffer[charIdx] != 0)                               // {uncoverable_branch - ok if there are no zeros}
+            if (buffer[charIdx] != 0xCD)                               // {uncoverable_branch - ok if there are no 0xCD}
                 nonZeroTotal++;
 
         TEST_RESULT_INT_NE(nonZeroTotal, 0, "check that there are non-zero values in the buffer");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("error on RAND_bytes() failure");
+
+        testRandBytesResult = 0;
+        TEST_ERROR(
+            cryptoRandomBytes(buffer, sizeof(buffer)), CryptoError, "unable to generate random bytes: [0] no details available");
+
+        testRandBytesResult = -1;
+        TEST_ERROR(
+            cryptoRandomBytes(buffer, sizeof(buffer)), CryptoError, "unable to generate random bytes: [0] no details available");
+
+        testRandBytesResult = 1;
     }
 
     // *****************************************************************************************************************************
@@ -82,216 +111,224 @@ testRun(void)
 
         // Initialization of object
         // -------------------------------------------------------------------------------------------------------------------------
-        IoFilter *cipherFilter = cipherBlockNewP(cipherModeEncrypt, cipherTypeKuznyechikCbc, testPass);
-        CipherBlock *cipherBlock = (CipherBlock *)ioFilterDriver(cipherFilter);
-        TEST_RESULT_INT(cipherBlock->mode, cipherModeEncrypt, "mode is valid");
-        TEST_RESULT_UINT(bufSize(cipherBlock->pass), strlen(TEST_PASS), "passphrase size is valid");
-        TEST_RESULT_BOOL(memcmp(bufPtrConst(cipherBlock->pass), TEST_PASS, strlen(TEST_PASS)) == 0, true, "passphrase is valid");
-        TEST_RESULT_BOOL(cipherBlock->saltDone, false, "salt done is false");
-        TEST_RESULT_BOOL(cipherBlock->processDone, false, "process done is false");
-        TEST_RESULT_UINT(cipherBlock->headerSize, 0, "header size is 0");
-        TEST_RESULT_PTR_NE(cipherBlock->cipher, NULL, "cipher is set");
-        TEST_RESULT_PTR_NE(cipherBlock->digest, NULL, "digest is set");
-        TEST_RESULT_PTR(cipherBlock->cipherContext, NULL, "cipher context is not set");
 
-        ioFilterFree(cipherFilter);
+        for (unsigned int cipherIdx = 0; cipherIdx < LENGTH_OF(testGostList); cipherIdx++)
+        {
+            const CipherType type = testGostList[cipherIdx].type;
 
-        // Encrypt
-        // -------------------------------------------------------------------------------------------------------------------------
-        Buffer *encryptBuffer = bufNew(TEST_BUFFER_SIZE);
+            TEST_TITLE_FMT("%s", testGostList[cipherIdx].name);
+            
+            IoFilter *cipherFilter = cipherBlockNewP(cipherModeEncrypt, type, testPass);
+            CipherBlock *cipherBlock = (CipherBlock *)ioFilterDriver(cipherFilter);
+            TEST_RESULT_INT(cipherBlock->mode, cipherModeEncrypt, "mode is valid");
+            TEST_RESULT_UINT(bufSize(cipherBlock->pass), strlen(TEST_PASS), "passphrase size is valid");
+            TEST_RESULT_BOOL(memcmp(bufPtrConst(cipherBlock->pass), TEST_PASS, strlen(TEST_PASS)) == 0, true, "passphrase is valid");
+            TEST_RESULT_BOOL(cipherBlock->saltDone, false, "salt done is false");
+            TEST_RESULT_BOOL(cipherBlock->processDone, false, "process done is false");
+            TEST_RESULT_UINT(cipherBlock->headerSize, 0, "header size is 0");
+            TEST_RESULT_PTR_NE(cipherBlock->cipher, NULL, "cipher is set");
+            TEST_RESULT_PTR_NE(cipherBlock->digest, NULL, "digest is set");
+            TEST_RESULT_PTR(cipherBlock->cipherContext, NULL, "cipher context is not set");
 
-        IoFilter *blockEncryptFilter = cipherBlockNewP(cipherModeEncrypt, cipherTypeKuznyechikCbc, testPass);
-        blockEncryptFilter = cipherBlockNewPack(ioFilterParamList(blockEncryptFilter));
-        CipherBlock *blockEncrypt = (CipherBlock *)ioFilterDriver(blockEncryptFilter);
+            ioFilterFree(cipherFilter);
 
-        TEST_RESULT_UINT(
-            cipherBlockProcessSize(blockEncrypt, strlen(TEST_PLAINTEXT)),
-            strlen(TEST_PLAINTEXT) + EVP_MAX_BLOCK_LENGTH + CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN, "check process size");
+            // Encrypt
+            // -------------------------------------------------------------------------------------------------------------------------
+            Buffer *encryptBuffer = bufNew(TEST_BUFFER_SIZE);
 
-        bufLimitSet(encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE);
-        ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
-        TEST_RESULT_UINT(bufUsed(encryptBuffer), CIPHER_BLOCK_MAGIC_SIZE, "cipher size is magic size");
-        TEST_RESULT_BOOL(ioFilterInputSame(blockEncryptFilter), true, "filter needs same input");
+            IoFilter *blockEncryptFilter = cipherBlockNewP(cipherModeEncrypt, type, testPass);
+            blockEncryptFilter = cipherBlockNewPack(ioFilterParamList(blockEncryptFilter));
+            CipherBlock *blockEncrypt = (CipherBlock *)ioFilterDriver(blockEncryptFilter);
 
-        bufLimitSet(encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN);
-        ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
-        TEST_RESULT_BOOL(ioFilterInputSame(blockEncryptFilter), false, "filter does not need same input");
+            TEST_RESULT_UINT(
+                cipherBlockProcessSize(blockEncrypt, strlen(TEST_PLAINTEXT)),
+                strlen(TEST_PLAINTEXT) + EVP_MAX_BLOCK_LENGTH + CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN, "check process size");
 
-        TEST_RESULT_BOOL(blockEncrypt->saltDone, true, "salt done is true");
-        TEST_RESULT_BOOL(blockEncrypt->processDone, true, "process done is true");
-        TEST_RESULT_UINT(blockEncrypt->headerSize, 0, "header size is 0");
-        TEST_RESULT_UINT(bufUsed(encryptBuffer), CIPHER_BLOCK_HEADER_SIZE, "cipher size is header len");
+            bufLimitSet(encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE);
+            ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
+            TEST_RESULT_UINT(bufUsed(encryptBuffer), CIPHER_BLOCK_MAGIC_SIZE, "cipher size is magic size");
+            TEST_RESULT_BOOL(ioFilterInputSame(blockEncryptFilter), true, "filter needs same input");
 
-        TEST_RESULT_UINT(
-            cipherBlockProcessSize(blockEncrypt, strlen(TEST_PLAINTEXT)),
-            strlen(TEST_PLAINTEXT) + EVP_MAX_BLOCK_LENGTH, "check process size");
+            bufLimitSet(encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN);
+            ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
+            TEST_RESULT_BOOL(ioFilterInputSame(blockEncryptFilter), false, "filter does not need same input");
 
-        bufLimitSet(
-            encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN + (size_t)EVP_CIPHER_block_size(blockEncrypt->cipher) / 2);
-        ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
-        bufLimitSet(
-            encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN + (size_t)EVP_CIPHER_block_size(blockEncrypt->cipher));
-        ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
-        bufLimitClear(encryptBuffer);
+            TEST_RESULT_BOOL(blockEncrypt->saltDone, true, "salt done is true");
+            TEST_RESULT_BOOL(blockEncrypt->processDone, true, "process done is true");
+            TEST_RESULT_UINT(blockEncrypt->headerSize, 0, "header size is 0");
+            TEST_RESULT_UINT(bufUsed(encryptBuffer), CIPHER_BLOCK_HEADER_SIZE, "cipher size is header len");
 
-        TEST_RESULT_UINT(
-            bufUsed(encryptBuffer), CIPHER_BLOCK_HEADER_SIZE + (size_t)EVP_CIPHER_block_size(blockEncrypt->cipher),
-            "cipher size increases by one block");
-        TEST_RESULT_BOOL(ioFilterDone(blockEncryptFilter), false, "filter is not done");
+            TEST_RESULT_UINT(
+                cipherBlockProcessSize(blockEncrypt, strlen(TEST_PLAINTEXT)),
+                strlen(TEST_PLAINTEXT) + EVP_MAX_BLOCK_LENGTH, "check process size");
 
-        ioFilterProcessInOut(blockEncryptFilter, NULL, encryptBuffer);
-        TEST_RESULT_UINT(
-            bufUsed(encryptBuffer), CIPHER_BLOCK_HEADER_SIZE + (size_t)(EVP_CIPHER_block_size(blockEncrypt->cipher) * 2),
-            "cipher size increases by one block on flush");
-        TEST_RESULT_BOOL(ioFilterDone(blockEncryptFilter), true, "filter is done");
+            bufLimitSet(
+                encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN + (size_t)EVP_CIPHER_block_size(blockEncrypt->cipher) / 2);
+            ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
+            bufLimitSet(
+                encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN + (size_t)EVP_CIPHER_block_size(blockEncrypt->cipher));
+            ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
+            bufLimitClear(encryptBuffer);
 
-        ioFilterFree(blockEncryptFilter);
+            TEST_RESULT_UINT(
+                bufUsed(encryptBuffer), CIPHER_BLOCK_HEADER_SIZE + (size_t)EVP_CIPHER_block_size(blockEncrypt->cipher),
+                "cipher size increases by one block");
+            TEST_RESULT_BOOL(ioFilterDone(blockEncryptFilter), false, "filter is not done");
 
-        // Decrypt in one pass
-        // -------------------------------------------------------------------------------------------------------------------------
-        Buffer *decryptBuffer = bufNew(TEST_BUFFER_SIZE);
+            ioFilterProcessInOut(blockEncryptFilter, NULL, encryptBuffer);
+            TEST_RESULT_UINT(
+                bufUsed(encryptBuffer), CIPHER_BLOCK_HEADER_SIZE + (size_t)(EVP_CIPHER_block_size(blockEncrypt->cipher) * 2),
+                "cipher size increases by one block on flush");
+            TEST_RESULT_BOOL(ioFilterDone(blockEncryptFilter), true, "filter is done");
 
-        IoFilter *blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeKuznyechikCbc, testPass, .digest = STRDEF("sha1"));
-        blockDecryptFilter = cipherBlockNewPack(ioFilterParamList(blockDecryptFilter));
-        CipherBlock *blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
+            ioFilterFree(blockEncryptFilter);
 
-        TEST_RESULT_UINT(
-            cipherBlockProcessSize(blockDecrypt, bufUsed(encryptBuffer)), bufUsed(encryptBuffer) + EVP_MAX_BLOCK_LENGTH,
-            "check process size");
+            // Decrypt in one pass
+            // -------------------------------------------------------------------------------------------------------------------------
+            Buffer *decryptBuffer = bufNew(TEST_BUFFER_SIZE);
 
-        ioFilterProcessInOut(blockDecryptFilter, encryptBuffer, decryptBuffer);
-        TEST_RESULT_UINT_INT(bufUsed(decryptBuffer), EVP_CIPHER_block_size(blockDecrypt->cipher), "decrypt size is one block");
+            IoFilter *blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, type, testPass, .digest = STRDEF("sha1"));
+            blockDecryptFilter = cipherBlockNewPack(ioFilterParamList(blockDecryptFilter));
+            CipherBlock *blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
 
-        ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
-        TEST_RESULT_UINT(bufUsed(decryptBuffer), strlen(TEST_PLAINTEXT) * 2, "check final decrypt size");
+            TEST_RESULT_UINT(
+                cipherBlockProcessSize(blockDecrypt, bufUsed(encryptBuffer)), bufUsed(encryptBuffer) + EVP_MAX_BLOCK_LENGTH,
+                "check process size");
 
-        TEST_RESULT_STR_Z(strNewBuf(decryptBuffer), TEST_PLAINTEXT TEST_PLAINTEXT, "check final decrypt buffer");
+            ioFilterProcessInOut(blockDecryptFilter, encryptBuffer, decryptBuffer);
+            TEST_RESULT_UINT_INT(bufUsed(decryptBuffer), EVP_CIPHER_block_size(blockDecrypt->cipher), "decrypt size is one block");
 
-        ioFilterFree(blockDecryptFilter);
+            ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
+            TEST_RESULT_UINT(bufUsed(decryptBuffer), strlen(TEST_PLAINTEXT) * 2, "check final decrypt size");
 
-        // Decrypt in small chunks to test buffering
-        // -------------------------------------------------------------------------------------------------------------------------
-        blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeKuznyechikCbc, testPass);
-        blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
+            TEST_RESULT_STR_Z(strNewBuf(decryptBuffer), TEST_PLAINTEXT TEST_PLAINTEXT, "check final decrypt buffer");
 
-        bufUsedZero(decryptBuffer);
+            ioFilterFree(blockDecryptFilter);
 
-        ioFilterProcessInOut(blockDecryptFilter, bufNewC(bufPtr(encryptBuffer), CIPHER_BLOCK_MAGIC_SIZE), decryptBuffer);
-        TEST_RESULT_UINT(bufUsed(decryptBuffer), 0, "no decrypt since header read is not complete");
-        TEST_RESULT_BOOL(blockDecrypt->saltDone, false, "salt done is false");
-        TEST_RESULT_BOOL(blockDecrypt->processDone, false, "process done is false");
-        TEST_RESULT_UINT(blockDecrypt->headerSize, CIPHER_BLOCK_MAGIC_SIZE, "check header size");
-        TEST_RESULT_BOOL(
-            memcmp(blockDecrypt->header, CIPHER_BLOCK_MAGIC, CIPHER_BLOCK_MAGIC_SIZE) == 0, true, "check header magic");
+            // Decrypt in small chunks to test buffering
+            // -------------------------------------------------------------------------------------------------------------------------
+            blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, type, testPass);
+            blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
 
-        ioFilterProcessInOut(
-            blockDecryptFilter, bufNewC(bufPtr(encryptBuffer) + CIPHER_BLOCK_MAGIC_SIZE, PKCS5_SALT_LEN), decryptBuffer);
-        TEST_RESULT_UINT(bufUsed(decryptBuffer), 0, "no decrypt since no data processed yet");
-        TEST_RESULT_BOOL(blockDecrypt->saltDone, true, "salt done is true");
-        TEST_RESULT_BOOL(blockDecrypt->processDone, false, "process done is false");
-        TEST_RESULT_UINT(blockDecrypt->headerSize, CIPHER_BLOCK_MAGIC_SIZE, "check header size (not increased)");
-        TEST_RESULT_BOOL(
-            memcmp(
-                blockDecrypt->header + CIPHER_BLOCK_MAGIC_SIZE, bufPtr(encryptBuffer) + CIPHER_BLOCK_MAGIC_SIZE,
-                PKCS5_SALT_LEN) == 0,
-            true, "check header salt");
+            bufUsedZero(decryptBuffer);
 
-        ioFilterProcessInOut(
-            blockDecryptFilter,
-            bufNewC(bufPtr(encryptBuffer) + CIPHER_BLOCK_HEADER_SIZE, bufUsed(encryptBuffer) - CIPHER_BLOCK_HEADER_SIZE),
-            decryptBuffer);
-        TEST_RESULT_UINT_INT(bufUsed(decryptBuffer), EVP_CIPHER_block_size(blockDecrypt->cipher), "decrypt size is one block");
+            ioFilterProcessInOut(blockDecryptFilter, bufNewC(bufPtr(encryptBuffer), CIPHER_BLOCK_MAGIC_SIZE), decryptBuffer);
+            TEST_RESULT_UINT(bufUsed(decryptBuffer), 0, "no decrypt since header read is not complete");
+            TEST_RESULT_BOOL(blockDecrypt->saltDone, false, "salt done is false");
+            TEST_RESULT_BOOL(blockDecrypt->processDone, false, "process done is false");
+            TEST_RESULT_UINT(blockDecrypt->headerSize, CIPHER_BLOCK_MAGIC_SIZE, "check header size");
+            TEST_RESULT_BOOL(
+                memcmp(blockDecrypt->header, CIPHER_BLOCK_MAGIC, CIPHER_BLOCK_MAGIC_SIZE) == 0, true, "check header magic");
 
-        ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
-        TEST_RESULT_UINT(bufUsed(decryptBuffer), strlen(TEST_PLAINTEXT) * 2, "check final decrypt size");
+            ioFilterProcessInOut(
+                blockDecryptFilter, bufNewC(bufPtr(encryptBuffer) + CIPHER_BLOCK_MAGIC_SIZE, PKCS5_SALT_LEN), decryptBuffer);
+            TEST_RESULT_UINT(bufUsed(decryptBuffer), 0, "no decrypt since no data processed yet");
+            TEST_RESULT_BOOL(blockDecrypt->saltDone, true, "salt done is true");
+            TEST_RESULT_BOOL(blockDecrypt->processDone, false, "process done is false");
+            TEST_RESULT_UINT(blockDecrypt->headerSize, CIPHER_BLOCK_MAGIC_SIZE, "check header size (not increased)");
+            TEST_RESULT_BOOL(
+                memcmp(
+                    blockDecrypt->header + CIPHER_BLOCK_MAGIC_SIZE, bufPtr(encryptBuffer) + CIPHER_BLOCK_MAGIC_SIZE,
+                    PKCS5_SALT_LEN) == 0,
+                true, "check header salt");
 
-        TEST_RESULT_STR_Z(strNewBuf(decryptBuffer), TEST_PLAINTEXT TEST_PLAINTEXT, "check final decrypt buffer");
+            ioFilterProcessInOut(
+                blockDecryptFilter,
+                bufNewC(bufPtr(encryptBuffer) + CIPHER_BLOCK_HEADER_SIZE, bufUsed(encryptBuffer) - CIPHER_BLOCK_HEADER_SIZE),
+                decryptBuffer);
+            TEST_RESULT_UINT_INT(bufUsed(decryptBuffer), EVP_CIPHER_block_size(blockDecrypt->cipher), "decrypt size is one block");
 
-        ioFilterFree(blockDecryptFilter);
+            ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
+            TEST_RESULT_UINT(bufUsed(decryptBuffer), strlen(TEST_PLAINTEXT) * 2, "check final decrypt size");
 
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("encrypt zero byte file with no magic");
+            TEST_RESULT_STR_Z(strNewBuf(decryptBuffer), TEST_PLAINTEXT TEST_PLAINTEXT, "check final decrypt buffer");
 
-        blockEncryptFilter = cipherBlockNewP(cipherModeEncrypt, cipherTypeKuznyechikCbc, testPass, .raw = true);
-        blockEncrypt = (CipherBlock *)ioFilterDriver(blockEncryptFilter);
+            ioFilterFree(blockDecryptFilter);
 
-        bufUsedZero(encryptBuffer);
+            // -------------------------------------------------------------------------------------------------------------------------
+            TEST_TITLE("encrypt zero byte file with no magic");
 
-        ioFilterProcessInOut(blockEncryptFilter, NULL, encryptBuffer);
-        TEST_RESULT_UINT(bufUsed(encryptBuffer), 24, "check remaining size");
+            blockEncryptFilter = cipherBlockNewP(cipherModeEncrypt, type, testPass, .raw = true);
+            blockEncrypt = (CipherBlock *)ioFilterDriver(blockEncryptFilter);
 
-        ioFilterFree(blockEncryptFilter);
+            bufUsedZero(encryptBuffer);
 
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("error on decrypt expecting magic");
+            ioFilterProcessInOut(blockEncryptFilter, NULL, encryptBuffer);
+            TEST_RESULT_UINT(bufUsed(encryptBuffer), 24, "check remaining size");
 
-        blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeKuznyechikCbc, testPass);
-        TEST_ERROR(ioFilterProcessInOut(blockDecryptFilter, encryptBuffer, decryptBuffer), CryptoError, "cipher header invalid");
+            ioFilterFree(blockEncryptFilter);
 
-        ioFilterFree(blockDecryptFilter);
+            // -------------------------------------------------------------------------------------------------------------------------
+            TEST_TITLE("error on decrypt expecting magic");
 
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("decrypt zero byte file with no magic");
+            blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, type, testPass);
+            TEST_ERROR(ioFilterProcessInOut(blockDecryptFilter, encryptBuffer, decryptBuffer), CryptoError, "cipher header invalid");
 
-        blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeKuznyechikCbc, testPass, .raw = true);
-        blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
+            ioFilterFree(blockDecryptFilter);
 
-        bufUsedZero(decryptBuffer);
+            // -------------------------------------------------------------------------------------------------------------------------
+            TEST_TITLE("decrypt zero byte file with no magic");
 
-        ioFilterProcessInOut(blockDecryptFilter, encryptBuffer, decryptBuffer);
-        TEST_RESULT_UINT(bufUsed(decryptBuffer), 0, "0 bytes processed");
-        ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
-        TEST_RESULT_UINT(bufUsed(decryptBuffer), 0, "0 bytes on flush");
+            blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, type, testPass, .raw = true);
+            blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
 
-        ioFilterFree(blockDecryptFilter);
+            bufUsedZero(decryptBuffer);
 
-        // Invalid cipher header
-        // -------------------------------------------------------------------------------------------------------------------------
-        blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeKuznyechikCbc, testPass);
-        blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
+            ioFilterProcessInOut(blockDecryptFilter, encryptBuffer, decryptBuffer);
+            TEST_RESULT_UINT(bufUsed(decryptBuffer), 0, "0 bytes processed");
+            ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
+            TEST_RESULT_UINT(bufUsed(decryptBuffer), 0, "0 bytes on flush");
 
-        TEST_ERROR(
-            ioFilterProcessInOut(blockDecryptFilter, BUFSTRDEF("1234567890123456"), decryptBuffer), CryptoError,
-            "cipher header invalid");
+            ioFilterFree(blockDecryptFilter);
 
-        ioFilterFree(blockDecryptFilter);
+            // Invalid cipher header
+            // -------------------------------------------------------------------------------------------------------------------------
+            blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, type, testPass);
+            blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
 
-        // Invalid encrypted data cannot be flushed
-        // -------------------------------------------------------------------------------------------------------------------------
-        blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeKuznyechikCbc, testPass);
-        blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
+            TEST_ERROR(
+                ioFilterProcessInOut(blockDecryptFilter, BUFSTRDEF("1234567890123456"), decryptBuffer), CryptoError,
+                "cipher header invalid");
 
-        bufUsedZero(decryptBuffer);
+            ioFilterFree(blockDecryptFilter);
 
-        ioFilterProcessInOut(blockDecryptFilter, BUFSTRDEF(CIPHER_BLOCK_MAGIC "12345678"), decryptBuffer);
-        ioFilterProcessInOut(blockDecryptFilter, BUFSTRDEF("1234567890123456"), decryptBuffer);
+            // Invalid encrypted data cannot be flushed
+            // -------------------------------------------------------------------------------------------------------------------------
+            blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, type, testPass);
+            blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
 
-        TEST_ERROR(ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer), CryptoError, "unable to flush");
+            bufUsedZero(decryptBuffer);
 
-        ioFilterFree(blockDecryptFilter);
+            ioFilterProcessInOut(blockDecryptFilter, BUFSTRDEF(CIPHER_BLOCK_MAGIC "12345678"), decryptBuffer);
+            ioFilterProcessInOut(blockDecryptFilter, BUFSTRDEF("1234567890123456"), decryptBuffer);
 
-        // File with no header should not flush
-        // -------------------------------------------------------------------------------------------------------------------------
-        blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeKuznyechikCbc, testPass);
-        blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
+            TEST_ERROR(ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer), CryptoError, "unable to flush");
 
-        bufUsedZero(decryptBuffer);
+            ioFilterFree(blockDecryptFilter);
 
-        TEST_ERROR(ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer), CryptoError, "cipher header missing");
+            // File with no header should not flush
+            // -------------------------------------------------------------------------------------------------------------------------
+            blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, type, testPass);
+            blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
 
-        ioFilterFree(blockDecryptFilter);
+            bufUsedZero(decryptBuffer);
 
-        // File with header only should error
-        // -------------------------------------------------------------------------------------------------------------------------
-        blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeKuznyechikCbc, testPass);
-        blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
+            TEST_ERROR(ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer), CryptoError, "cipher header missing");
 
-        bufUsedZero(decryptBuffer);
+            ioFilterFree(blockDecryptFilter);
 
-        ioFilterProcessInOut(blockDecryptFilter, BUFSTRDEF(CIPHER_BLOCK_MAGIC "12345678"), decryptBuffer);
-        TEST_ERROR(ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer), CryptoError, "unable to flush");
+            // File with header only should error
+            // -------------------------------------------------------------------------------------------------------------------------
+            blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, type, testPass);
+            blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
 
-        ioFilterFree(blockDecryptFilter);
+            bufUsedZero(decryptBuffer);
+
+            ioFilterProcessInOut(blockDecryptFilter, BUFSTRDEF(CIPHER_BLOCK_MAGIC "12345678"), decryptBuffer);
+            TEST_ERROR(ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer), CryptoError, "unable to flush");
+
+            ioFilterFree(blockDecryptFilter);
+        }
 
         // Helper function
         // -------------------------------------------------------------------------------------------------------------------------
