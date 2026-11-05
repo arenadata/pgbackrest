@@ -10,7 +10,7 @@ Test Block Cipher
 Data for testing
 ***********************************************************************************************************************************/
 #define TEST_PASS                                                   "areallybadpassphrase"
-#define TEST_PLAINTEXT                                              "plaintext"
+#define TEST_PLAINTEXT                                              "platext"
 #define TEST_BUFFER_SIZE                                            256
 
 static const struct
@@ -161,7 +161,7 @@ testRun(void)
             TEST_RESULT_UINT(bufUsed(encryptBuffer), CIPHER_BLOCK_MAGIC_SIZE, "cipher size is magic size");
             TEST_RESULT_BOOL(ioFilterInputSame(blockEncryptFilter), true, "filter needs same input");
 
-            bufLimitSet(encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + 1);
+            bufLimitSet(encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN);
             ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
             TEST_RESULT_BOOL(ioFilterInputSame(blockEncryptFilter), false, "filter does not need same input");
 
