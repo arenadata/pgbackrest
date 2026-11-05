@@ -304,8 +304,8 @@ testRun(void)
             "load error\n"
             "HINT: '" TEST_PATH "/encrypted' decrypts with the configured cipher type and passphrase so it may be corrupt.");
         TEST_ERROR(
-            testInfoLoadErrorRethrow(&FormatError, storageTest, "encrypted_partial", cipherTypeAes256Cbc, STRDEF("pass")), CryptoError,
-            "unable to decrypt '" TEST_PATH "/encrypted_partial' with the configured cipher type and passphrase\n"
-            "HINT: check repo-cipher-type and repo-cipher-pass.");
+            testInfoLoadErrorRethrow(&ChecksumError, storageTest, "encrypted_partial", cipherTypeAes256Cbc, STRDEF("pass")), ChecksumError,
+            "load error\n"
+            "HINT: '" TEST_PATH "/encrypted_partial' decrypts with the configured cipher type and passphrase so it may be corrupt.");
     }
 }
