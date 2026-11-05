@@ -30,6 +30,20 @@ static const struct
 };
 
 /***********************************************************************************************************************************
+Shim for RAND_bytes() that returns testRandBytesResult when testRandBytesResult != 1
+***********************************************************************************************************************************/
+static int testRandBytesResult = 1;
+
+int
+RAND_bytes(unsigned char *const buf, const int num)
+{
+    if (testRandBytesResult != 1)
+        return testRandBytesResult;
+
+    return RAND_priv_bytes(buf, num);
+}
+
+/***********************************************************************************************************************************
 Test Run
 ***********************************************************************************************************************************/
 static void
@@ -115,7 +129,7 @@ testRun(void)
             const CipherType type = testGostList[cipherIdx].type;
 
             TEST_TITLE_FMT("%s", testGostList[cipherIdx].name);
-            
+
             IoFilter *cipherFilter = cipherBlockNewP(cipherModeEncrypt, type, testPass);
             CipherBlock *cipherBlock = (CipherBlock *)ioFilterDriver(cipherFilter);
             TEST_RESULT_INT(cipherBlock->mode, cipherModeEncrypt, "mode is valid");
