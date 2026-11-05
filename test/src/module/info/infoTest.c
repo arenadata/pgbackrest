@@ -275,7 +275,16 @@ testRun(void)
         ioWrite(write, BUFSTRDEF("[backrest]\nbackrest-format=5\nbackrest-version=\"2.54.0\"\n"));
         ioWriteClose(write);
 
+        Buffer *const encrypted_partial = bufNew(0);
+        IoWrite *const write_partial = ioBufferWriteNew(encrypted_partial);
+
+         ioFilterGroupAdd(ioWriteFilterGroup(write_partial), cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, BUFSTRDEF("pass")));
+        ioWriteOpen(write_partial);
+        ioWrite(write_partial, BUFSTRDEF("[backrest]\nb"));
+        ioWriteClose(write_partial);
+
         storagePutP(storageNewWriteP(storageTest, STRDEF("encrypted")), encrypted);
+        storagePutP(storageNewWriteP(storageTest, STRDEF("encrypted_partial")), encrypted_partial);
         storagePutP(storageNewWriteP(storageTest, STRDEF("plain")), BUFSTRDEF("[backrest]\nbackrest-format=5\n"));
 
         TEST_ERROR(
@@ -294,5 +303,9 @@ testRun(void)
             testInfoLoadErrorRethrow(&ChecksumError, storageTest, "encrypted", cipherTypeAes256Cbc, STRDEF("pass")), ChecksumError,
             "load error\n"
             "HINT: '" TEST_PATH "/encrypted' decrypts with the configured cipher type and passphrase so it may be corrupt.");
+        TEST_ERROR(
+            testInfoLoadErrorRethrow(&FormatError, storageTest, "encrypted_partial", cipherTypeAes256Cbc, STRDEF("pass")), CryptoError,
+            "unable to decrypt '" TEST_PATH "/encrypted_partial' with the configured cipher type and passphrase\n"
+            "HINT: check repo-cipher-type and repo-cipher-pass.");
     }
 }

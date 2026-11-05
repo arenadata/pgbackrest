@@ -514,6 +514,7 @@ infoLoadErrorRethrow(
         const ErrorType *const loadErrorType = errorType();
         const String *const loadErrorMessage = strNewZ(errorMessage());
         Buffer *const fileStart = bufNew(sizeof(INFO_CIPHER_CHECK_PLAIN) - 1);
+        size_t readBytes = 0;
 
         // Decrypt only the start of the file. Damage elsewhere in the file does not change how the start decrypts, and reading
         // stops before the end of the file so the padding is not checked.
@@ -522,7 +523,7 @@ infoLoadErrorRethrow(
             IoRead *const read = storageReadIo(storageNewReadP(storage, fileName));
             cipherBlockFilterGroupAdd(ioReadFilterGroup(read), cipherType, cipherModeDecrypt, cipherPass);
             ioReadOpen(read);
-            ioRead(read, fileStart);
+            readBytes = ioRead(read, fileStart);
         }
         CATCH_ANY()
         {
@@ -532,7 +533,7 @@ infoLoadErrorRethrow(
         }
         TRY_END();
 
-        if (!bufEq(fileStart, BUFSTRDEF(INFO_CIPHER_CHECK_PLAIN)))
+        if (readBytes == sizeof(INFO_CIPHER_CHECK_PLAIN) - 1 && !bufEq(fileStart, BUFSTRDEF(INFO_CIPHER_CHECK_PLAIN)))
         {
             THROW_FMT(
                 CryptoError,
