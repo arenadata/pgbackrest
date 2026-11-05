@@ -479,13 +479,11 @@ sub containerBuild
         #---------------------------------------------------------------------------------------------------------------------------
         my $strGostPath = '/usr/local/lib/gost';
         my $strGostBranch = 'v3.0.3';
-        my $strGostTarget = 'gost_engine gost_prov';
 
-        # Providers require OpenSSL >= 3
+        # The GOST engine for OpenSSL < 3 is on a separate branch
         if ($strOS eq VM_D11 || $strOS eq VM_RH8)
         {
             $strGostBranch = 'openssl_1_1_1';
-            $strGostTarget = 'gost_engine';
         }
 
         # The engine prints "GOST engine already loaded" to stdout when it is loaded twice in one process, which breaks programs that
@@ -496,21 +494,25 @@ sub containerBuild
             "        --recurse-submodules --shallow-submodules https://github.com/gost-engine/engine.git ${strGostPath} && \\\n" .
             "    sed -i '/GOST engine already loaded/d' ${strGostPath}/gost_eng.c && \\\n" .
             "    cmake -S ${strGostPath} -B ${strGostPath}/build -DCMAKE_BUILD_TYPE=Release && \\\n" .
-            "    cmake --build ${strGostPath}/build -j \$(nproc) --target ${strGostTarget}";
+            "    cmake --build ${strGostPath}/build -j \$(nproc) --target gost_engine";
 
-        # Write the configurations with printf, so each \\n below is a literal backslash-n that printf turns into a newline
+        # Enable the GOST engine in the system OpenSSL configuration so every process can use the GOST ciphers. Each distribution
+        # names the section that loads modules differently, so find it from the openssl_conf setting. Keep a copy of the original
+        # configuration at /openssl-no-gost.cnf for tests that need OpenSSL without GOST.
         $strScript .= sectionHeader() .
-            "# Write GOST engine configuration\n" .
+            "# Enable GOST in the system OpenSSL configuration\n" .
+            q{    OPENSSL_CNF=$(readlink -f $(openssl version -d | sed -E 's/^OPENSSLDIR: "(.*)"$/\1/')/openssl.cnf)} . " && \\\n" .
+            q{    OPENSSL_INIT=$(sed -n -E 's/^\s*openssl_conf\s*=\s*(\S+).*/\1/p' ${OPENSSL_CNF} | head -1)} . " && \\\n" .
+            q{    test -n "${OPENSSL_INIT}"} . " && \\\n" .
+            q{    cp ${OPENSSL_CNF} /openssl-no-gost.cnf} . " && \\\n" .
+            q{    sed -i -E "/^\s*\[\s*${OPENSSL_INIT}\s*\]/a engines = gost_engines" ${OPENSSL_CNF}} . " && \\\n" .
             "    printf '" .
-                "openssl_conf = init\\n" .
-                "[init]\\n" .
-                "engines = engines\\n" .
-                "[engines]\\n" .
-                "gost = gost\\n" .
-                "[gost]\\n" .
+                "\\n[gost_engines]\\n" .
+                "gost = gost_section\\n" .
+                "\\n[gost_section]\\n" .
                 "dynamic_path = ${strGostPath}/build/bin/gost.so\\n" .
                 "default_algorithms = ALL\\n" .
-                "' > /openssl-gost-engine.cnf";
+                q{' >> ${OPENSSL_CNF}};
 
         #---------------------------------------------------------------------------------------------------------------------------
         if (!$bDeprecated)

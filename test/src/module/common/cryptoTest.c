@@ -1,6 +1,8 @@
 /***********************************************************************************************************************************
 Test Block Cipher
 ***********************************************************************************************************************************/
+#include <unistd.h>
+
 #include "common/io/bufferRead.h"
 #include "common/io/filter/filter.h"
 #include "common/io/io.h"
@@ -35,6 +37,11 @@ static void
 testRun(void)
 {
     FUNCTION_HARNESS_VOID();
+
+    // The test containers enable GOST in the system OpenSSL configuration, so use the original configuration without GOST when it
+    // exists. This must be set before OpenSSL is first used in this process.
+    if (access("/openssl-no-gost.cnf", F_OK) == 0)
+        setenv("OPENSSL_CONF", "/openssl-no-gost.cnf", true);
 
     const Buffer *testPass = BUFSTRDEF(TEST_PASS);
     const Buffer *testPlainText = BUFSTRDEF(TEST_PLAINTEXT);
@@ -509,6 +516,8 @@ testRun(void)
             strNewEncode(encodingHex, pckReadBinP(ioFilterGroupResultP(ioReadFilterGroup(read), XX_HASH_FILTER_TYPE))),
             "1a3e11127b", "check small hash 5");
     }
+
+    unsetenv("OPENSSL_CONF");
 
     FUNCTION_HARNESS_RETURN_VOID();
 }
