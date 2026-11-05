@@ -114,12 +114,12 @@ testRun(void)
             "unable to load digest 'BOGUS'");
 
         TEST_ERROR(
-            cipherBlockNewP(cipherModeEncrypt, cipherTypeKuznyechikCbc, BUFSTRZ(TEST_PASS)), AssertError,
+            cipherBlockNewP(cipherModeEncrypt, cipherTypeKuznyechikCbc, BUFSTRZ(TEST_PASS)), CryptoError,
             "unable to load cipher 'kuznyechik-cbc'\n"
             "HINT: some ciphers (e.g. GOST) are not included with OpenSSL, check that they are installed and configured in"
             " openssl.cnf.");
         TEST_ERROR(
-            cipherBlockNewP(cipherModeEncrypt, cipherTypeMagmaCbc, BUFSTRZ(TEST_PASS)), AssertError,
+            cipherBlockNewP(cipherModeEncrypt, cipherTypeMagmaCbc, BUFSTRZ(TEST_PASS)), CryptoError,
             "unable to load cipher 'magma-cbc'\n"
             "HINT: some ciphers (e.g. GOST) are not included with OpenSSL, check that they are installed and configured in"
             " openssl.cnf.");

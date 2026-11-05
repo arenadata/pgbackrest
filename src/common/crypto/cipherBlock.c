@@ -492,7 +492,7 @@ cipherBlockNew(const CipherMode mode, const CipherType cipherType, const Buffer 
     if (!cipher)
     {
         THROW_FMT(
-            AssertError,
+            CryptoError,
             "unable to load cipher '%s'\n"
             "HINT: some ciphers (e.g. GOST) are not included with OpenSSL, check that they are installed and configured in"
             " openssl.cnf.",
