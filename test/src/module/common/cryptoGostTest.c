@@ -192,7 +192,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         Buffer *decryptBuffer = bufNew(TEST_BUFFER_SIZE);
 
-        IoFilter *blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, type, testPass, .digest = STRDEF("sha1"));
+        IoFilter *blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeKuznyechikCbc, testPass, .digest = STRDEF("sha1"));
         blockDecryptFilter = cipherBlockNewPack(ioFilterParamList(blockDecryptFilter));
         CipherBlock *blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
 
