@@ -670,6 +670,8 @@ testRun(void)
             HRN_CFG_LOAD(cfgCmdArchivePush, argListTemp);
             hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
 
+            THROW_ON_SYS_ERROR(chdir(strZ(cfgOptionStr(cfgOptPgPath))) != 0, PathMissingError, "unable to chdir()");
+
             // repo2 is encrypted
             HRN_INFO_PUT(
                 storageRepoIdxWrite(0), INFO_ARCHIVE_PATH_FILE,

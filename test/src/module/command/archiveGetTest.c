@@ -1188,6 +1188,8 @@ testRun(void)
 
     if (testBegin("cmdArchiveGet() with GOST ciphers"))
     {
+        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_10);
+
         Buffer *buffer = bufNew(16 * 1024 * 1024);
         memset(bufPtr(buffer), 0, bufSize(buffer));
         bufUsedSet(buffer, bufSize(buffer));
