@@ -1186,6 +1186,51 @@ testRun(void)
         TEST_STORAGE_LIST_EMPTY(storageSpool(), STORAGE_SPOOL_ARCHIVE_IN);
     }
 
+    if (testBegin("cmdArchiveGet() with GOST ciphers"))
+    {
+        const CipherType ciphers[] = {cipherTypeKuznyechikCbc, cipherTypeMagmaCbc};
+        for(unsigned int cipherIdx = 0; cipherIdx < LENGTH_OF(ciphers); cipherIdx++)
+        {
+            const CipherType currentCipher = ciphers[cipherIdx];
+
+            HRN_INFO_PUT(
+                storageRepoWrite(), INFO_ARCHIVE_PATH_FILE,
+                "[cipher]\n"
+                "cipher-pass=\"" TEST_CIPHER_PASS_ARCHIVE "\"\n"
+                "\n"
+                "[db]\n"
+                "db-id=1\n"
+                "\n"
+                "[db:history]\n"
+                "1={\"db-id\":" HRN_PG_SYSTEMID_10_Z ",\"db-version\":\"10\"}",
+                .cipherType = currentCipher);
+
+            HRN_STORAGE_PUT(
+                storageRepoWrite(), STORAGE_REPO_ARCHIVE "/10-1/01ABCDEF01ABCDEF01ABCDEF-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                buffer, .cipherType = currentCipher, .cipherPass = TEST_CIPHER_PASS_ARCHIVE);
+
+            // Add encryption options
+            argList = strLstNew();
+            hrnCfgArgRawZ(argList, cfgOptPgPath, TEST_PATH "/pg");
+            hrnCfgArgKeyRawFmt(argList, cfgOptRepoPath, 1, TEST_PATH "/repo");
+            hrnCfgArgKeyRawStrId(argList, cfgOptRepoCipherType, 2, ciphcurrentCiphererTypeAes256Cbc);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, TEST_CIPHER_PASS);
+            hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
+            strLstAddZ(argList, "01ABCDEF01ABCDEF01ABCDEF");
+            strLstAddZ(argList, TEST_PATH "/pg/pg_wal/RECOVERYXLOG");
+            HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
+            hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
+
+            TEST_RESULT_INT(cmdArchiveGet(), 0, "get");
+
+            TEST_RESULT_UINT(storageInfoP(storagePg(), STRDEF("pg_wal/RECOVERYXLOG")).size, 16 * 1024 * 1024, "check size");
+            TEST_STORAGE_LIST(storagePgWrite(), "pg_wal", "RECOVERYXLOG\n", .remove = true);
+            HRN_STORAGE_REMOVE(
+                storageRepoWrite(),
+                STORAGE_REPO_ARCHIVE "/10-1/01ABCDEF01ABCDEF01ABCDEF-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        }
+    }
+
     if (testBegin("wal Filter"))
     {
         const Storage *storageTest = storagePosixNewP(TEST_PATH_STR, .write = true);
