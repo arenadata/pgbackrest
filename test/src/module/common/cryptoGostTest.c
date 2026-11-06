@@ -144,7 +144,7 @@ testRun(void)
             TEST_RESULT_UINT(cipherBlock->headerSize, 0, "header size is 0");
             TEST_RESULT_PTR_NE(cipherBlock->cipher, NULL, "cipher is set");
             TEST_RESULT_PTR_NE(cipherBlock->digest, NULL, "digest is set");
-            TEST_RESULT_INT_NE(EVP_CIPHER_block_size(cipherBlock->cipher), 0, "block size is not null")
+            TEST_RESULT_INT_NE(EVP_CIPHER_block_size(cipherBlock->cipher), 0, "block size is not null");
             TEST_RESULT_PTR(cipherBlock->cipherContext, NULL, "cipher context is not set");
 
             ioFilterFree(cipherFilter);
