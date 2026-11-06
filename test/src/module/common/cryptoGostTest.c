@@ -29,8 +29,8 @@ static const struct
     {
         .type = cipherTypeMagmaCbc,
         .name = "magma-cbc",
-        .plaintext = "textaa",
-        .finalplaintext = "textaa" "textaa",
+        .plaintext = "texta",
+        .finalplaintext = "texta" "texta",
     },
 };
 
