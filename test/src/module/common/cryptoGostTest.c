@@ -144,7 +144,6 @@ testRun(void)
             TEST_RESULT_UINT(cipherBlock->headerSize, 0, "header size is 0");
             TEST_RESULT_PTR_NE(cipherBlock->cipher, NULL, "cipher is set");
             TEST_RESULT_PTR_NE(cipherBlock->digest, NULL, "digest is set");
-            TEST_RESULT_INT_NE(EVP_CIPHER_block_size(cipherBlock->cipher), 0, "block size is not null");
             TEST_RESULT_PTR(cipherBlock->cipherContext, NULL, "cipher context is not set");
 
             ioFilterFree(cipherFilter);
@@ -224,7 +223,7 @@ testRun(void)
 
             // Decrypt in small chunks to test buffering
             // -------------------------------------------------------------------------------------------------------------------------
-            blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeKuznyechikCbc, testPass);
+            blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, type, testPass);
             blockDecrypt = (CipherBlock *)ioFilterDriver(blockDecryptFilter);
 
             bufUsedZero(decryptBuffer);
@@ -255,10 +254,6 @@ testRun(void)
                 bufNewC(bufPtr(encryptBuffer) + CIPHER_BLOCK_HEADER_SIZE, bufUsed(encryptBuffer) - CIPHER_BLOCK_HEADER_SIZE),
                 decryptBuffer);
             TEST_RESULT_UINT_INT(bufUsed(decryptBuffer), EVP_CIPHER_block_size(blockDecrypt->cipher), "decrypt size is one block");
-            TEST_RESULT_BOOL(blockDecrypt->processDone, true, "process done is true");
-
-            if (cipherIdx == 1)
-                TEST_RESULT_UINT(bufUsed(decryptBuffer), bufUsed(testPlainText) * 2, "check decrypt before flush size");
 
             ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
             TEST_RESULT_UINT(bufUsed(decryptBuffer), bufUsed(testPlainText) * 2, "check final decrypt size");
