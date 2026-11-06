@@ -2579,8 +2579,24 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                                     switch (ruleOption->type)
                                     {
                                         case cfgOptTypeStringId:
+                                        {
                                             allowListFound = parseRuleValueStrId[valueIdx] == configOptionValue->value.stringId;
+
+                                            // A StringId holds only the start of a long value, so also compare the text to reject
+                                            // values that only start like an allowed value. Also accept the truncated form ending
+                                            // in + since that is how a long value is passed to another process when the option was
+                                            // set without its text, e.g. cipher options retrieved from a remote.
+                                            if (allowListFound &&
+                                                !strEq(valueAllow, cfgParseOptionValueStr(ruleOption->type, valueIdx)))
+                                            {
+                                                char strIdZ[STRID_MAX + 1];
+                                                strIdToZ(configOptionValue->value.stringId, strIdZ);
+
+                                                allowListFound = strEqZ(valueAllow, strIdZ);
+                                            }
+
                                             break;
+                                        }
 
                                         default:
                                             allowListFound =

@@ -22,6 +22,7 @@ Verify contents of the repository.
 #include "common/log.h"
 #include "common/regExp.h"
 #include "config/config.h"
+#include "info/info.h"
 #include "info/infoArchive.h"
 #include "info/infoBackup.h"
 #include "info/manifest.h"
@@ -124,6 +125,7 @@ typedef struct VerifyJobData
     String *currentBackup;                                          // In progress backup, if any
     const InfoPg *pgHistory;                                        // Database history list
     bool backupProcessing;                                          // Are we processing WAL or are we processing backups
+    CipherType cipherType;                                          // Cipher type for reading repo files
     const String *manifestCipherPass;                               // Cipher pass for reading backup manifests
     const String *walCipherPass;                                    // Cipher pass for reading WAL files
     const String *backupCipherPass;                                 // Cipher pass for reading backup files referenced in a manifest
@@ -243,13 +245,26 @@ verifyInfoFile(const String *const pathFileName, const bool keepFile, const Stri
         }
         CATCH_ANY()
         {
-            result.errorCode = errorCode();
-            String *const errorMsg = strCatZ(strNew(), errorMessage());
+            TRY_BEGIN()
+            {
+                // Replace the error with a clearer one when the cipher settings do not match the file. A checksum error means the
+                // file was decrypted so there is no need to check.
+                if (errorType() != &ChecksumError)
+                    infoLoadErrorRethrow(storageRepo(), pathFileName, cfgOptionStrId(cfgOptRepoCipherType), cipherPass);
 
-            if (result.errorCode == errorTypeCode(&ChecksumError))
-                strCat(errorMsg, strNewFmt(" %s", strZ(pathFileName)));
+                RETHROW();
+            }
+            CATCH_ANY()
+            {
+                result.errorCode = errorCode();
+                String *const errorMsg = strCatZ(strNew(), errorMessage());
 
-            LOG_DETAIL(strZ(errorMsg));
+                if (result.errorCode == errorTypeCode(&ChecksumError))
+                    strCat(errorMsg, strNewFmt(" %s", strZ(pathFileName)));
+
+                LOG_DETAIL(strZ(errorMsg));
+            }
+            TRY_END();
         }
         TRY_END();
     }
@@ -989,6 +1004,7 @@ verifyArchive(VerifyJobData *const jobData)
                         pckWriteU32P(param, compressTypeFromName(filePathName));
                         pckWriteBinP(param, checksum);
                         pckWriteU64P(param, archiveResult->pgWalInfo.size);
+                        pckWriteU64P(param, jobData->cipherType);
                         pckWriteStrP(param, jobData->walCipherPass);
 
                         // Assign job to result, prepending the archiveId to the key for consistency with backup processing
@@ -1231,6 +1247,7 @@ verifyBackup(VerifyJobData *const jobData)
                                 pckWriteU32P(param, compressTypeNone);
                                 pckWriteBinP(param, BUF(fileData.checksumRepoSha1, HASH_TYPE_SHA1_SIZE));
                                 pckWriteU64P(param, fileData.sizeRepo);
+                                pckWriteU64P(param, cipherTypeNone);
                                 pckWriteStrP(param, NULL);
                             }
                             // Else use the file checksum, which may require additional filters, e.g. decompression
@@ -1239,6 +1256,7 @@ verifyBackup(VerifyJobData *const jobData)
                                 pckWriteU32P(param, manifestData(jobData->manifest)->backupOptionCompressType);
                                 pckWriteBinP(param, BUF(fileData.checksumSha1, HASH_TYPE_SHA1_SIZE));
                                 pckWriteU64P(param, fileData.size);
+                                pckWriteU64P(param, jobData->cipherType);
                                 pckWriteStrP(param, jobData->backupCipherPass);
                             }
 
@@ -1871,6 +1889,7 @@ verifyProcess(const bool verboseText)
                 .walPathList = NULL,
                 .walFileList = strLstNew(),
                 .pgHistory = infoArchivePg(archiveInfo),
+                .cipherType = cfgOptionStrId(cfgOptRepoCipherType),
                 .manifestCipherPass = infoPgCipherPass(infoBackupPg(backupInfo)),
                 .walCipherPass = infoPgCipherPass(infoArchivePg(archiveInfo)),
                 .archiveIdResultList = lstNewP(sizeof(VerifyArchiveResult), .comparator = archiveIdComparator),

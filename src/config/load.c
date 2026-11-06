@@ -3,6 +3,7 @@ Configuration Load
 ***********************************************************************************************************************************/
 #include "build.auto.h"
 
+#include <openssl/opensslv.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -384,6 +385,36 @@ cfgLoadUpdateOption(void)
                     OptionInvalidValueError,
                     "'%d' is out of range for '" CFGOPT_COMPRESS_LEVEL "' option when '" CFGOPT_COMPRESS_TYPE "' option = '%s'",
                     cfgOptionInt(cfgOptCompressLevel), strZ(strIdToStr(cfgOptionStrId(cfgOptCompressType))));
+            }
+        }
+    }
+
+    if (cfgOptionValid(cfgOptRepoCipherType))
+    {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        const CipherType cipherTypeFrom = cipherTypeGrasshopperCbc;
+        const CipherType cipherTypeTo = cipherTypeKuznyechikCbc;
+        const char *const cipherNameFrom = "grasshopper-cbc";
+        const char *const cipherNameTo = "kuznyechik-cbc";
+#else
+        const CipherType cipherTypeFrom = cipherTypeKuznyechikCbc;
+        const CipherType cipherTypeTo = cipherTypeGrasshopperCbc;
+        const char *const cipherNameFrom = "kuznyechik-cbc";
+        const char *const cipherNameTo = "grasshopper-cbc";
+#endif
+
+        for (unsigned int repoIdx = 0; repoIdx < cfgOptionGroupIdxTotal(cfgOptGrpRepo); repoIdx++)
+        {
+            if (cfgOptionIdxStrId(cfgOptRepoCipherType, repoIdx) == cipherTypeFrom)
+            {
+                LOG_WARN_FMT(
+                    "option '%s' is '%s', which this version of OpenSSL names '%s', so '%s' will be used",
+                    cfgOptionIdxName(cfgOptRepoCipherType, repoIdx), cipherNameFrom, cipherNameTo, cipherNameTo);
+
+                // Keep the source so the option is still passed to local and remote processes
+                cfgOptionIdxSet(
+                    cfgOptRepoCipherType, repoIdx, cfgOptionIdxSource(cfgOptRepoCipherType, repoIdx),
+                    VARUINT64(cipherTypeTo));
             }
         }
     }

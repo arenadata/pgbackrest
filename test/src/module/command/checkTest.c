@@ -775,5 +775,34 @@ testRun(void)
             "HINT: did an error occur during stanza-upgrade?");
     }
 
+    if (testBegin("Verify GOST ciphers are working"))
+    {
+        const CipherType ciphers[] = {cipherTypeKuznyechikCbc, cipherTypeMagmaCbc};
+        for(unsigned int cipherIdx = 0; cipherIdx < LENGTH_OF(ciphers); cipherIdx++)
+        {
+            const CipherType currentCipher = ciphers[cipherIdx];
+
+            argList = strLstNew();
+            hrnCfgArgRawBool(argList, cfgOptOnline, false);
+            hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
+            hrnCfgArgRawZ(argList, cfgOptPgPath, TEST_PATH "/pg");
+            hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
+            hrnCfgArgRawStrId(argList, cfgOptRepoCipherType, currentCipher);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 1, TEST_CIPHER_PASS);
+            HRN_CFG_LOAD(cfgCmdStanzaCreate, argList);
+
+            // Create pg_control
+            HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_96);
+
+            TEST_RESULT_VOID(cmdStanzaCreate(), "stanza create - encryption");
+            TEST_RESULT_LOG("P00   INFO: stanza-create for stanza 'test1' on repo1");
+
+            TEST_RESULT_VOID(
+                checkStanzaInfoPg(
+                    storageRepoIdx(0), PG_VERSION_96, HRN_PG_SYSTEMID_96, cfgOptionIdxStrId(cfgOptRepoCipherType, 0),
+                    cfgOptionIdxStr(cfgOptRepoCipherPass, 0)), "stanza check - encryption");
+        }
+    }
+
     FUNCTION_HARNESS_RETURN_VOID();
 }

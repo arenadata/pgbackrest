@@ -25,6 +25,6 @@ Functions
 // Verify a file in the pgBackRest repository
 FN_EXTERN VerifyResult verifyFile(
     const String *filePathName, uint64_t offset, const Variant *limit, CompressType compressType, const Buffer *fileChecksum,
-    uint64_t fileSize, const String *cipherPass);
+    uint64_t fileSize, CipherType cipherType, const String *cipherPass);
 
 #endif
