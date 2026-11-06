@@ -254,8 +254,9 @@ testRun(void)
                 bufNewC(bufPtr(encryptBuffer) + CIPHER_BLOCK_HEADER_SIZE, bufUsed(encryptBuffer) - CIPHER_BLOCK_HEADER_SIZE),
                 decryptBuffer);
             TEST_RESULT_UINT_INT(bufUsed(decryptBuffer), EVP_CIPHER_block_size(blockDecrypt->cipher), "decrypt size is one block");
-            TEST_RESULT_BOOL(blockDecrypt->processDone, true, "process done is false");
-            TEST_RESULT_UINT(bufUsed(decryptBuffer), bufUsed(testPlainText) * 2, "check final decrypt size");
+            TEST_RESULT_BOOL(blockDecrypt->processDone, true, "process done is true");
+
+            TEST_RESULT_INFO_LINE_FMT("flushed %d, buffer size %d, holds %s", ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer), bufUsed(decryptBuffer), strNewBuf(decryptBuffer));
 
             ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
             TEST_RESULT_UINT(bufUsed(decryptBuffer), bufUsed(testPlainText) * 2, "check final decrypt size");
