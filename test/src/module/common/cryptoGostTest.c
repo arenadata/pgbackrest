@@ -129,7 +129,7 @@ testRun(void)
         {
             const CipherType type = testGostList[cipherIdx].type;
             const Buffer *const testPlainText = BUFSTRZ(testGostList[cipherIdx].plaintext);
-            const Buffer *const testPlainTextFinal = BUFSTRZ(testGostList[cipherIdx].finalplaintext)
+            const Buffer *const testPlainTextFinal = BUFSTRZ(testGostList[cipherIdx].finalplaintext);
 
             TEST_TITLE_FMT("%s", testGostList[cipherIdx].name);
 
