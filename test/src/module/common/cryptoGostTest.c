@@ -254,6 +254,7 @@ testRun(void)
                 bufNewC(bufPtr(encryptBuffer) + CIPHER_BLOCK_HEADER_SIZE, bufUsed(encryptBuffer) - CIPHER_BLOCK_HEADER_SIZE),
                 decryptBuffer);
             TEST_RESULT_UINT_INT(bufUsed(decryptBuffer), EVP_CIPHER_block_size(blockDecrypt->cipher), "decrypt size is one block");
+            TEST_RESULT_BOOL(blockDecrypt->processDone, true, "process done is false");
 
             ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
             TEST_RESULT_UINT(bufUsed(decryptBuffer), bufUsed(testPlainText) * 2, "check final decrypt size");
