@@ -247,6 +247,7 @@ testRun(void)
                     blockDecrypt->header + CIPHER_BLOCK_MAGIC_SIZE, bufPtr(encryptBuffer) + CIPHER_BLOCK_MAGIC_SIZE,
                     PKCS5_SALT_LEN) == 0,
                 true, "check header salt");
+            TEST_RESULT_BOOL(blockDecrypt->processDone, false, "process done is false");
 
             ioFilterProcessInOut(
                 blockDecryptFilter,
