@@ -126,7 +126,7 @@ testRun(void)
         for (unsigned int cipherIdx = 0; cipherIdx < LENGTH_OF(testGostList); cipherIdx++)
         {
             const CipherType type = testGostList[cipherIdx].type;
-            const Buffer *const testPlainText = bufNewDecode(encodingHex, STRDEF(testGostList[cipherIdx].plaintext));
+            const Buffer *const testPlainText = BUFSTRZ(testGostList[cipherIdx].plaintext);
 
             TEST_TITLE_FMT("%s", testGostList[cipherIdx].name);
 
