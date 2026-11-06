@@ -1188,6 +1188,10 @@ testRun(void)
 
     if (testBegin("cmdArchiveGet() with GOST ciphers"))
     {
+        Buffer *buffer = bufNew(16 * 1024 * 1024);
+        memset(bufPtr(buffer), 0, bufSize(buffer));
+        bufUsedSet(buffer, bufSize(buffer));
+
         const CipherType ciphers[] = {cipherTypeKuznyechikCbc, cipherTypeMagmaCbc};
         for(unsigned int cipherIdx = 0; cipherIdx < LENGTH_OF(ciphers); cipherIdx++)
         {
@@ -1210,10 +1214,10 @@ testRun(void)
                 buffer, .cipherType = currentCipher, .cipherPass = TEST_CIPHER_PASS_ARCHIVE);
 
             // Add encryption options
-            argList = strLstNew();
+            StringList *argList = strLstNew();
             hrnCfgArgRawZ(argList, cfgOptPgPath, TEST_PATH "/pg");
             hrnCfgArgKeyRawFmt(argList, cfgOptRepoPath, 1, TEST_PATH "/repo");
-            hrnCfgArgKeyRawStrId(argList, cfgOptRepoCipherType, 2, ciphcurrentCiphererTypeAes256Cbc);
+            hrnCfgArgKeyRawStrId(argList, cfgOptRepoCipherType, 2, currentCipher);
             hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, TEST_CIPHER_PASS);
             hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
             strLstAddZ(argList, "01ABCDEF01ABCDEF01ABCDEF");

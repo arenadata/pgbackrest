@@ -777,7 +777,7 @@ testRun(void)
 
     if (testBegin("Verify GOST ciphers are working"))
     {
-        const CipherType ciphers[] = {cipherTypeAes256Cbc, cipherTypeKuznyechikCbc, cipherTypeMagmaCbc};
+        const CipherType ciphers[] = {cipherTypeKuznyechikCbc, cipherTypeMagmaCbc};
         for(unsigned int cipherIdx = 0; cipherIdx < LENGTH_OF(ciphers); cipherIdx++)
         {
             const CipherType currentCipher = ciphers[cipherIdx];
@@ -800,7 +800,7 @@ testRun(void)
             TEST_RESULT_VOID(
                 checkStanzaInfoPg(
                     storageRepoIdx(0), PG_VERSION_96, HRN_PG_SYSTEMID_96, cfgOptionIdxStrId(cfgOptRepoCipherType, 0),
-                    cfgOptionIdxStr(cfgOptRepoCipherPass, 0)));
+                    cfgOptionIdxStr(cfgOptRepoCipherPass, 0)), "stanza check - encryption");
         }
     }
 
