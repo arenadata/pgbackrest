@@ -10,7 +10,6 @@ Test Block Cipher
 Data for testing
 ***********************************************************************************************************************************/
 #define TEST_PASS                                                   "areallybadpassphrase"
-#define TEST_PLAINTEXT                                              "plaintext"
 #define TEST_BUFFER_SIZE                                            256
 
 static const struct
@@ -18,17 +17,20 @@ static const struct
     CipherType type;                                                // Cipher type
     const char *name;                                               // Name for test titles
     const char *plaintext;                                          // Plaintext
+    const char *finalplaintext;                                     // Plaintext after decryption
 } testGostList[] =
 {
     {
         .type = cipherTypeKuznyechikCbc,
         .name = "kuznyechik-cbc",
         .plaintext = "plaintext",
+        .finalplaintext = "plaintext" "plaintext",
     },
     {
         .type = cipherTypeMagmaCbc,
         .name = "magma-cbc",
         .plaintext = "textaa",
+        .finalplaintext = "textaa" "textaa",
     },
 };
 
@@ -127,6 +129,7 @@ testRun(void)
         {
             const CipherType type = testGostList[cipherIdx].type;
             const Buffer *const testPlainText = BUFSTRZ(testGostList[cipherIdx].plaintext);
+            const Buffer *const testPlainTextFinal = BUFSTRZ(testGostList[cipherIdx].finalplaintext)
 
             TEST_TITLE_FMT("%s", testGostList[cipherIdx].name);
 
@@ -155,8 +158,8 @@ testRun(void)
             CipherBlock *blockEncrypt = (CipherBlock *)ioFilterDriver(blockEncryptFilter);
 
             TEST_RESULT_UINT(
-                cipherBlockProcessSize(blockEncrypt, strlen(TEST_PLAINTEXT)),
-                strlen(TEST_PLAINTEXT) + EVP_MAX_BLOCK_LENGTH + CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN, "check process size");
+                cipherBlockProcessSize(blockEncrypt, bufSize(testPlainText)),
+                bufSize(testPlainText) + EVP_MAX_BLOCK_LENGTH + CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN, "check process size");
 
             bufLimitSet(encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE);
             ioFilterProcessInOut(blockEncryptFilter, testPlainText, encryptBuffer);
@@ -173,8 +176,8 @@ testRun(void)
             TEST_RESULT_UINT(bufUsed(encryptBuffer), CIPHER_BLOCK_HEADER_SIZE, "cipher size is header len");
 
             TEST_RESULT_UINT(
-                cipherBlockProcessSize(blockEncrypt, strlen(TEST_PLAINTEXT)),
-                strlen(TEST_PLAINTEXT) + EVP_MAX_BLOCK_LENGTH, "check process size");
+                cipherBlockProcessSize(blockEncrypt, bufSize(testPlainText)),
+                bufSize(testPlainText) + EVP_MAX_BLOCK_LENGTH, "check process size");
 
             bufLimitSet(
                 encryptBuffer, CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN + (size_t)EVP_CIPHER_block_size(blockEncrypt->cipher) / 2);
@@ -213,9 +216,9 @@ testRun(void)
             TEST_RESULT_UINT_INT(bufUsed(decryptBuffer), EVP_CIPHER_block_size(blockDecrypt->cipher), "decrypt size is one block");
 
             ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
-            TEST_RESULT_UINT(bufUsed(decryptBuffer), strlen(TEST_PLAINTEXT) * 2, "check final decrypt size");
+            TEST_RESULT_UINT(bufUsed(decryptBuffer), bufSize(testPlainText) * 2, "check final decrypt size");
 
-            TEST_RESULT_STR_Z(strNewBuf(decryptBuffer), TEST_PLAINTEXT TEST_PLAINTEXT, "check final decrypt buffer");
+            TEST_RESULT_STR_Z(strNewBuf(decryptBuffer), testGostList[cipherIdx].finalplaintext, "check final decrypt buffer");
 
             ioFilterFree(blockDecryptFilter);
 
@@ -253,9 +256,9 @@ testRun(void)
             TEST_RESULT_UINT_INT(bufUsed(decryptBuffer), EVP_CIPHER_block_size(blockDecrypt->cipher), "decrypt size is one block");
 
             ioFilterProcessInOut(blockDecryptFilter, NULL, decryptBuffer);
-            TEST_RESULT_UINT(bufUsed(decryptBuffer), strlen(TEST_PLAINTEXT) * 2, "check final decrypt size");
+            TEST_RESULT_UINT(bufUsed(decryptBuffer), bufSize(testPlainText) * 2, "check final decrypt size");
 
-            TEST_RESULT_STR_Z(strNewBuf(decryptBuffer), TEST_PLAINTEXT TEST_PLAINTEXT, "check final decrypt buffer");
+            TEST_RESULT_STR_Z(strNewBuf(decryptBuffer), testGostList[cipherIdx].finalplaintext, "check final decrypt buffer");
 
             ioFilterFree(blockDecryptFilter);
 
