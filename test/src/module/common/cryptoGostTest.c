@@ -271,7 +271,7 @@ testRun(void)
             bufUsedZero(encryptBuffer);
 
             ioFilterProcessInOut(blockEncryptFilter, NULL, encryptBuffer);
-            TEST_RESULT_UINT(bufUsed(encryptBuffer), 24, "check remaining size");
+            TEST_RESULT_UINT(bufUsed(encryptBuffer), CIPHER_BLOCK_MAGIC_SIZE + EVP_CIPHER_block_size(blockDecrypt->cipher), "check remaining size");
 
             ioFilterFree(blockEncryptFilter);
 
