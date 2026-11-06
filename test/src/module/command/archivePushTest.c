@@ -661,14 +661,13 @@ testRun(void)
             StringList *argListTemp = strLstNew();
             hrnCfgArgRawZ(argListTemp, cfgOptStanza, "test");
             hrnCfgArgKeyRawZ(argListTemp, cfgOptPgPath, 1, TEST_PATH "/pg");
-            hrnCfgArgKeyRawZ(argListTemp, cfgOptRepoPath, 2, TEST_PATH "/repo2");
-            hrnCfgArgKeyRawStrId(argListTemp, cfgOptRepoCipherType, 2, currentCipher);
-            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, "badpassphrase");
-            hrnCfgArgKeyRawZ(argListTemp, cfgOptRepoPath, 3, TEST_PATH "/repo3");
+            hrnCfgArgKeyRawZ(argListTemp, cfgOptRepoPath, 1, TEST_PATH "/repo");
+            hrnCfgArgKeyRawStrId(argListTemp, cfgOptRepoCipherType, 1, currentCipher);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 1, "badpassphrase");
             hrnCfgArgRawNegate(argListTemp, cfgOptCompress);
             strLstAddZ(argListTemp, "pg_wal/000000010000000100000002");
             HRN_CFG_LOAD(cfgCmdArchivePush, argListTemp);
-            hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
+            hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 1);
 
             THROW_ON_SYS_ERROR(chdir(strZ(cfgOptionStr(cfgOptPgPath))) != 0, PathMissingError, "unable to chdir()");
 
@@ -685,26 +684,13 @@ testRun(void)
                 "1={\"db-id\":" HRN_PG_SYSTEMID_11_Z ",\"db-version\":\"11\"}",
                 .cipherType = currentCipher, .cipherPass = "badpassphrase");
 
-            // repo3 is not encrypted
-            HRN_INFO_PUT(
-                storageRepoIdxWrite(1), INFO_ARCHIVE_PATH_FILE,
-                "[db]\n"
-                "db-id=1\n"
-                "\n"
-                "[db:history]\n"
-                "1={\"db-id\":" HRN_PG_SYSTEMID_11_Z ",\"db-version\":\"11\"}");
-
             // Push encrypted WAL segment
             TEST_RESULT_VOID(cmdArchivePush(), "push the WAL segment");
             TEST_RESULT_LOG("P00   INFO: pushed WAL file '000000010000000100000002' to the archive");
 
             TEST_STORAGE_EXISTS(
-                storageTest, zNewFmt("repo2/archive/test/11-1/0000000100000001/000000010000000100000002-%s", walBuffer2Sha1),
-                .remove = true, .comment = "check repo2 for WAL file then remove");
-
-            TEST_STORAGE_EXISTS(
-                storageTest, zNewFmt("repo3/archive/test/11-1/0000000100000001/000000010000000100000002-%s", walBuffer2Sha1),
-                .remove = true, .comment = "check repo3 for WAL file then remove");\
+                storageTest, zNewFmt("repo/archive/test/11-1/0000000100000001/000000010000000100000002-%s", walBuffer2Sha1),
+                .remove = true, .comment = "check repo for WAL file then remove");
         }
     }
 

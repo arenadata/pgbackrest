@@ -1219,13 +1219,13 @@ testRun(void)
             StringList *argList = strLstNew();
             hrnCfgArgRawZ(argList, cfgOptPgPath, TEST_PATH "/pg");
             hrnCfgArgKeyRawFmt(argList, cfgOptRepoPath, 1, TEST_PATH "/repo");
-            hrnCfgArgKeyRawStrId(argList, cfgOptRepoCipherType, 2, currentCipher);
-            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, TEST_CIPHER_PASS);
+            hrnCfgArgKeyRawStrId(argList, cfgOptRepoCipherType, 1, currentCipher);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 1, TEST_CIPHER_PASS);
             hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
             strLstAddZ(argList, "01ABCDEF01ABCDEF01ABCDEF");
             strLstAddZ(argList, TEST_PATH "/pg/pg_wal/RECOVERYXLOG");
             HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
-            hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
+            hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 1);
 
             TEST_RESULT_INT(cmdArchiveGet(), 0, "get");
 
