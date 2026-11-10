@@ -1360,6 +1360,63 @@ testRun(void)
             "HINT: allowed values are 'lsn', 'name', 'time', 'xid', 'preserve', 'none', 'immediate', 'default', 'standby'");
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("option value only starts like a long allowed value (StringId)");
+
+        argList = strLstNew();
+        strLstAddZ(argList, TEST_BACKREST_EXE);
+        hrnCfgArgRawZ(argList, cfgOptPgPath, "/path/to/db");
+        hrnCfgArgRawZ(argList, cfgOptStanza, "db");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "aes-128-cbz");
+        strLstAddZ(argList, TEST_COMMAND_BACKUP);
+        TEST_ERROR(
+            cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidValueError,
+            "'aes-128-cbz' is not allowed for 'repo1-cipher-type' option\n"
+            "HINT: allowed values are 'none', 'aes-256-cbc', 'aes-128-cbc', 'aes-192-cbc', 'kuznyechik-cbc', 'grasshopper-cbc',"
+            " 'magma-cbc', 'aria-128-cbc', 'aria-192-cbc', 'aria-256-cbc', 'sm4-cbc'");
+
+        TEST_TITLE("very long option value only starts like a long allowed value (StringId)");
+
+        argList = strLstNew();
+        strLstAddZ(argList, TEST_BACKREST_EXE);
+        hrnCfgArgRawZ(argList, cfgOptPgPath, "/path/to/db");
+        hrnCfgArgRawZ(argList, cfgOptStanza, "db");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "kuznyechik-cbccccccccccccccc");
+        strLstAddZ(argList, TEST_COMMAND_BACKUP);
+        TEST_ERROR(
+            cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidValueError,
+            "'kuznyechik-cbccccccccccccccc' is not allowed for 'repo1-cipher-type' option\n"
+            "HINT: allowed values are 'none', 'aes-256-cbc', 'aes-128-cbc', 'aes-192-cbc', 'kuznyechik-cbc', 'grasshopper-cbc',"
+            " 'magma-cbc', 'aria-128-cbc', 'aria-192-cbc', 'aria-256-cbc', 'sm4-cbc'");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("long allowed value and its truncated form (StringId)");
+
+        argList = strLstNew();
+        strLstAddZ(argList, TEST_BACKREST_EXE);
+        hrnCfgArgRawZ(argList, cfgOptPgPath, "/path/to/db");
+        hrnCfgArgRawZ(argList, cfgOptStanza, "db");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "kuznyechik-cbc");
+        strLstAddZ(argList, TEST_COMMAND_BACKUP);
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, "pass");
+        TEST_RESULT_VOID(
+            cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "long value");
+        TEST_RESULT_UINT(
+            cfgOptionIdxStrId(cfgOptRepoCipherType, 0), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "repo1-cipher-type");
+
+        // The truncated form is how the value is passed to another process when the option was set without its text
+        argList = strLstNew();
+        strLstAddZ(argList, TEST_BACKREST_EXE);
+        hrnCfgArgRawZ(argList, cfgOptPgPath, "/path/to/db");
+        hrnCfgArgRawZ(argList, cfgOptStanza, "db");
+        hrnCfgArgRawZ(argList, cfgOptRepoCipherType, "kuznyechik-c+");
+        strLstAddZ(argList, TEST_COMMAND_BACKUP);
+        TEST_RESULT_VOID(
+            cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "truncated value");
+        TEST_RESULT_UINT(
+            cfgOptionIdxStrId(cfgOptRepoCipherType, 0), CFGOPTVAL_REPO_CIPHER_TYPE_KUZNYECHIK_CBC, "repo1-cipher-type");
+        hrnCfgEnvRemoveRaw(cfgOptRepoCipherPass);
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("lower and upper bounds for integer ranges");
 
         argList = strLstNew();

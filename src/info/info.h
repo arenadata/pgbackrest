@@ -10,6 +10,7 @@ Object type
 typedef struct Info Info;
 typedef struct InfoSave InfoSave;
 
+#include "common/crypto/common.h"
 #include "common/ini.h"
 #include "storage/storage.h"
 
@@ -84,6 +85,11 @@ Helper functions
 ***********************************************************************************************************************************/
 // Load info file(s) and throw error for each attempt if none are successful
 FN_EXTERN void infoLoad(const String *error, InfoLoadCallback *callbackFunction, void *callbackData);
+
+// Rethrow an error from loading an encrypted info file. If the file cannot be decrypted with the cipher settings then a CryptoError
+// that says so is thrown instead, otherwise a hint is added that the file may be corrupt. Must be called from a CATCH block.
+FN_EXTERN FN_NO_RETURN void infoLoadErrorRethrow(
+    const Storage *storage, const String *fileName, CipherType cipherType, const String *cipherPass);
 
 /***********************************************************************************************************************************
 Macros for function logging

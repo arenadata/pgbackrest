@@ -1,6 +1,8 @@
 /***********************************************************************************************************************************
 Test Block Cipher
 ***********************************************************************************************************************************/
+#include <unistd.h>
+
 #include "common/io/bufferRead.h"
 #include "common/io/filter/filter.h"
 #include "common/io/io.h"
@@ -36,18 +38,34 @@ testRun(void)
 {
     FUNCTION_HARNESS_VOID();
 
+    // The test containers enable GOST in the system OpenSSL configuration, so use the original configuration without GOST when it
+    // exists. This must be set before OpenSSL is first used in this process.
+    if (access("/openssl-no-gost.cnf", F_OK) == 0)
+        setenv("OPENSSL_CONF", "/openssl-no-gost.cnf", true);
+
     const Buffer *testPass = BUFSTRDEF(TEST_PASS);
     const Buffer *testPlainText = BUFSTRDEF(TEST_PLAINTEXT);
 
     // *****************************************************************************************************************************
     if (testBegin("Common"))
     {
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeNone), "none", "cipher name - none");
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeAes128Cbc), "aes-128-cbc", "cipher name - aes-128-cbc");
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeAes192Cbc), "aes-192-cbc", "cipher name - aes-192-cbc");
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeAes256Cbc), "aes-256-cbc", "cipher name - aes-256-cbc");
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeAria128Cbc), "aria-128-cbc", "cipher name - aria-128-cbc");
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeAria192Cbc), "aria-192-cbc", "cipher name - aria-192-cbc");
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeAria256Cbc), "aria-256-cbc", "cipher name - aria-256-cbc");
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeSM4Cbc), "sm4-cbc", "cipher name - sm4-cbc");
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeKuznyechikCbc), "kuznyechik-cbc", "cipher name - kuznyechik-cbc");
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeGrasshopperCbc), "grasshopper-cbc", "cipher name - grasshopper-cbc");
+        TEST_RESULT_STR_Z(cipherConvertFromIdToStr(cipherTypeMagmaCbc), "magma-cbc", "cipher name - magma-cbc");
+        TEST_ERROR(cipherConvertFromIdToStr(strIdFromZ("bogus")), AssertError, "invalid cipher type 'bogus'");
+
         TEST_RESULT_VOID(cryptoInit(), "initialize crypto");
         TEST_RESULT_VOID(cryptoInit(), "initialize crypto again");
 
         // -------------------------------------------------------------------------------------------------------------------------
-        cryptoInit();
-
         TEST_RESULT_VOID(cryptoError(false, "no error here"), "no error");
 
         EVP_MD_CTX *context = EVP_MD_CTX_create();
@@ -67,17 +85,18 @@ testRun(void)
         // Test if the buffer was overrun
         // -------------------------------------------------------------------------------------------------------------------------
         unsigned char buffer[256] = {0};
+        memset(buffer, 0xCD, 256); // Poisoning memory, because 0 is a rather common value
 
         cryptoRandomBytes(buffer, sizeof(buffer) - 1);
         TEST_RESULT_BOOL(
-            buffer[sizeof(buffer) - 1] == 0, true, "check that buffer did not overrun (though random byte could be 0)");
+            buffer[sizeof(buffer) - 1] == 0xCD, true, "check that buffer did not overrun (though random byte could be 0)");
 
-        // Count bytes that are not zero (there shouldn't be all zeroes)
+        // Count bytes that are not 0xCD (there shouldn't be all 0xCD)
         // -------------------------------------------------------------------------------------------------------------------------
         int nonZeroTotal = 0;
 
         for (unsigned int charIdx = 0; charIdx < sizeof(buffer) - 1; charIdx++)
-            if (buffer[charIdx] != 0)                               // {uncoverable_branch - ok if there are no zeros}
+            if (buffer[charIdx] != 0xCD)                               // {uncoverable_branch - ok if there are no 0xCD}
                 nonZeroTotal++;
 
         TEST_RESULT_INT_NE(nonZeroTotal, 0, "check that there are non-zero values in the buffer");
@@ -102,15 +121,26 @@ testRun(void)
         // Cipher and digest errors
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_ERROR(
-            cipherBlockNewP(cipherModeEncrypt, cipherTypeNone, BUFSTRZ(TEST_PASS)), AssertError, "unable to load cipher 'none'");
+            cipherBlockNewP(cipherModeEncrypt, cipherTypeNone, BUFSTRZ(TEST_PASS)), AssertError, "invalid cipher type 'none'");
         TEST_ERROR(
             cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, testPass, .digest = STRDEF(BOGUS_STR)), AssertError,
             "unable to load digest 'BOGUS'");
 
+        TEST_ERROR(
+            cipherBlockNewP(cipherModeEncrypt, cipherTypeKuznyechikCbc, BUFSTRZ(TEST_PASS)), CryptoError,
+            "unable to load cipher 'kuznyechik-cbc'\n"
+            "HINT: some ciphers (e.g. GOST) are not included with OpenSSL, check that they are installed and configured in"
+            " openssl.cnf.");
+        TEST_ERROR(
+            cipherBlockNewP(cipherModeEncrypt, cipherTypeMagmaCbc, BUFSTRZ(TEST_PASS)), CryptoError,
+            "unable to load cipher 'magma-cbc'\n"
+            "HINT: some ciphers (e.g. GOST) are not included with OpenSSL, check that they are installed and configured in"
+            " openssl.cnf.");
+
         // Initialization of object
         // -------------------------------------------------------------------------------------------------------------------------
-        CipherBlock *cipherBlock = (CipherBlock *)ioFilterDriver(
-            cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, BUFSTRZ(TEST_PASS)));
+        IoFilter *cipherFilter = cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, testPass);
+        CipherBlock *cipherBlock = (CipherBlock *)ioFilterDriver(cipherFilter);
         TEST_RESULT_INT(cipherBlock->mode, cipherModeEncrypt, "mode is valid");
         TEST_RESULT_UINT(bufSize(cipherBlock->pass), strlen(TEST_PASS), "passphrase size is valid");
         TEST_RESULT_BOOL(memcmp(bufPtrConst(cipherBlock->pass), TEST_PASS, strlen(TEST_PASS)) == 0, true, "passphrase is valid");
@@ -120,6 +150,8 @@ testRun(void)
         TEST_RESULT_PTR_NE(cipherBlock->cipher, NULL, "cipher is set");
         TEST_RESULT_PTR_NE(cipherBlock->digest, NULL, "digest is set");
         TEST_RESULT_PTR(cipherBlock->cipherContext, NULL, "cipher context is not set");
+
+        ioFilterFree(cipherFilter);
 
         // Encrypt
         // -------------------------------------------------------------------------------------------------------------------------
@@ -253,6 +285,8 @@ testRun(void)
         blockDecryptFilter = cipherBlockNewP(cipherModeDecrypt, cipherTypeAes256Cbc, testPass);
         TEST_ERROR(ioFilterProcessInOut(blockDecryptFilter, encryptBuffer, decryptBuffer), CryptoError, "cipher header invalid");
 
+        ioFilterFree(blockDecryptFilter);
+
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("decrypt zero byte file with no magic");
 
@@ -327,6 +361,8 @@ testRun(void)
         TEST_RESULT_VOID(
             cipherBlockFilterGroupAdd(filterGroup, cipherTypeAes256Cbc, cipherModeEncrypt, STRDEF("X")), "   filter add");
         TEST_RESULT_UINT(ioFilterGroupSize(filterGroup), 1, "    check filter add");
+
+        ioFilterGroupClear(filterGroup);
     }
 
     // *****************************************************************************************************************************
@@ -492,6 +528,8 @@ testRun(void)
             strNewEncode(encodingHex, pckReadBinP(ioFilterGroupResultP(ioReadFilterGroup(read), XX_HASH_FILTER_TYPE))),
             "1a3e11127b", "check small hash 5");
     }
+
+    unsetenv("OPENSSL_CONF");
 
     FUNCTION_HARNESS_RETURN_VOID();
 }

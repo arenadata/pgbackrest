@@ -86,3 +86,49 @@ cryptoRandomBytes(unsigned char *const buffer, const size_t size)
 
     FUNCTION_LOG_RETURN_VOID();
 }
+
+/***********************************************************************************************************************************
+Decoding table
+***********************************************************************************************************************************/
+static const struct CipherTypeLocal
+{
+    CipherType type;                                                // Cipher type
+    const char *name;                                               // OpenSSL cipher name
+} cipherTypeLocal[] =
+{
+    {.type = cipherTypeNone,          .name = "none"},
+    {.type = cipherTypeAes128Cbc,      .name = "aes-128-cbc"},
+    {.type = cipherTypeAes192Cbc,      .name = "aes-192-cbc"},
+    {.type = cipherTypeAes256Cbc,      .name = "aes-256-cbc"},
+    {.type = cipherTypeKuznyechikCbc,  .name = "kuznyechik-cbc"},
+    {.type = cipherTypeGrasshopperCbc, .name = "grasshopper-cbc"},
+    {.type = cipherTypeMagmaCbc,       .name = "magma-cbc"},
+    {.type = cipherTypeAria128Cbc,     .name = "aria-128-cbc"},
+    {.type = cipherTypeAria192Cbc,     .name = "aria-192-cbc"},
+    {.type = cipherTypeAria256Cbc,     .name = "aria-256-cbc"},
+    {.type = cipherTypeSM4Cbc,         .name = "sm4-cbc"},
+};
+
+/***********************************************************************************************************************************/
+FN_EXTERN String *
+cipherConvertFromIdToStr(const CipherType cipherType)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(STRING_ID, cipherType);
+    FUNCTION_TEST_END();
+
+    unsigned int typeIdx = 0;
+
+    for (; typeIdx < LENGTH_OF(cipherTypeLocal); typeIdx++)
+    {
+        if (cipherTypeLocal[typeIdx].type == cipherType)
+            break;
+    }
+
+    if (typeIdx == LENGTH_OF(cipherTypeLocal))
+        THROW_FMT(AssertError, "invalid cipher type '%s'", strZ(strIdToStr(cipherType)));
+
+    String *result = strNewZ(cipherTypeLocal[typeIdx].name);
+
+    FUNCTION_TEST_RETURN(STRING, result);
+}

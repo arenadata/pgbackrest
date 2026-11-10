@@ -8,6 +8,7 @@ Test Archive Push Command
 #include "storage/posix/storage.h"
 
 #include "common/harnessConfig.h"
+#include "common/harnessCrypto.h"
 #include "common/harnessFork.h"
 #include "common/harnessInfo.h"
 #include "common/harnessPostgres.h"
@@ -497,59 +498,65 @@ testRun(void)
         // Remove old repo
         HRN_STORAGE_PATH_REMOVE(storageTest, "repo", .errorOnMissing = true, .recurse = true);
 
-        // Create an artificially small WAL file to save time on encryption
-        walBuffer2 = bufNew(1024);
-        bufUsedSet(walBuffer2, bufSize(walBuffer2));
-        memset(bufPtr(walBuffer2), 0xFF, bufSize(walBuffer2));
-        HRN_PG_WAL_TO_BUFFER(walBuffer2, PG_VERSION_11);
-        walBuffer2Sha1 = strZ(strNewEncode(encodingHex, cryptoHashOne(hashTypeSha1, walBuffer2)));
-        HRN_STORAGE_PUT(storageTest, "pg/pg_wal/000000010000000100000002", walBuffer2, .comment = "write WAL");
+        HRN_CIPHER_BEGIN(currentCipher)
+        {
+            TEST_TITLE_FMT("cmdArchivePush() with %s", currentCipher.name);
 
-        argListTemp = strLstNew();
-        hrnCfgArgRawZ(argListTemp, cfgOptStanza, "test");
-        hrnCfgArgKeyRawZ(argListTemp, cfgOptPgPath, 1, TEST_PATH "/pg");
-        hrnCfgArgKeyRawZ(argListTemp, cfgOptRepoPath, 2, TEST_PATH "/repo2");
-        hrnCfgArgKeyRawStrId(argListTemp, cfgOptRepoCipherType, 2, cipherTypeAes256Cbc);
-        hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, "badpassphrase");
-        hrnCfgArgKeyRawZ(argListTemp, cfgOptRepoPath, 3, TEST_PATH "/repo3");
-        hrnCfgArgRawNegate(argListTemp, cfgOptCompress);
-        strLstAddZ(argListTemp, "pg_wal/000000010000000100000002");
-        HRN_CFG_LOAD(cfgCmdArchivePush, argListTemp);
-        hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
+            // Create an artificially small WAL file to save time on encryption
+            walBuffer2 = bufNew(1024);
+            bufUsedSet(walBuffer2, bufSize(walBuffer2));
+            memset(bufPtr(walBuffer2), 0xFF, bufSize(walBuffer2));
+            HRN_PG_WAL_TO_BUFFER(walBuffer2, PG_VERSION_11);
+            walBuffer2Sha1 = strZ(strNewEncode(encodingHex, cryptoHashOne(hashTypeSha1, walBuffer2)));
+            HRN_STORAGE_PUT(storageTest, "pg/pg_wal/000000010000000100000002", walBuffer2, .comment = "write WAL");
 
-        // repo2 is encrypted
-        HRN_INFO_PUT(
-            storageRepoIdxWrite(0), INFO_ARCHIVE_PATH_FILE,
-            "[cipher]\n"
-            "cipher-pass=\"badsubpassphrase\"\n"
-            "\n"
-            "[db]\n"
-            "db-id=1\n"
-            "\n"
-            "[db:history]\n"
-            "1={\"db-id\":" HRN_PG_SYSTEMID_11_Z ",\"db-version\":\"11\"}",
-            .cipherType = cipherTypeAes256Cbc, .cipherPass = "badpassphrase");
+            argListTemp = strLstNew();
+            hrnCfgArgRawZ(argListTemp, cfgOptStanza, "test");
+            hrnCfgArgKeyRawZ(argListTemp, cfgOptPgPath, 1, TEST_PATH "/pg");
+            hrnCfgArgKeyRawZ(argListTemp, cfgOptRepoPath, 2, TEST_PATH "/repo2");
+            hrnCfgArgKeyRawStrId(argListTemp, cfgOptRepoCipherType, 2, currentCipher.type);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, "badpassphrase");
+            hrnCfgArgKeyRawZ(argListTemp, cfgOptRepoPath, 3, TEST_PATH "/repo3");
+            hrnCfgArgRawNegate(argListTemp, cfgOptCompress);
+            strLstAddZ(argListTemp, "pg_wal/000000010000000100000002");
+            HRN_CFG_LOAD(cfgCmdArchivePush, argListTemp);
+            hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
 
-        // repo3 is not encrypted
-        HRN_INFO_PUT(
-            storageRepoIdxWrite(1), INFO_ARCHIVE_PATH_FILE,
-            "[db]\n"
-            "db-id=1\n"
-            "\n"
-            "[db:history]\n"
-            "1={\"db-id\":" HRN_PG_SYSTEMID_11_Z ",\"db-version\":\"11\"}");
+            // repo2 is encrypted
+            HRN_INFO_PUT(
+                storageRepoIdxWrite(0), INFO_ARCHIVE_PATH_FILE,
+                "[cipher]\n"
+                "cipher-pass=\"badsubpassphrase\"\n"
+                "\n"
+                "[db]\n"
+                "db-id=1\n"
+                "\n"
+                "[db:history]\n"
+                "1={\"db-id\":" HRN_PG_SYSTEMID_11_Z ",\"db-version\":\"11\"}",
+                .cipherType = currentCipher.type, .cipherPass = "badpassphrase");
 
-        // Push encrypted WAL segment
-        TEST_RESULT_VOID(cmdArchivePush(), "push the WAL segment");
-        TEST_RESULT_LOG("P00   INFO: pushed WAL file '000000010000000100000002' to the archive");
+            // repo3 is not encrypted
+            HRN_INFO_PUT(
+                storageRepoIdxWrite(1), INFO_ARCHIVE_PATH_FILE,
+                "[db]\n"
+                "db-id=1\n"
+                "\n"
+                "[db:history]\n"
+                "1={\"db-id\":" HRN_PG_SYSTEMID_11_Z ",\"db-version\":\"11\"}");
 
-        TEST_STORAGE_EXISTS(
-            storageTest, zNewFmt("repo2/archive/test/11-1/0000000100000001/000000010000000100000002-%s", walBuffer2Sha1),
-            .remove = true, .comment = "check repo2 for WAL file then remove");
+            // Push encrypted WAL segment
+            TEST_RESULT_VOID(cmdArchivePush(), "push the WAL segment");
+            TEST_RESULT_LOG("P00   INFO: pushed WAL file '000000010000000100000002' to the archive");
 
-        TEST_STORAGE_EXISTS(
-            storageTest, zNewFmt("repo3/archive/test/11-1/0000000100000001/000000010000000100000002-%s", walBuffer2Sha1),
-            .remove = true, .comment = "check repo3 for WAL file then remove");
+            TEST_STORAGE_EXISTS(
+                storageTest, zNewFmt("repo2/archive/test/11-1/0000000100000001/000000010000000100000002-%s", walBuffer2Sha1),
+                .remove = true, .comment = "check repo2 for WAL file then remove");
+
+            TEST_STORAGE_EXISTS(
+                storageTest, zNewFmt("repo3/archive/test/11-1/0000000100000001/000000010000000100000002-%s", walBuffer2Sha1),
+                .remove = true, .comment = "check repo3 for WAL file then remove");
+        }
+        HRN_CIPHER_END();
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("write error on one repo but other repo succeeds");

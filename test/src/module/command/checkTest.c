@@ -9,6 +9,7 @@ Test Check Command
 #include "storage/posix/storage.h"
 
 #include "common/harnessConfig.h"
+#include "common/harnessCrypto.h"
 #include "common/harnessInfo.h"
 #include "common/harnessPostgres.h"
 #include "common/harnessPq.h"
@@ -773,6 +774,37 @@ testRun(void)
             "backup and archive info files exist but do not match the database\n"
             "HINT: is this the correct stanza?\n"
             "HINT: did an error occur during stanza-upgrade?");
+    }
+
+    if (testBegin("Verify ciphers are working"))
+    {
+        HRN_CIPHER_BEGIN(currentCipher)
+        {
+            TEST_TITLE_FMT("stanza create with %s", currentCipher.name);
+
+            argList = strLstNew();
+            hrnCfgArgRawBool(argList, cfgOptOnline, false);
+            hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
+            hrnCfgArgRawZ(argList, cfgOptPgPath, TEST_PATH "/pg");
+            hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
+            hrnCfgArgRawZ(argList, cfgOptRepoCipherType, currentCipher.name);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 1, TEST_CIPHER_PASS);
+            HRN_CFG_LOAD(cfgCmdStanzaCreate, argList);
+
+            HRN_STORAGE_PATH_REMOVE(storageRepoIdxWrite(0), NULL, .recurse = true);
+
+            // Create pg_control
+            HRN_PG_CONTROL_PUT(storagePgIdxWrite(0), PG_VERSION_96);
+
+            TEST_RESULT_VOID(cmdStanzaCreate(), "stanza create - encryption");
+            TEST_RESULT_LOG("P00   INFO: stanza-create for stanza 'test1' on repo1");
+
+            TEST_RESULT_VOID(
+                checkStanzaInfoPg(
+                    storageRepoIdx(0), PG_VERSION_96, HRN_PG_SYSTEMID_96, cfgOptionIdxStrId(cfgOptRepoCipherType, 0),
+                    cfgOptionIdxStr(cfgOptRepoCipherPass, 0)), "stanza check - encryption");
+        }
+        HRN_CIPHER_END();
     }
 
     FUNCTION_HARNESS_RETURN_VOID();

@@ -5,6 +5,7 @@ Test Archive Get Command
 #include "common/io/fdWrite.h"
 
 #include "common/harnessConfig.h"
+#include "common/harnessCrypto.h"
 #include "common/harnessFork.h"
 #include "common/harnessInfo.h"
 #include "common/harnessPostgres.h"
@@ -1184,6 +1185,60 @@ testRun(void)
 
         // Check that the ok file was removed
         TEST_STORAGE_LIST_EMPTY(storageSpool(), STORAGE_SPOOL_ARCHIVE_IN);
+    }
+
+    if (testBegin("cmdArchiveGet() with ciphers"))
+    {
+        HRN_PG_CONTROL_PUT(storagePgWrite(), PG_VERSION_10);
+
+        Buffer *buffer = bufNew(16 * 1024 * 1024);
+        memset(bufPtr(buffer), 0, bufSize(buffer));
+        bufUsedSet(buffer, bufSize(buffer));
+
+        HRN_CIPHER_BEGIN(currentCipher)
+        {
+            TEST_TITLE_FMT("cmdArchiveGet() with %s", currentCipher.name);
+
+            HRN_INFO_PUT(
+                storageRepoWrite(), INFO_ARCHIVE_PATH_FILE,
+                "[cipher]\n"
+                "cipher-pass=\"" TEST_CIPHER_PASS_ARCHIVE "\"\n"
+                "\n"
+                "[db]\n"
+                "db-id=1\n"
+                "\n"
+                "[db:history]\n"
+                "1={\"db-id\":" HRN_PG_SYSTEMID_10_Z ",\"db-version\":\"10\"}",
+                .cipherType = currentCipher.type);
+
+            HRN_STORAGE_PUT(
+                storageRepoWrite(), STORAGE_REPO_ARCHIVE "/10-1/01ABCDEF01ABCDEF01ABCDEF-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                buffer, .cipherType = currentCipher.type, .cipherPass = TEST_CIPHER_PASS_ARCHIVE);
+
+            // Add encryption options
+            StringList *argList = strLstNew();
+            hrnCfgArgRawZ(argList, cfgOptPgPath, TEST_PATH "/pg");
+            hrnCfgArgKeyRawFmt(argList, cfgOptRepoPath, 1, TEST_PATH "/repo");
+            hrnCfgArgRawZ(argList, cfgOptRepoCipherType, currentCipher.name);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 1, TEST_CIPHER_PASS);
+            hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
+            strLstAddZ(argList, "01ABCDEF01ABCDEF01ABCDEF");
+            strLstAddZ(argList, TEST_PATH "/pg/pg_wal/RECOVERYXLOG");
+            HRN_CFG_LOAD(cfgCmdArchiveGet, argList);
+            hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 1);
+
+            HRN_STORAGE_PATH_CREATE(storagePgWrite(), "pg_wal", .noErrorOnExists = true);
+
+            TEST_RESULT_INT(cmdArchiveGet(), 0, "get");
+            TEST_RESULT_LOG("P00   INFO: found 01ABCDEF01ABCDEF01ABCDEF in the repo1: 10-1 archive");
+
+            TEST_RESULT_UINT(storageInfoP(storagePg(), STRDEF("pg_wal/RECOVERYXLOG")).size, 16 * 1024 * 1024, "check size");
+            TEST_STORAGE_LIST(storagePgWrite(), "pg_wal", "RECOVERYXLOG\n", .remove = true);
+            HRN_STORAGE_REMOVE(
+                storageRepoWrite(),
+                STORAGE_REPO_ARCHIVE "/10-1/01ABCDEF01ABCDEF01ABCDEF-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        }
+        HRN_CIPHER_END();
     }
 
     if (testBegin("wal Filter"))

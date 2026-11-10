@@ -8,6 +8,7 @@ Test Expire Command
 #include "storage/posix/storage.h"
 
 #include "common/harnessConfig.h"
+#include "common/harnessCrypto.h"
 #include "common/harnessInfo.h"
 #include "common/harnessStorage.h"
 #include "common/harnessTime.h"
@@ -2102,184 +2103,193 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("resumable possibly based on adhoc expire backup, multi-repo, encryption");
 
-        argList = strLstDup(argListAvoidWarn);
-        hrnCfgArgRawZ(argList, cfgOptSet, "20181119-152850F_20181119-152252D");
-        hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo2");
-        hrnCfgArgKeyRawZ(argList, cfgOptRepoRetentionFull, 2, "1");
-        hrnCfgArgKeyRawStrId(argList, cfgOptRepoCipherType, 2, cipherTypeAes256Cbc);
-        hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, TEST_CIPHER_PASS);
-        HRN_CFG_LOAD(cfgCmdExpire, argList);
+        HRN_CIPHER_BEGIN(currentCipher)
+        {
+            TEST_TITLE_FMT("expireAdhocBackup() with %s", currentCipher.name);
 
-        // Create backup.info
-        #define TEST_BACKUP_CURRENT                                                                                                \
-            "[backup:current]\n"                                                                                                   \
-            "20181119-152850F={"                                                                                                   \
-            "\"backrest-format\":5,\"backrest-version\":\"2.08dev\","                                                              \
-            "\"backup-archive-start\":\"000000010000000000000002\",\"backup-archive-stop\":\"000000010000000000000004\","          \
-            "\"backup-info-repo-size\":2369186,\"backup-info-repo-size-delta\":2369186,"                                           \
-            "\"backup-info-size\":20162900,\"backup-info-size-delta\":20162900,"                                                   \
-            "\"backup-timestamp-start\":1542640898,\"backup-timestamp-stop\":1542640911,\"backup-type\":\"full\","                 \
-            "\"db-id\":2,\"option-archive-check\":true,\"option-archive-copy\":false,\"option-backup-standby\":false,"             \
-            "\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,\"option-online\":true}\n"           \
-            "20181119-152850F_20181119-152252D={"                                                                                  \
-            "\"backrest-format\":5,\"backrest-version\":\"2.08dev\",\"backup-archive-start\":\"000000010000000000000006\","        \
-            "\"backup-archive-stop\":\"000000010000000000000007\",\"backup-info-repo-size\":2369186,"                              \
-            "\"backup-info-repo-size-delta\":346,\"backup-info-size\":20162900,\"backup-info-size-delta\":8428,"                   \
-            "\"backup-prior\":\"20181119-152850F\",\"backup-reference\":[\"20181119-152850F\"],"                                   \
-            "\"backup-timestamp-start\":1542640912,\"backup-timestamp-stop\":1542640915,\"backup-type\":\"diff\","                 \
-            "\"db-id\":2,\"option-archive-check\":true,\"option-archive-copy\":false,\"option-backup-standby\":false,"             \
-            "\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,\"option-online\":false}\n"
+            argList = strLstDup(argListAvoidWarn);
+            hrnCfgArgRawZ(argList, cfgOptSet, "20181119-152850F_20181119-152252D");
+            hrnCfgArgKeyRawZ(argList, cfgOptRepoPath, 2, TEST_PATH "/repo2");
+            hrnCfgArgKeyRawZ(argList, cfgOptRepoRetentionFull, 2, "1");
+            hrnCfgArgKeyRawZ(argList, cfgOptRepoCipherType, 2, currentCipher.name);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, TEST_CIPHER_PASS);
+            HRN_CFG_LOAD(cfgCmdExpire, argList);
 
-        #define TEST_BACKUP_DB                                                                                                     \
-            "\n"                                                                                                                   \
-            "[db]\n"                                                                                                               \
-            "db-catalog-version=201909212\n"                                                                                       \
-            "db-control-version=1201\n"                                                                                            \
-            "db-id=2\n"                                                                                                            \
-            "db-system-id=6626363367545678089\n"                                                                                   \
-            "db-version=\"12\"\n"                                                                                                  \
-            "\n"                                                                                                                   \
-            "[db:history]\n"                                                                                                       \
-            "1={\"db-catalog-version\":201409291,\"db-control-version\":942,\"db-system-id\":6625592122879095702"                  \
-            ",\"db-version\":\"9.4\"}\n"                                                                                           \
-            "2={\"db-catalog-version\":201909212,\"db-control-version\":1201,\"db-system-id\":6626363367545678089"                 \
-            ",\"db-version\":\"12\"}\n"
+            HRN_STORAGE_PATH_REMOVE(storageRepoIdxWrite(1), NULL, .recurse = true);
 
-        HRN_INFO_PUT(
-            storageRepoWrite(), INFO_BACKUP_PATH_FILE,
-            TEST_BACKUP_CURRENT
-            TEST_BACKUP_DB);
-        HRN_STORAGE_COPY(storageRepo(), INFO_BACKUP_PATH_FILE, storageRepoWrite(), INFO_BACKUP_PATH_FILE INFO_COPY_EXT);
+            // Create backup.info
+            #define TEST_BACKUP_CURRENT                                                                                                \
+                "[backup:current]\n"                                                                                                   \
+                "20181119-152850F={"                                                                                                   \
+                "\"backrest-format\":5,\"backrest-version\":\"2.08dev\","                                                              \
+                "\"backup-archive-start\":\"000000010000000000000002\",\"backup-archive-stop\":\"000000010000000000000004\","          \
+                "\"backup-info-repo-size\":2369186,\"backup-info-repo-size-delta\":2369186,"                                           \
+                "\"backup-info-size\":20162900,\"backup-info-size-delta\":20162900,"                                                   \
+                "\"backup-timestamp-start\":1542640898,\"backup-timestamp-stop\":1542640911,\"backup-type\":\"full\","                 \
+                "\"db-id\":2,\"option-archive-check\":true,\"option-archive-copy\":false,\"option-backup-standby\":false,"             \
+                "\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,\"option-online\":true}\n"           \
+                "20181119-152850F_20181119-152252D={"                                                                                  \
+                "\"backrest-format\":5,\"backrest-version\":\"2.08dev\",\"backup-archive-start\":\"000000010000000000000006\","        \
+                "\"backup-archive-stop\":\"000000010000000000000007\",\"backup-info-repo-size\":2369186,"                              \
+                "\"backup-info-repo-size-delta\":346,\"backup-info-size\":20162900,\"backup-info-size-delta\":8428,"                   \
+                "\"backup-prior\":\"20181119-152850F\",\"backup-reference\":[\"20181119-152850F\"],"                                   \
+                "\"backup-timestamp-start\":1542640912,\"backup-timestamp-stop\":1542640915,\"backup-type\":\"diff\","                 \
+                "\"db-id\":2,\"option-archive-check\":true,\"option-archive-copy\":false,\"option-backup-standby\":false,"             \
+                "\"option-checksum-page\":true,\"option-compress\":true,\"option-hardlink\":false,\"option-online\":false}\n"
 
-        // Adhoc backup and resumable backup manifests
-        const String *manifestContent = STRDEF(
-            "[backup]\n"
-            "backup-archive-start=\"000000010000000000000009\"\n"
-            "backup-label=null\n"
-            "backup-prior=\"20181119-152850F\"\n"
-            "backup-timestamp-copy-start=0\n"
-            "backup-timestamp-start=0\n"
-            "backup-timestamp-stop=0\n"
-            "backup-type=\"diff\"\n"
-            "\n"
-            "[backup:db]\n"
-            "db-catalog-version=201909212\n"
-            "db-control-version=1201\n"
-            "db-id=2\n"
-            "db-system-id=6626363367545678089\n"
-            "db-version=\"12\"\n"
-            "\n"
-            "[backup:option]\n"
-            "option-archive-check=false\n"
-            "option-archive-copy=false\n"
-            "option-checksum-page=false\n"
-            "option-compress=false\n"
-            "option-compress-type=\"none\"\n"
-            "option-hardlink=false\n"
-            "option-online=false\n"
-            "\n"
-            "[backup:target]\n"
-            "pg_data={\"path\":\"" TEST_PATH "/pg\",\"type\":\"path\"}\n"
-            "\n"
-            "[db]\n"
-            "postgres={\"db-id\":12980,\"db-last-system-id\":12979}\n"
-            "\n"
-            "[target:file]\n"
-            "pg_data/PG_VERSION={\"size\":3,\"timestamp\":1565282100}\n"
-            "\n"
-            "[target:file:default]\n"
-            "group=\"postgres\"\n"
-            "mode=\"0600\"\n"
-            "user=\"postgres\"\n"
-            "\n"
-            "[target:path]\n"
-            "pg_data={}\n"
-            "\n"
-            "[target:path:default]\n"
-            "group=\"postgres\"\n"
-            "mode=\"0700\"\n"
-            "user=\"postgres\"\n");
+            #define TEST_BACKUP_DB                                                                                                     \
+                "\n"                                                                                                                   \
+                "[db]\n"                                                                                                               \
+                "db-catalog-version=201909212\n"                                                                                       \
+                "db-control-version=1201\n"                                                                                            \
+                "db-id=2\n"                                                                                                            \
+                "db-system-id=6626363367545678089\n"                                                                                   \
+                "db-version=\"12\"\n"                                                                                                  \
+                "\n"                                                                                                                   \
+                "[db:history]\n"                                                                                                       \
+                "1={\"db-catalog-version\":201409291,\"db-control-version\":942,\"db-system-id\":6625592122879095702"                  \
+                ",\"db-version\":\"9.4\"}\n"                                                                                           \
+                "2={\"db-catalog-version\":201909212,\"db-control-version\":1201,\"db-system-id\":6626363367545678089"                 \
+                ",\"db-version\":\"12\"}\n"
 
-        HRN_INFO_PUT(
-            storageRepoWrite(), STORAGE_REPO_BACKUP "/20181119-152850F_20181119-152252D/" BACKUP_MANIFEST_FILE,
-            strZ(manifestContent));
-        HRN_INFO_PUT(
-            storageRepoWrite(), STORAGE_REPO_BACKUP "/20181119-152850F_20181119-152252D/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
-            strZ(manifestContent));
+            HRN_INFO_PUT(
+                storageRepoWrite(), INFO_BACKUP_PATH_FILE,
+                TEST_BACKUP_CURRENT
+                TEST_BACKUP_DB);
+            HRN_STORAGE_COPY(storageRepo(), INFO_BACKUP_PATH_FILE, storageRepoWrite(), INFO_BACKUP_PATH_FILE INFO_COPY_EXT);
 
-        // archives to repo1
-        archiveGenerate(storageRepoWrite(), STORAGE_REPO_ARCHIVE, 2, 10, "12-2", "0000000100000000");
+            // Adhoc backup and resumable backup manifests
+            const String *manifestContent = STRDEF(
+                "[backup]\n"
+                "backup-archive-start=\"000000010000000000000009\"\n"
+                "backup-label=null\n"
+                "backup-prior=\"20181119-152850F\"\n"
+                "backup-timestamp-copy-start=0\n"
+                "backup-timestamp-start=0\n"
+                "backup-timestamp-stop=0\n"
+                "backup-type=\"diff\"\n"
+                "\n"
+                "[backup:db]\n"
+                "db-catalog-version=201909212\n"
+                "db-control-version=1201\n"
+                "db-id=2\n"
+                "db-system-id=6626363367545678089\n"
+                "db-version=\"12\"\n"
+                "\n"
+                "[backup:option]\n"
+                "option-archive-check=false\n"
+                "option-archive-copy=false\n"
+                "option-checksum-page=false\n"
+                "option-compress=false\n"
+                "option-compress-type=\"none\"\n"
+                "option-hardlink=false\n"
+                "option-online=false\n"
+                "\n"
+                "[backup:target]\n"
+                "pg_data={\"path\":\"" TEST_PATH "/pg\",\"type\":\"path\"}\n"
+                "\n"
+                "[db]\n"
+                "postgres={\"db-id\":12980,\"db-last-system-id\":12979}\n"
+                "\n"
+                "[target:file]\n"
+                "pg_data/PG_VERSION={\"size\":3,\"timestamp\":1565282100}\n"
+                "\n"
+                "[target:file:default]\n"
+                "group=\"postgres\"\n"
+                "mode=\"0600\"\n"
+                "user=\"postgres\"\n"
+                "\n"
+                "[target:path]\n"
+                "pg_data={}\n"
+                "\n"
+                "[target:path:default]\n"
+                "group=\"postgres\"\n"
+                "mode=\"0700\"\n"
+                "user=\"postgres\"\n");
 
-        // Create encrypted repo2 with same data from repo1 and ensure results are reported the same. This will test that the
-        // manifest can be read on encrypted repos.
-        HRN_INFO_PUT(
-            storageRepoIdxWrite(1), INFO_ARCHIVE_PATH_FILE,
-            "[cipher]\n"
-            "cipher-pass=\"" TEST_CIPHER_PASS_ARCHIVE "\"\n"
-            "\n"
-            "[db]\n"
-            "db-id=2\n"
-            "db-system-id=6626363367545678089\n"
-            "db-version=\"12\"\n"
-            "\n"
-            "[db:history]\n"
-            "1={\"db-id\":6625592122879095702,\"db-version\":\"9.4\"}\n"
-            "2={\"db-id\":6626363367545678089,\"db-version\":\"12\"}",
-            .cipherType = cipherTypeAes256Cbc);
+            HRN_INFO_PUT(
+                storageRepoWrite(), STORAGE_REPO_BACKUP "/20181119-152850F_20181119-152252D/" BACKUP_MANIFEST_FILE,
+                strZ(manifestContent));
+            HRN_INFO_PUT(
+                storageRepoWrite(), STORAGE_REPO_BACKUP "/20181119-152850F_20181119-152252D/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
+                strZ(manifestContent));
 
-        const String *backupInfoContent = STRDEF(
-            TEST_BACKUP_CURRENT
-            "\n"
-            "[cipher]\n"
-            "cipher-pass=\"somepass\"\n"
-            TEST_BACKUP_DB);
+            // archives to repo1
+            archiveGenerate(storageRepoWrite(), STORAGE_REPO_ARCHIVE, 2, 10, "12-2", "0000000100000000");
 
-        HRN_INFO_PUT(storageRepoIdxWrite(1), INFO_BACKUP_PATH_FILE, strZ(backupInfoContent), .cipherType = cipherTypeAes256Cbc);
-        HRN_INFO_PUT(
-            storageRepoIdxWrite(1), STORAGE_REPO_BACKUP "/20181119-152850F/" BACKUP_MANIFEST_FILE,
-            "[backup]\nbackup-type=\"full\"\n", .cipherType = cipherTypeAes256Cbc, .cipherPass = "somepass");
-        HRN_INFO_PUT(
-            storageRepoIdxWrite(1), STORAGE_REPO_BACKUP "/20181119-152850F_20181119-152252D/" BACKUP_MANIFEST_FILE,
-            "[backup]\nbackup-type=\"diff\"\n", .cipherType = cipherTypeAes256Cbc, .cipherPass = "somepass");
-        HRN_INFO_PUT(
-            storageRepoIdxWrite(1), STORAGE_REPO_BACKUP "/20181119-152850F_20181200-152252D/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
-            strZ(manifestContent), .cipherType = cipherTypeAes256Cbc, .cipherPass = "somepass", .comment = "resumable backup");
+            // Create encrypted repo2 with same data from repo1 and ensure results are reported the same. This will test that the
+            // manifest can be read on encrypted repos.
+            HRN_INFO_PUT(
+                storageRepoIdxWrite(1), INFO_ARCHIVE_PATH_FILE,
+                "[cipher]\n"
+                "cipher-pass=\"" TEST_CIPHER_PASS_ARCHIVE "\"\n"
+                "\n"
+                "[db]\n"
+                "db-id=2\n"
+                "db-system-id=6626363367545678089\n"
+                "db-version=\"12\"\n"
+                "\n"
+                "[db:history]\n"
+                "1={\"db-id\":6625592122879095702,\"db-version\":\"9.4\"}\n"
+                "2={\"db-id\":6626363367545678089,\"db-version\":\"12\"}",
+                .cipherType = currentCipher.type);
 
-        // archives to repo2
-        archiveGenerate(storageRepoIdxWrite(1), STORAGE_REPO_ARCHIVE, 2, 10, "12-2", "0000000100000000");
+            const String *backupInfoContent = STRDEF(
+                TEST_BACKUP_CURRENT
+                "\n"
+                "[cipher]\n"
+                "cipher-pass=\"somepass\"\n"
+                TEST_BACKUP_DB);
 
-        // Create "latest" symlink, repo2
-        latestLink = storagePathP(storageRepoIdx(1), STRDEF(STORAGE_REPO_BACKUP "/latest"));
-        THROW_ON_SYS_ERROR_FMT(
-            symlink("20181119-152850F_20181200-152252D", strZ(latestLink)) == -1,
-            FileOpenError, "unable to create symlink '%s' to '%s'", strZ(latestLink), "20181119-152850F_20181200-152252D");
+            HRN_INFO_PUT(storageRepoIdxWrite(1), INFO_BACKUP_PATH_FILE, strZ(backupInfoContent), .cipherType = currentCipher.type);
+            HRN_INFO_PUT(
+                storageRepoIdxWrite(1), STORAGE_REPO_BACKUP "/20181119-152850F/" BACKUP_MANIFEST_FILE,
+                "[backup]\nbackup-type=\"full\"\n", .cipherType = currentCipher.type, .cipherPass = "somepass");
+            HRN_INFO_PUT(
+                storageRepoIdxWrite(1), STORAGE_REPO_BACKUP "/20181119-152850F_20181119-152252D/" BACKUP_MANIFEST_FILE,
+                "[backup]\nbackup-type=\"diff\"\n", .cipherType = currentCipher.type, .cipherPass = "somepass");
+            HRN_INFO_PUT(
+                storageRepoIdxWrite(1), STORAGE_REPO_BACKUP "/20181119-152850F_20181200-152252D/" BACKUP_MANIFEST_FILE INFO_COPY_EXT,
+                strZ(manifestContent), .cipherType = currentCipher.type, .cipherPass = "somepass", .comment = "resumable backup");
 
-        TEST_RESULT_VOID(cmdExpire(), "adhoc expire latest with resumable possibly based on it");
+            // archives to repo2
+            archiveGenerate(storageRepoIdxWrite(1), STORAGE_REPO_ARCHIVE, 2, 10, "12-2", "0000000100000000");
 
-        TEST_RESULT_LOG(
-            "P00   WARN: repo1: expiring latest backup 20181119-152850F_20181119-152252D - the ability to perform"
-            " point-in-time-recovery (PITR) may be affected\n"
-            "            HINT: non-default settings for 'repo1-retention-archive'/'repo1-retention-archive-type' (even in prior"
-            " expires) can cause gaps in the WAL.\n"
-            "P00   INFO: repo1: expire adhoc backup 20181119-152850F_20181119-152252D\n"
-            "P00   INFO: repo1: remove expired backup 20181119-152850F_20181119-152252D\n"
-            "P00 DETAIL: repo1: 12-2 archive retention on backup 20181119-152850F, start = 000000010000000000000002\n"
-            "P00   INFO: repo1: 12-2 no archive to remove\n"
-            "P00   WARN: repo2: expiring latest backup 20181119-152850F_20181119-152252D - the ability to perform"
-            " point-in-time-recovery (PITR) may be affected\n"
-            "            HINT: non-default settings for 'repo2-retention-archive'/'repo2-retention-archive-type' (even in prior"
-            " expires) can cause gaps in the WAL.\n"
-            "P00   INFO: repo2: expire adhoc backup 20181119-152850F_20181119-152252D\n"
-            "P00   INFO: repo2: remove expired backup 20181119-152850F_20181119-152252D\n"
-            "P00 DETAIL: repo2: 12-2 archive retention on backup 20181119-152850F, start = 000000010000000000000002\n"
-            "P00   INFO: repo2: 12-2 no archive to remove");
+            // Create "latest" symlink, repo2
+            latestLink = storagePathP(storageRepoIdx(1), STRDEF(STORAGE_REPO_BACKUP "/latest"));
+            THROW_ON_SYS_ERROR_FMT(
+                symlink("20181119-152850F_20181200-152252D", strZ(latestLink)) == -1,
+                FileOpenError, "unable to create symlink '%s' to '%s'", strZ(latestLink), "20181119-152850F_20181200-152252D");
 
-        TEST_RESULT_STR(
-            storageInfoP(storageRepoIdx(1), STRDEF(STORAGE_REPO_BACKUP "/latest")).linkDestination, STRDEF("20181119-152850F"),
-            "latest link updated, repo2");
+            TEST_RESULT_VOID(cmdExpire(), "adhoc expire latest with resumable possibly based on it");
 
-        // Cleanup
-        hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
+            TEST_RESULT_LOG(
+                "P00   WARN: repo1: expiring latest backup 20181119-152850F_20181119-152252D - the ability to perform"
+                " point-in-time-recovery (PITR) may be affected\n"
+                "            HINT: non-default settings for 'repo1-retention-archive'/'repo1-retention-archive-type' (even in prior"
+                " expires) can cause gaps in the WAL.\n"
+                "P00   INFO: repo1: expire adhoc backup 20181119-152850F_20181119-152252D\n"
+                "P00   INFO: repo1: remove expired backup 20181119-152850F_20181119-152252D\n"
+                "P00 DETAIL: repo1: 12-2 archive retention on backup 20181119-152850F, start = 000000010000000000000002\n"
+                "P00   INFO: repo1: 12-2 no archive to remove\n"
+                "P00   WARN: repo2: expiring latest backup 20181119-152850F_20181119-152252D - the ability to perform"
+                " point-in-time-recovery (PITR) may be affected\n"
+                "            HINT: non-default settings for 'repo2-retention-archive'/'repo2-retention-archive-type' (even in prior"
+                " expires) can cause gaps in the WAL.\n"
+                "P00   INFO: repo2: expire adhoc backup 20181119-152850F_20181119-152252D\n"
+                "P00   INFO: repo2: remove expired backup 20181119-152850F_20181119-152252D\n"
+                "P00 DETAIL: repo2: 12-2 archive retention on backup 20181119-152850F, start = 000000010000000000000002\n"
+                "P00   INFO: repo2: 12-2 no archive to remove");
+
+            TEST_RESULT_STR(
+                storageInfoP(storageRepoIdx(1), STRDEF(STORAGE_REPO_BACKUP "/latest")).linkDestination, STRDEF("20181119-152850F"),
+                "latest link updated, repo2");
+
+            // Cleanup
+            hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
+        }
+        HRN_CIPHER_END();
+
         harnessLogLevelReset();
     }
 

@@ -7,6 +7,7 @@ Test Verify Command
 #include "storage/posix/storage.h"
 
 #include "common/harnessConfig.h"
+#include "common/harnessCrypto.h"
 #include "common/harnessInfo.h"
 #include "common/harnessPostgres.h"
 #include "common/harnessPq.h"
@@ -1203,6 +1204,59 @@ testRun(void)
             "            status: error\n"
             "              No usable backup.info file");
 
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("info files encrypted with a different passphrase");
+
+        argList = strLstDup(argListBase);
+        hrnCfgArgRawStrId(argList, cfgOptRepoCipherType, cipherTypeAes256Cbc);
+        hrnCfgEnvRawZ(cfgOptRepoCipherPass, "wrong-pass");
+        HRN_CFG_LOAD(cfgCmdVerify, argList);
+        hrnCfgEnvRemoveRaw(cfgOptRepoCipherPass);
+
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_BACKUP_PATH_FILE,
+            "[backup:current]\n"
+            TEST_BACKUP_DB1_CURRENT_FULL1
+            "\n"
+            "[db]\n"
+            TEST_BACKUP_DB1_94
+            "\n"
+            "[db:history]\n"
+            TEST_BACKUP_DB1_HISTORY,
+            .cipherType = cipherTypeAes256Cbc, .cipherPass = "pass", .comment = "backup.info encrypted with another passphrase");
+        HRN_INFO_PUT(
+            storageRepoWrite(), INFO_ARCHIVE_PATH_FILE, TEST_ARCHIVE_INFO_MULTI_HISTORY_BASE, .cipherType = cipherTypeAes256Cbc,
+            .cipherPass = "pass", .comment = "archive.info encrypted with another passphrase");
+        HRN_STORAGE_REMOVE(storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, .comment = "remove archive.info.copy");
+
+        // Redirect stdout to a file
+        stdoutSave = dup(STDOUT_FILENO);
+        stdoutFile = STRDEF(TEST_PATH "/stdout.info");
+
+        THROW_ON_SYS_ERROR(freopen(strZ(stdoutFile), "w", stdout) == NULL, FileWriteError, "unable to reopen stdout");
+
+        // Not in a test wrapper to avoid writing to stdout
+        cmdVerify();
+
+        // Restore normal stdout
+        dup2(stdoutSave, STDOUT_FILENO);
+
+        // Check output of verify command stored in file
+        TEST_STORAGE_GET(storageTest, strZ(stdoutFile), "", .remove = true);
+        TEST_RESULT_LOG(
+            "P00 DETAIL: unable to decrypt '" TEST_PATH "/repo/backup/db/backup.info' with the configured cipher type and"
+            " passphrase\n"
+            "            HINT: check repo-cipher-type and repo-cipher-pass.\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/backup/db/backup.info.copy' for read\n"
+            "P00 DETAIL: unable to decrypt '" TEST_PATH "/repo/archive/db/archive.info' with the configured cipher type and"
+            " passphrase\n"
+            "            HINT: check repo-cipher-type and repo-cipher-pass.\n"
+            "P00 DETAIL: unable to open missing file '" TEST_PATH "/repo/archive/db/archive.info.copy' for read\n"
+            "P00   INFO: stanza: db\n"
+            "            status: error\n"
+            "              No usable backup.info file\n"
+            "              No usable archive.info file");
+
         harnessLogLevelReset();
     }
 
@@ -1490,38 +1544,49 @@ testRun(void)
         String *filePathName = strNewZ(STORAGE_REPO_ARCHIVE "/testfile");
         HRN_STORAGE_PUT_EMPTY(storageRepoWrite(), strZ(filePathName));
         TEST_RESULT_UINT(
-            verifyFile(filePathName, 0, NULL, compressTypeNone, HASH_TYPE_SHA1_ZERO_BUF, 0, NULL), verifyOk, "file ok");
+            verifyFile(filePathName, 0, NULL, compressTypeNone, HASH_TYPE_SHA1_ZERO_BUF, 0, cipherTypeNone, NULL), verifyOk,
+            "file ok");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("file size invalid in archive");
 
         HRN_STORAGE_PUT_Z(storageRepoWrite(), strZ(filePathName), fileContents);
         TEST_RESULT_UINT(
-            verifyFile(filePathName, 0, NULL, compressTypeNone, fileChecksum, 0, NULL), verifySizeInvalid, "file size invalid");
+            verifyFile(filePathName, 0, NULL, compressTypeNone, fileChecksum, 0, cipherTypeNone, NULL), verifySizeInvalid,
+            "file size invalid");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("file missing in archive");
 
         TEST_RESULT_UINT(
-            verifyFile(strNewFmt(STORAGE_REPO_ARCHIVE "/missingFile"), 0, NULL, compressTypeNone, fileChecksum, 0, NULL),
+            verifyFile(
+                strNewFmt(STORAGE_REPO_ARCHIVE "/missingFile"), 0, NULL, compressTypeNone, fileChecksum, 0, cipherTypeNone, NULL),
             verifyFileMissing, "file missing");
 
         // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("encrypted/compressed file in backup");
+        HRN_CIPHER_BEGIN(currentCipher)
+        {
+            TEST_TITLE_FMT("encrypted/compressed file in backup with %s", currentCipher.name);
 
-        // Create a compressed encrypted repo file in backup
-        filePathName = strCatZ(strNew(), STORAGE_REPO_BACKUP "/testfile");
-        HRN_STORAGE_PUT_Z(
-            storageRepoWrite(), strZ(filePathName), fileContents, .compressType = compressTypeGz, .cipherType = cipherTypeAes256Cbc,
-            .cipherPass = "pass");
+            HRN_STORAGE_PATH_REMOVE(storageRepoWrite(), NULL, .recurse = true);
 
-        strCatZ(filePathName, ".gz");
-        TEST_RESULT_UINT(
-            verifyFile(filePathName, 0, NULL, compressTypeGz, fileChecksum, fileSize, STRDEF("pass")),
-            verifyOk, "file encrypted compressed ok");
-        TEST_RESULT_UINT(
-            verifyFile(filePathName, 0, NULL, compressTypeGz, bufNewDecode(encodingHex, STRDEF("aa")), fileSize, STRDEF("pass")),
-            verifyChecksumMismatch, "file encrypted compressed checksum mismatch");
+            // Create a compressed encrypted repo file in backup
+            filePathName = strCatZ(strNew(), STORAGE_REPO_BACKUP "/testfile");
+            HRN_STORAGE_PUT_Z(
+                storageRepoWrite(), strZ(filePathName), fileContents, .compressType = compressTypeGz, .cipherType = currentCipher.type,
+                .cipherPass = "pass");
+
+            strCatZ(filePathName, ".gz");
+            TEST_RESULT_UINT(
+                verifyFile(filePathName, 0, NULL, compressTypeGz, fileChecksum, fileSize, currentCipher.type, STRDEF("pass")),
+                verifyOk, "file encrypted compressed ok");
+            TEST_RESULT_UINT(
+                verifyFile(
+                    filePathName, 0, NULL, compressTypeGz, bufNewDecode(encodingHex, STRDEF("aa")), fileSize, currentCipher.type,
+                    STRDEF("pass")),
+                verifyChecksumMismatch, "file encrypted compressed checksum mismatch");
+        }
+        HRN_CIPHER_END();
     }
 
     // *****************************************************************************************************************************
@@ -2882,6 +2947,132 @@ testRun(void)
             "              backup: 20181119-152900F_20181119-152909D, status: invalid, total files checked: 1,"
             " total valid files: 0\n"
             "                checksum invalid: 1");
+    }
+
+    // *****************************************************************************************************************************
+    if (testBegin("cmdVerify() with repository ciphers"))
+    {
+        harnessLogLevelSet(logLevelInfo);
+
+        HRN_CIPHER_BEGIN(currentCipher)
+        {
+            TEST_TITLE_FMT("verify encrypted repository with %s", currentCipher.name);
+
+            StringList *argList = strLstDup(argListBase);
+            hrnCfgArgRawZ(argList, cfgOptRepoCipherType, currentCipher.name);
+            hrnCfgEnvRawZ(cfgOptRepoCipherPass, TEST_CIPHER_PASS);
+            hrnCfgArgRawZ(argList, cfgOptProcessMax, "1");
+            hrnCfgArgRawZ(argList, cfgOptOutput, "none");
+            hrnCfgArgRawBool(argList, cfgOptVerbose, true);
+            HRN_CFG_LOAD(cfgCmdVerify, argList);
+            hrnCfgEnvRemoveRaw(cfgOptRepoCipherPass);
+
+            // Recreate all metadata copies and payloads for each cipher iteration.
+            HRN_STORAGE_PATH_REMOVE(storageRepoWrite(), NULL, .recurse = true);
+
+            const char *const backupInfo =
+                "[backup:current]\n"
+                TEST_BACKUP_DB1_CURRENT_FULL1
+                "\n[db]\n"
+                TEST_BACKUP_DB1_94
+                "\n[db:history]\n"
+                TEST_BACKUP_DB1_HISTORY
+                "\n[cipher]\ncipher-pass=\"manifest-pass\"\n";
+            const char *const archiveInfo = TEST_ARCHIVE_INFO_BASE "\n[cipher]\ncipher-pass=\"wal-pass\"\n";
+            const char *const manifestInfo =
+                TEST_MANIFEST_HEADER
+                TEST_MANIFEST_DB_94
+                TEST_MANIFEST_OPTION_ALL
+                TEST_MANIFEST_TARGET
+                TEST_MANIFEST_DB
+                "\n[target:file]\n"
+                "pg_data/PG_VERSION={\"checksum\":\"d1cd8a7d11daa26814b93eb604e1d49ab4b43770\",\"size\":7,"
+                "\"timestamp\":1565282114}\n"
+                TEST_MANIFEST_FILE_DEFAULT
+                TEST_MANIFEST_PATH
+                TEST_MANIFEST_PATH_DEFAULT
+                "\n[cipher]\ncipher-pass=\"data-pass\"\n";
+
+            HRN_INFO_PUT(
+                storageRepoWrite(), INFO_BACKUP_PATH_FILE, backupInfo, .cipherType = currentCipher.type,
+                .cipherPass = TEST_CIPHER_PASS);
+            HRN_INFO_PUT(
+                storageRepoWrite(), INFO_BACKUP_PATH_FILE INFO_COPY_EXT, backupInfo, .cipherType = currentCipher.type,
+                .cipherPass = TEST_CIPHER_PASS);
+            HRN_INFO_PUT(
+                storageRepoWrite(), INFO_ARCHIVE_PATH_FILE, archiveInfo, .cipherType = currentCipher.type,
+                .cipherPass = TEST_CIPHER_PASS);
+            HRN_INFO_PUT(
+                storageRepoWrite(), INFO_ARCHIVE_PATH_FILE INFO_COPY_EXT, archiveInfo, .cipherType = currentCipher.type,
+                .cipherPass = TEST_CIPHER_PASS);
+            HRN_INFO_PUT(
+                storageRepoWrite(), STORAGE_REPO_BACKUP "/20181119-152138F/" BACKUP_MANIFEST_FILE, manifestInfo,
+                .cipherType = currentCipher.type, .cipherPass = "manifest-pass");
+            HRN_INFO_PUT(
+                storageRepoWrite(), STORAGE_REPO_BACKUP "/20181119-152138F/" BACKUP_MANIFEST_FILE INFO_COPY_EXT, manifestInfo,
+                .cipherType = currentCipher.type, .cipherPass = "manifest-pass");
+
+            // Omit checksumRepoSha1 from the manifest so worker verification must decrypt the logical payload.
+            const char *const backupFile = STORAGE_REPO_BACKUP "/20181119-152138F/pg_data/PG_VERSION";
+            HRN_STORAGE_PUT_Z(
+                storageRepoWrite(), backupFile, fileContents, .cipherType = currentCipher.type, .cipherPass = "data-pass");
+
+            Buffer *const wal = bufNew(1024 * 1024);
+            bufUsedSet(wal, bufSize(wal));
+            memset(bufPtr(wal), 0, bufSize(wal));
+            HRN_PG_WAL_TO_BUFFER(wal, PG_VERSION_94, .size = 1024 * 1024);
+            const char *const walFile = zNewFmt(
+                STORAGE_REPO_ARCHIVE "/9.4-1/0000000100000000/000000010000000000000002-%s",
+                strZ(strNewEncode(encodingHex, cryptoHashOne(hashTypeSha1, wal))));
+            HRN_STORAGE_PUT(
+                storageRepoWrite(), walFile, wal, .compressType = compressTypeGz, .cipherType = currentCipher.type,
+                .cipherPass = "wal-pass");
+
+            TEST_RESULT_VOID(cmdVerify(), "verify valid encrypted metadata, manifest, backup payload, and WAL");
+            TEST_RESULT_LOG(
+                "P00   INFO: stanza: db\n"
+                "            status: ok\n"
+                "              archiveId: 9.4-1, total WAL checked: 1, total valid WAL: 1\n"
+                "                missing: 0, checksum invalid: 0, size invalid: 0, wal invalid: 0, other: 0\n"
+                "              backup: 20181119-152138F, status: valid, total files checked: 1, total valid files: 1\n"
+                "                missing: 0, checksum invalid: 0, size invalid: 0, wal invalid: 0, other: 0");
+
+            TEST_TITLE("changed encrypted backup payload");
+
+            HRN_STORAGE_PUT_Z(
+                storageRepoWrite(), backupFile, "badfile", .cipherType = currentCipher.type, .cipherPass = "data-pass");
+            TEST_RESULT_VOID(cmdVerify(), "report a checksum failure after successful payload decryption");
+            TEST_RESULT_LOG(
+                "P01   INFO: invalid checksum '20181119-152138F/pg_data/PG_VERSION'\n"
+                "P00   INFO: stanza: db\n"
+                "            status: error\n"
+                "              archiveId: 9.4-1, total WAL checked: 1, total valid WAL: 1\n"
+                "                missing: 0, checksum invalid: 0, size invalid: 0, wal invalid: 0, other: 0\n"
+                "              backup: 20181119-152138F, status: invalid, total files checked: 1, total valid files: 0\n"
+                "                missing: 0, checksum invalid: 1, size invalid: 0, wal invalid: 0, other: 0");
+
+            TEST_TITLE("changed encrypted WAL payload");
+
+            HRN_STORAGE_PUT_Z(
+                storageRepoWrite(), backupFile, fileContents, .cipherType = currentCipher.type, .cipherPass = "data-pass");
+            // Retain a valid header and size but change content without changing the archived filename checksum.
+            bufPtr(wal)[bufUsed(wal) - 1] = 1;
+            HRN_STORAGE_PUT(
+                storageRepoWrite(), walFile, wal, .compressType = compressTypeGz, .cipherType = currentCipher.type,
+                .cipherPass = "wal-pass");
+            TEST_RESULT_VOID(cmdVerify(), "report a checksum failure after successful WAL decryption/decompression");
+            TEST_RESULT_LOG(
+                zNewFmt(
+                    "P01   INFO: invalid checksum '%s.gz'\n"
+                    "P00   INFO: stanza: db\n"
+                    "            status: error\n"
+                    "              archiveId: 9.4-1, total WAL checked: 1, total valid WAL: 0\n"
+                    "                missing: 0, checksum invalid: 1, size invalid: 0, wal invalid: 0, other: 0\n"
+                    "              backup: 20181119-152138F, status: valid, total files checked: 1, total valid files: 1\n"
+                    "                missing: 0, checksum invalid: 0, size invalid: 0, wal invalid: 0, other: 0",
+                    strZ(strSub(STR(walFile), sizeof(STORAGE_REPO_ARCHIVE)))));
+        }
+        HRN_CIPHER_END();
     }
 
     // *****************************************************************************************************************************

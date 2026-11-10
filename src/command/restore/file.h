@@ -5,6 +5,7 @@ Restore File
 #define COMMAND_RESTORE_FILE_H
 
 #include "common/compress/helper.h"
+#include "common/crypto/common.h"
 #include "common/type/variant.h"
 
 /***********************************************************************************************************************************
@@ -49,6 +50,7 @@ typedef struct RestoreFileResult
 
 FN_EXTERN List *restoreFile(
     const String *repoFile, unsigned int repoIdx, CompressType repoFileCompressType, time_t copyTimeBegin, bool delta,
-    bool deltaForce, bool bundleRaw, const String *cipherPass, const StringList *referenceList, List *fileList);
+    bool deltaForce, bool bundleRaw, CipherType cipherType, const String *cipherPass, const StringList *referenceList,
+    List *fileList);
 
 #endif
