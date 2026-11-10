@@ -414,6 +414,16 @@ sub containerBuild
         }
         else
         {
+            # Debian 11 is EOL and its packages have moved to archive.debian.org. deb.debian.org still has the bullseye-security
+            # index but not the packages it lists, so installing any package with a security update fails with 404.
+            if ($strOS eq VM_D11)
+            {
+                $strScript .=
+                    "    echo 'deb http://archive.debian.org/debian bullseye main' > /etc/apt/sources.list && \\\n" .
+                    "    echo 'deb http://archive.debian.org/debian bullseye-updates main' >> /etc/apt/sources.list && \\\n" .
+                    "    echo 'deb http://archive.debian.org/debian-security bullseye-security main' >> /etc/apt/sources.list && \\\n";
+            }
+
             $strScript .=
                 "    export DEBCONF_NONINTERACTIVE_SEEN=true DEBIAN_FRONTEND=noninteractive && \\\n" .
                 "    apt-get update && \\\n" .
@@ -479,11 +489,11 @@ sub containerBuild
                             "pgdg-redhat-repo-latest.noarch.rpm && \\\n" .
                         "    dnf -qy module disable postgresql && \\\n";
                 }
-                elsif ($strOS eq VM_F41)
+                elsif ($strOS eq VM_F43)
                 {
                     $strScript .=
                         "    rpm -ivh \\\n" .
-                        "        https://download.postgresql.org/pub/repos/yum/reporpms/F-41-" . hostArch() . "/" .
+                        "        https://download.postgresql.org/pub/repos/yum/reporpms/F-43-" . hostArch() . "/" .
                             "pgdg-fedora-repo-latest.noarch.rpm && \\\n";
                 }
 
