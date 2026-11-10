@@ -7,6 +7,7 @@ Test Info Command
 #include "storage/posix/storage.h"
 
 #include "common/harnessConfig.h"
+#include "common/harnessCrypto.h"
 #include "common/harnessFork.h"
 #include "common/harnessInfo.h"
 
@@ -3899,6 +3900,146 @@ testRun(void)
 
         // Unset environment key
         hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
+    }
+
+    // *****************************************************************************************************************************
+    if (testBegin("infoRender() - encrypted repositories"))
+    {
+        HRN_CIPHER_BEGIN(currentCipher)
+        {
+            TEST_TITLE_FMT("encrypted repository with %s", currentCipher.name);
+
+            // Reset the repository for every cipher. The manifest passphrase deliberately differs from the repository passphrase.
+            HRN_STORAGE_PATH_REMOVE(storageTest, TEST_PATH "/repo", .recurse = true);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 1, TEST_CIPHER_PASS);
+
+            StringList *argList = strLstNew();
+            hrnCfgArgRawZ(argList, cfgOptRepoPath, TEST_PATH "/repo");
+            hrnCfgArgRawZ(argList, cfgOptStanza, "stanza1");
+            hrnCfgArgRawZ(argList, cfgOptRepoCipherType, currentCipher.name);
+            HRN_CFG_LOAD(cfgCmdInfo, argList);
+
+            HRN_INFO_PUT(
+                storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE "/stanza1/" INFO_ARCHIVE_FILE,
+                "[db]\n"
+                "db-id=1\n"
+                "db-system-id=6626363367545678089\n"
+                "db-version=\"9.5\"\n"
+                "\n"
+                "[cipher]\n"
+                "cipher-pass=\"" TEST_CIPHER_PASS_ARCHIVE "\"\n"
+                "\n"
+                "[db:history]\n"
+                "1={\"db-id\":6626363367545678089,\"db-version\":\"9.5\"}\n",
+                .cipherType = currentCipher.type, .cipherPass = TEST_CIPHER_PASS, .comment = "encrypted archive info");
+            HRN_INFO_PUT(
+                storageTest, TEST_PATH "/repo/" STORAGE_PATH_BACKUP "/stanza1/" INFO_BACKUP_FILE,
+                "[db]\n"
+                "db-catalog-version=201510051\n"
+                "db-control-version=942\n"
+                "db-id=1\n"
+                "db-system-id=6626363367545678089\n"
+                "db-version=\"9.5\"\n"
+                "\n"
+                "[backup:current]\n"
+                "20201116-200000F={\"backrest-format\":5,\"backrest-version\":\"2.30\","
+                "\"backup-archive-start\":\"000000010000000000000004\",\"backup-archive-stop\":\"000000010000000000000004\","
+                "\"backup-info-repo-size\":3100,\"backup-info-repo-size-delta\":3100,\"backup-info-size\":8192,"
+                "\"backup-info-size-delta\":8192,\"backup-timestamp-start\":1605556800,\"backup-timestamp-stop\":1605556805,"
+                "\"backup-type\":\"full\",\"db-id\":1,\"option-archive-check\":true,\"option-archive-copy\":false,"
+                "\"option-backup-standby\":false,\"option-checksum-page\":false,\"option-compress\":false,\"option-hardlink\":false,"
+                "\"option-online\":true}\n"
+                "\n"
+                "[cipher]\n"
+                "cipher-pass=\"manifest-pass\"\n"
+                "\n"
+                "[db:history]\n"
+                "1={\"db-catalog-version\":201510051,\"db-control-version\":942,\"db-system-id\":6626363367545678089,"
+                "\"db-version\":\"9.5\"}\n",
+                .cipherType = currentCipher.type, .cipherPass = TEST_CIPHER_PASS, .comment = "encrypted backup info");
+
+            // Info only lists WAL names to determine the archive range; it does not read the segment contents.
+            HRN_STORAGE_PUT_EMPTY(
+                storageTest, TEST_PATH "/repo/" STORAGE_PATH_ARCHIVE
+                "/stanza1/9.5-1/0000000100000000/000000010000000000000004-ff61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz");
+            HRN_INFO_PUT(
+                storageTest, TEST_PATH "/repo/" STORAGE_PATH_BACKUP "/stanza1/20201116-200000F/" BACKUP_MANIFEST_FILE,
+                TEST_MANIFEST_HEADER2
+                TEST_MANIFEST_TARGET_NO_LINK
+                TEST_MANIFEST_DB
+                "\n"
+                "[target:file]\n"
+                "pg_data/PG_VERSION={\"checksum\":\"184473f470864e067ee3a22e64b47b0a1c356f29\",\"size\":4,\"timestamp\":1605556800}\n"
+                TEST_MANIFEST_FILE_DEFAULT
+                "\n"
+                "[target:path]\n"
+                "pg_data={}\n"
+                TEST_MANIFEST_PATH_DEFAULT,
+                .cipherType = currentCipher.type, .cipherPass = "manifest-pass", .comment = "encrypted backup manifest");
+
+            const String *const expected = strNewFmt(
+                "stanza: stanza1\n"
+                "    status: ok\n"
+                "    cipher: %s\n"
+                "\n"
+                "    db (current)\n"
+                "        wal archive min/max (9.5): 000000010000000000000004/000000010000000000000004\n"
+                "\n"
+                "        full backup: 20201116-200000F\n"
+                "            timestamp start/stop: 2020-11-16 20:00:00+00 / 2020-11-16 20:00:05+00\n"
+                "            wal start/stop: 000000010000000000000004 / 000000010000000000000004\n"
+                "            database size: 8KB, database backup size: 8KB\n"
+                "            repo1: backup set size: 3KB, backup size: 3KB\n",
+                currentCipher.name);
+            TEST_RESULT_STR(infoRender(), expected, "text - decrypt info files and render the full cipher name");
+
+            StringList *argListSet = strLstDup(argList);
+            hrnCfgArgRawZ(argListSet, cfgOptSet, "20201116-200000F");
+            HRN_CFG_LOAD(cfgCmdInfo, argListSet);
+            TEST_RESULT_STR(
+                infoRender(), strNewFmt("%s            database list: mail (16456), postgres (12173)\n", strZ(expected)),
+                "text - decrypt selected manifest using its own passphrase");
+
+            hrnCfgArgRawZ(argListSet, cfgOptOutput, "json");
+            HRN_CFG_LOAD(cfgCmdInfo, argListSet);
+            const VariantList *stanzaList = varVarLst(jsonToVar(infoRender()));
+            TEST_RESULT_UINT(varLstSize(stanzaList), 1, "json - one stanza");
+            const KeyValue *stanza = varKv(varLstGet(stanzaList, 0));
+            TEST_RESULT_STR_Z(varStr(kvGet(stanza, VARSTRDEF("cipher"))), currentCipher.name, "json - full stanza cipher name");
+            TEST_RESULT_UINT(varUInt64(kvGet(varKv(kvGet(stanza, VARSTRDEF("status"))), VARSTRDEF("code"))), 0, "json - stanza ok");
+            const VariantList *repoList = varVarLst(kvGet(stanza, VARSTRDEF("repo")));
+            TEST_RESULT_UINT(varLstSize(repoList), 1, "json - one repository");
+            TEST_RESULT_STR_Z(
+                varStr(kvGet(varKv(varLstGet(repoList, 0)), VARSTRDEF("cipher"))), currentCipher.name,
+                "json - full repository cipher name");
+            const VariantList *backupList = varVarLst(kvGet(stanza, VARSTRDEF("backup")));
+            TEST_RESULT_UINT(varLstSize(backupList), 1, "json - one backup");
+            const KeyValue *const backup = varKv(varLstGet(backupList, 0));
+            TEST_RESULT_STR_Z(varStr(kvGet(backup, VARSTRDEF("label"))), "20201116-200000F", "json - requested backup");
+            TEST_RESULT_STR_Z(
+                jsonFromVar(kvGet(backup, VARSTRDEF("database-ref"))),
+                "[{\"name\":\"mail\",\"oid\":16456},{\"name\":\"postgres\",\"oid\":12173}]",
+                "json - database list from decrypted manifest excludes templates");
+
+            // A wrong repository passphrase is reported in the rendered status, rather than thrown by infoRender(). Do not use
+            // --set here since the manifest cannot be located without first decrypting backup.info.
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 1, "wrong-pass");
+            StringList *argListError = strLstDup(argList);
+            hrnCfgArgRawZ(argListError, cfgOptOutput, "json");
+            HRN_CFG_LOAD(cfgCmdInfo, argListError);
+            stanzaList = varVarLst(jsonToVar(infoRender()));
+            stanza = varKv(varLstGet(stanzaList, 0));
+            TEST_RESULT_UINT(varUInt64(kvGet(varKv(kvGet(stanza, VARSTRDEF("status"))), VARSTRDEF("code"))), 99, "json - stanza error");
+            repoList = varVarLst(kvGet(stanza, VARSTRDEF("repo")));
+            const KeyValue *const status = varKv(kvGet(varKv(varLstGet(repoList, 0)), VARSTRDEF("status")));
+            TEST_RESULT_UINT(varUInt64(kvGet(status, VARSTRDEF("code"))), 99, "json - repository error");
+            TEST_RESULT_BOOL(
+                strstr(strZ(varStr(kvGet(status, VARSTRDEF("message")))), "unable to load info file") != NULL, true,
+                "json - report the decryption failure");
+            TEST_RESULT_UINT(varLstSize(varVarLst(kvGet(stanza, VARSTRDEF("backup")))), 0, "json - no backups on decryption failure");
+            hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 1);
+        }
+        HRN_CIPHER_END();
     }
 
     // *****************************************************************************************************************************

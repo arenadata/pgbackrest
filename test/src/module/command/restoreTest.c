@@ -15,6 +15,7 @@ Test Restore Command
 #include "common/harnessBackup.h"
 #include "common/harnessBlockIncr.h"
 #include "common/harnessConfig.h"
+#include "common/harnessCrypto.h"
 #include "common/harnessInfo.h"
 #include "common/harnessManifest.h"
 #include "common/harnessPostgres.h"
@@ -309,7 +310,7 @@ testRun(void)
         TEST_ERROR(
             restoreFile(
                 strNewFmt(STORAGE_REPO_BACKUP "/%s/%s.gz", strZ(repoFileReferenceFull), strZ(repoFile1)), repoIdx, compressTypeGz,
-                0, false, false, false, STRDEF("badpass"), NULL, fileList),
+                0, false, false, false, cipherTypeAes256Cbc, STRDEF("badpass"), NULL, fileList),
             ChecksumError,
             "error restoring 'normal': actual checksum 'd1cd8a7d11daa26814b93eb604e1d49ab4b43770' does not match expected checksum"
             " 'ffffffffffffffffffffffffffffffffffffffff'");
@@ -2236,298 +2237,310 @@ testRun(void)
         TEST_ERROR(hrnCmdRestore(), HostInvalidError, "restore command must be run on the PostgreSQL host");
 
         // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("full restore without delta, multi-repo");
-
-        argList = strLstNew();
-        hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
-        hrnCfgArgKeyRaw(argList, cfgOptRepoPath, 1, repoPath);
-        hrnCfgArgKeyRaw(argList, cfgOptRepoPath, 2, repoPathEncrpyt);
-        hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
-        hrnCfgArgRawZ(argList, cfgOptSet, "20161219-212741F");
-        hrnCfgArgKeyRawStrId(argList, cfgOptRepoCipherType, 2, cipherTypeAes256Cbc);
-        hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, TEST_CIPHER_PASS);
-        HRN_CFG_LOAD(cfgCmdRestore, argList);
-
-        #define TEST_LABEL                                          "20161219-212741F"
-        #define TEST_PGDATA                                         MANIFEST_TARGET_PGDATA "/"
-        #define TEST_REPO_PATH                                      STORAGE_REPO_BACKUP "/" TEST_LABEL "/" TEST_PGDATA
-
         Manifest *manifest = NULL;
 
-        OBJ_NEW_BASE_BEGIN(Manifest, .childQty = MEM_CONTEXT_QTY_MAX)
+        HRN_CIPHER_BEGIN(currentCipher)
         {
-            manifest = manifestNewInternal();
-            manifest->pub.info = infoNew(NULL);
-            manifest->pub.data.backupLabel = strNewZ(TEST_LABEL);
-            manifest->pub.data.pgVersion = PG_VERSION_94;
-            manifest->pub.data.pgCatalogVersion = hrnPgCatalogVersion(PG_VERSION_94);
-            manifest->pub.data.backupType = backupTypeFull;
-            manifest->pub.data.backupTimestampStart = 1482182860;
-            manifest->pub.data.backupTimestampCopyStart = 1482182861; // So file timestamps should be less than this
-            manifest->pub.data.backupOptionOnline = true;
+            TEST_TITLE_FMT("restore with %s", currentCipher.name);
 
-            // Data directory
-            HRN_MANIFEST_TARGET_ADD(manifest, .name = MANIFEST_TARGET_PGDATA, .path = strZ(pgPath));
-            HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGDATA);
+            TEST_TITLE("full restore without delta, multi-repo");
 
-            // Global directory
-            HRN_MANIFEST_PATH_ADD(manifest, .name = TEST_PGDATA PG_PATH_GLOBAL);
+            argList = strLstNew();
+            hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
+            hrnCfgArgKeyRaw(argList, cfgOptRepoPath, 1, repoPath);
+            hrnCfgArgKeyRaw(argList, cfgOptRepoPath, 2, repoPathEncrpyt);
+            hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
+            hrnCfgArgRawZ(argList, cfgOptSet, "20161219-212741F");
+            hrnCfgArgKeyRawZ(argList, cfgOptRepoCipherType, 2, currentCipher.name);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, TEST_CIPHER_PASS);
+            HRN_CFG_LOAD(cfgCmdRestore, argList);
 
-            // PG_VERSION
-            HRN_MANIFEST_FILE_ADD(
-                manifest, .name = TEST_PGDATA PG_FILE_PGVERSION, .size = 4, .timestamp = 1482182860,
-                .checksumSha1 = "8dbabb96e032b8d9f1993c0e4b9141e71ade01a1");
-            HRN_STORAGE_PUT_Z(storageRepoIdxWrite(0), TEST_REPO_PATH PG_FILE_PGVERSION, PG_VERSION_94_Z "\n");
+            HRN_STORAGE_PATH_REMOVE(storageTest, "pg", .recurse = true);
+            HRN_STORAGE_PATH_REMOVE(storageTest, "ts", .recurse = true);
+            HRN_STORAGE_PATH_REMOVE(storageRepoIdxWrite(0), NULL, .recurse = true);
 
-            // Store the file also to the encrypted repo
+            #define TEST_LABEL                                          "20161219-212741F"
+            #define TEST_PGDATA                                         MANIFEST_TARGET_PGDATA "/"
+            #define TEST_REPO_PATH                                      STORAGE_REPO_BACKUP "/" TEST_LABEL "/" TEST_PGDATA
+
+            OBJ_NEW_BASE_BEGIN(Manifest, .childQty = MEM_CONTEXT_QTY_MAX)
+            {
+                manifest = manifestNewInternal();
+                manifest->pub.info = infoNew(NULL);
+                manifest->pub.data.backupLabel = strNewZ(TEST_LABEL);
+                manifest->pub.data.pgVersion = PG_VERSION_94;
+                manifest->pub.data.pgCatalogVersion = hrnPgCatalogVersion(PG_VERSION_94);
+                manifest->pub.data.backupType = backupTypeFull;
+                manifest->pub.data.backupTimestampStart = 1482182860;
+                manifest->pub.data.backupTimestampCopyStart = 1482182861; // So file timestamps should be less than this
+                manifest->pub.data.backupOptionOnline = true;
+
+                // Data directory
+                HRN_MANIFEST_TARGET_ADD(manifest, .name = MANIFEST_TARGET_PGDATA, .path = strZ(pgPath));
+                HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGDATA);
+
+                // Global directory
+                HRN_MANIFEST_PATH_ADD(manifest, .name = TEST_PGDATA PG_PATH_GLOBAL);
+
+                // PG_VERSION
+                HRN_MANIFEST_FILE_ADD(
+                    manifest, .name = TEST_PGDATA PG_FILE_PGVERSION, .size = 4, .timestamp = 1482182860,
+                    .checksumSha1 = "8dbabb96e032b8d9f1993c0e4b9141e71ade01a1");
+                HRN_STORAGE_PUT_Z(storageRepoIdxWrite(0), TEST_REPO_PATH PG_FILE_PGVERSION, PG_VERSION_94_Z "\n");
+
+                // Store the file also to the encrypted repo
+                HRN_STORAGE_PUT_Z(
+                    storageRepoIdxWrite(1), TEST_REPO_PATH PG_FILE_PGVERSION, PG_VERSION_94_Z "\n",
+                    .cipherType = currentCipher.type, .cipherPass = TEST_CIPHER_PASS_ARCHIVE);
+
+                // pg_tblspc
+                HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGDATA "/" MANIFEST_TARGET_PGTBLSPC);
+
+                // Always sort
+                lstSort(manifest->pub.targetList, sortOrderAsc);
+                lstSort(manifest->pub.fileList, sortOrderAsc);
+                lstSort(manifest->pub.linkList, sortOrderAsc);
+                lstSort(manifest->pub.pathList, sortOrderAsc);
+            }
+            OBJ_NEW_END();
+
+            manifestSave(
+                manifest,
+                storageWriteIo(
+                    storageNewWriteP(storageRepoIdxWrite(0), STRDEF(STORAGE_REPO_BACKUP "/" TEST_LABEL "/" BACKUP_MANIFEST_FILE))));
+
+            // Read the manifest, set a cipher passphrase and store it to the encrypted repo
+            Manifest *manifestEncrypted = manifestLoadFile(
+                storageRepoIdxWrite(0), STRDEF(STORAGE_REPO_BACKUP "/" TEST_LABEL "/" BACKUP_MANIFEST_FILE), cipherTypeNone, NULL);
+            manifestCipherSubPassSet(manifestEncrypted, STRDEF(TEST_CIPHER_PASS_ARCHIVE));
+
+            // Open file for write
+            IoWrite *write = storageWriteIo(
+                storageNewWriteP(
+                    storageRepoIdxWrite(1),
+                    STRDEF(STORAGE_REPO_BACKUP "/" TEST_LABEL "/" BACKUP_MANIFEST_FILE)));
+
+            // Add encryption filter and save the encrypted manifest
+            #define TEST_CIPHER_PASS_MANIFEST "backpass"
+            cipherBlockFilterGroupAdd(
+                ioWriteFilterGroup(write), cfgOptionIdxStrId(cfgOptRepoCipherType, 1), cipherModeEncrypt,
+                STRDEF(TEST_CIPHER_PASS_MANIFEST));
+            manifestSave(manifestEncrypted, write);
+
+            // Write backup.info to the encrypted repo
+            HRN_INFO_PUT(
+                storageRepoIdxWrite(1), INFO_BACKUP_PATH_FILE, TEST_RESTORE_BACKUP_INFO "\n[cipher]\ncipher-pass=\""
+                TEST_CIPHER_PASS_MANIFEST "\"\n\n" TEST_RESTORE_BACKUP_INFO_DB, .cipherType = currentCipher.type);
+
+            TEST_RESULT_VOID(hrnCmdRestore(), "successful restore");
+
+            TEST_RESULT_LOG(
+                zNewFmt(
+                    "P00   WARN: repo1: [FileMissingError] unable to load info file"
+                    " '%s/repo/backup/test1/backup.info' or '%s/repo/backup/test1/backup.info.copy':\n"
+                    "            FileMissingError: unable to open missing file '%s/repo/backup/test1/backup.info' for read\n"
+                    "            FileMissingError: unable to open missing file '%s/repo/backup/test1/backup.info.copy' for read\n"
+                    "            HINT: backup.info cannot be opened and is required to perform a backup.\n"
+                    "            HINT: has a stanza-create been performed?\n"
+                    "P00   INFO: repo2: restore backup set 20161219-212741F, recovery will start at 2016-12-19 21:27:40\n"
+                    "P00 DETAIL: check '" TEST_PATH "/pg' exists\n"
+                    "P00 DETAIL: create path '" TEST_PATH "/pg/global'\n"
+                    "P00 DETAIL: create path '" TEST_PATH "/pg/pg_tblspc'\n"
+                    "P01 DETAIL: restore file " TEST_PATH "/pg/PG_VERSION (4B, 100.00%%) checksum"
+                    " 8dbabb96e032b8d9f1993c0e4b9141e71ade01a1\n"
+                    "P00   INFO: write " TEST_PATH "/pg/recovery.conf\n"
+                    "P00 DETAIL: sync path '" TEST_PATH "/pg'\n"
+                    "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc'\n"
+                    "P00   WARN: backup does not contain 'global/pg_control' -- cluster will not start\n"
+                    "P00 DETAIL: sync path '" TEST_PATH "/pg/global'\n"
+                    "P00   INFO: restore size = 4B, file total = 1",
+                    TEST_PATH, TEST_PATH, TEST_PATH, TEST_PATH));
+
+            // Remove recovery.conf before file comparison since it will have a new timestamp. Make sure it existed, though.
+            HRN_STORAGE_REMOVE(storagePgWrite(), PG_FILE_RECOVERYCONF, .errorOnMissing = true);
+
+            TEST_STORAGE_LIST(
+                storagePg(), NULL,
+                "./\n"
+                "PG_VERSION {s=4, t=1482182860}\n"
+                "global/\n"
+                "pg_tblspc/\n",
+                .level = storageInfoLevelBasic, .includeDot = true);
+
+            // -------------------------------------------------------------------------------------------------------------------------
+            TEST_TITLE("full restore with delta force");
+
+            argList = strLstNew();
+            hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
+            hrnCfgArgKeyRaw(argList, cfgOptRepoPath, 1, repoPath);
+            hrnCfgArgKeyRaw(argList, cfgOptRepoPath, 2, repoPathEncrpyt);
+            hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
+            hrnCfgArgRawZ(argList, cfgOptType, "preserve");
+            hrnCfgArgRawZ(argList, cfgOptSet, "20161219-212741F");
+            hrnCfgArgRawBool(argList, cfgOptDelta, true);
+            hrnCfgArgRawBool(argList, cfgOptForce, true);
+            hrnCfgArgKeyRawZ(argList, cfgOptRepoCipherType, 2, currentCipher.name);
+            hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, TEST_CIPHER_PASS);
+            HRN_CFG_LOAD(cfgCmdRestore, argList);
+
+            // Munge PGDATA mode so it gets fixed
+            HRN_STORAGE_MODE(storagePg(), NULL, 0777);
+
+            // Store backup.info to repo1 - repo1 will be selected because of the priority order
+            HRN_INFO_PUT(storageRepoIdxWrite(0), INFO_BACKUP_PATH_FILE, TEST_RESTORE_BACKUP_INFO "\n" TEST_RESTORE_BACKUP_INFO_DB);
+
+            // Make sure existing backup.manifest file is ignored
+            HRN_STORAGE_PUT_EMPTY(storagePgWrite(), BACKUP_MANIFEST_FILE);
+
+            // Add a bogus file that will be removed
+            HRN_STORAGE_PUT_EMPTY(storagePgWrite(), "bogus-file");
+
+            // Add a special file that will be removed
+            HRN_SYSTEM_FMT("mkfifo %s/pipe", strZ(pgPath));
+
+            // Modify time of postgresql.conf so it will be copied even though content is the same
+            HRN_STORAGE_PUT_Z(storagePgWrite(), "postgresql.conf", "VALID_CONF", .modeFile = 0600);
+
+            // Modify time of postgresql.auto.conf so it will be copied even though content is the same and timestamp matches
             HRN_STORAGE_PUT_Z(
-                storageRepoIdxWrite(1), TEST_REPO_PATH PG_FILE_PGVERSION, PG_VERSION_94_Z "\n",
-                .cipherType = cipherTypeAes256Cbc, .cipherPass = TEST_CIPHER_PASS_ARCHIVE);
+                storagePgWrite(), "postgresql.auto.conf", "VALID_CONF_AUTO", .modeFile = 0600, .timeModified = 1482182861);
 
-            // pg_tblspc
-            HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGDATA "/" MANIFEST_TARGET_PGTBLSPC);
+            // Size mismatch
+            HRN_STORAGE_PUT_EMPTY(storagePgWrite(), "size-mismatch", .modeFile = 0600);
 
-            // Always sort
-            lstSort(manifest->pub.targetList, sortOrderAsc);
-            lstSort(manifest->pub.fileList, sortOrderAsc);
-            lstSort(manifest->pub.linkList, sortOrderAsc);
-            lstSort(manifest->pub.pathList, sortOrderAsc);
-        }
-        OBJ_NEW_END();
+            // Overwrite PG_VERSION with bogus content that will not be detected by delta force because the time and size are the
+            // same
+            HRN_STORAGE_PUT_Z(storagePgWrite(), PG_FILE_PGVERSION, "BOG\n", .modeFile = 0600, .timeModified = 1482182860);
 
-        manifestSave(
-            manifest,
-            storageWriteIo(
-                storageNewWriteP(storageRepoIdxWrite(0), STRDEF(STORAGE_REPO_BACKUP "/" TEST_LABEL "/" BACKUP_MANIFEST_FILE))));
+            // Change destination of tablespace link
+            THROW_ON_SYS_ERROR(
+                symlink("/bogus", zNewFmt("%s/pg_tblspc/1", strZ(pgPath))) == -1, FileOpenError, "unable to create symlink");
 
-        // Read the manifest, set a cipher passphrase and store it to the encrypted repo
-        Manifest *manifestEncrypted = manifestLoadFile(
-            storageRepoIdxWrite(0), STRDEF(STORAGE_REPO_BACKUP "/" TEST_LABEL "/" BACKUP_MANIFEST_FILE), cipherTypeNone, NULL);
-        manifestCipherSubPassSet(manifestEncrypted, STRDEF(TEST_CIPHER_PASS_ARCHIVE));
+            MEM_CONTEXT_BEGIN(manifest->pub.memContext)
+            {
+                // tablespace_map (will be ignored during restore)
+                HRN_MANIFEST_FILE_ADD(
+                    manifest, .name = TEST_PGDATA PG_FILE_TABLESPACEMAP, .timestamp = 1482182860, .checksumSha1 = HASH_TYPE_SHA1_ZERO);
+                HRN_STORAGE_PUT_EMPTY(storageRepoWrite(), TEST_REPO_PATH PG_FILE_TABLESPACEMAP);
 
-        // Open file for write
-        IoWrite *write = storageWriteIo(
-            storageNewWriteP(
-                storageRepoIdxWrite(1),
-                STRDEF(STORAGE_REPO_BACKUP "/" TEST_LABEL "/" BACKUP_MANIFEST_FILE)));
+                HRN_MANIFEST_FILE_ADD(
+                    manifest, .name = MANIFEST_TARGET_PGDATA "/postgresql.conf", .size = 10, .timestamp = 1482182860,
+                    .checksumSha1 = "1a49a3c2240449fee1422e4afcf44d5b96378511");
+                HRN_STORAGE_PUT_Z(storageRepoWrite(), TEST_REPO_PATH "/postgresql.conf", "VALID_CONF");
 
-        // Add encryption filter and save the encrypted manifest
-        #define TEST_CIPHER_PASS_MANIFEST "backpass"
-        cipherBlockFilterGroupAdd(
-            ioWriteFilterGroup(write), cfgOptionIdxStrId(cfgOptRepoCipherType, 1), cipherModeEncrypt,
-            STRDEF(TEST_CIPHER_PASS_MANIFEST));
-        manifestSave(manifestEncrypted, write);
+                HRN_MANIFEST_FILE_ADD(
+                    manifest, .name = MANIFEST_TARGET_PGDATA "/postgresql.auto.conf", .size = 15, .timestamp = 1482182861,
+                    .checksumSha1 = "37a0c84d42c3ec3d08c311cec2cef2a7ab55a7c3");
+                HRN_STORAGE_PUT_Z(storageRepoWrite(), TEST_REPO_PATH "/postgresql.auto.conf", "VALID_CONF_AUTO");
 
-        // Write backup.info to the encrypted repo
-        HRN_INFO_PUT(
-            storageRepoIdxWrite(1), INFO_BACKUP_PATH_FILE, TEST_RESTORE_BACKUP_INFO "\n[cipher]\ncipher-pass=\""
-            TEST_CIPHER_PASS_MANIFEST "\"\n\n" TEST_RESTORE_BACKUP_INFO_DB, .cipherType = cipherTypeAes256Cbc);
+                HRN_MANIFEST_FILE_ADD(
+                    manifest, .name = MANIFEST_TARGET_PGDATA "/size-mismatch", .size = 1, .timestamp = 1482182861,
+                    .checksumSha1 = "c032adc1ff629c9b66f22749ad667e6beadf144b");
+                HRN_STORAGE_PUT_Z(storageRepoWrite(), TEST_REPO_PATH "/size-mismatch", "X");
 
-        TEST_RESULT_VOID(hrnCmdRestore(), "successful restore");
+                // pg_tblspc/1
+                HRN_MANIFEST_TARGET_ADD(
+                    manifest, .type = manifestTargetTypeLink, .name = MANIFEST_TARGET_PGTBLSPC "/1", .path = TEST_PATH "/ts/1",
+                    .tablespaceId = 1, .tablespaceName = "ts1");
+                HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGTBLSPC);
+                HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGTBLSPC "/1");
+                HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGTBLSPC "/1/PG_9.4_201409291");
+                HRN_MANIFEST_LINK_ADD(
+                    manifest, .name = MANIFEST_TARGET_PGDATA "/" MANIFEST_TARGET_PGTBLSPC "/1", .destination = TEST_PATH "/ts/1");
 
-        TEST_RESULT_LOG(
-            zNewFmt(
-                "P00   WARN: repo1: [FileMissingError] unable to load info file"
-                " '%s/repo/backup/test1/backup.info' or '%s/repo/backup/test1/backup.info.copy':\n"
-                "            FileMissingError: unable to open missing file '%s/repo/backup/test1/backup.info' for read\n"
-                "            FileMissingError: unable to open missing file '%s/repo/backup/test1/backup.info.copy' for read\n"
-                "            HINT: backup.info cannot be opened and is required to perform a backup.\n"
-                "            HINT: has a stanza-create been performed?\n"
-                "P00   INFO: repo2: restore backup set 20161219-212741F, recovery will start at 2016-12-19 21:27:40\n"
+                // pg_tblspc/1/16384 path
+                HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGTBLSPC "/1/16384");
+
+                // pg_tblspc/1/16384/PG_VERSION
+                HRN_MANIFEST_FILE_ADD(
+                    manifest, .name = MANIFEST_TARGET_PGTBLSPC "/1/16384/" PG_FILE_PGVERSION, .size = 4,
+                    .timestamp = 1482182860, .checksumSha1 = "8dbabb96e032b8d9f1993c0e4b9141e71ade01a1");
+
+                HRN_STORAGE_PUT_Z(
+                    storageRepoWrite(), STORAGE_REPO_BACKUP "/" TEST_LABEL "/" MANIFEST_TARGET_PGTBLSPC "/1/16384/" PG_FILE_PGVERSION,
+                    PG_VERSION_94_Z "\n");
+
+                // Always sort
+                lstSort(manifest->pub.targetList, sortOrderAsc);
+                lstSort(manifest->pub.fileList, sortOrderAsc);
+                lstSort(manifest->pub.linkList, sortOrderAsc);
+                lstSort(manifest->pub.pathList, sortOrderAsc);
+            }
+            MEM_CONTEXT_END();
+
+            manifestSave(
+                manifest,
+                storageWriteIo(
+                    storageNewWriteP(storageRepoWrite(), STRDEF(STORAGE_REPO_BACKUP "/" TEST_LABEL "/" BACKUP_MANIFEST_FILE))));
+
+            #undef TEST_LABEL
+            #undef TEST_PGDATA
+            #undef TEST_REPO_PATH
+
+            hrnCmdRestore();
+
+            TEST_RESULT_LOG(
+                "P00   INFO: repo1: restore backup set 20161219-212741F, recovery will start at 2016-12-19 21:27:40\n"
                 "P00 DETAIL: check '" TEST_PATH "/pg' exists\n"
-                "P00 DETAIL: create path '" TEST_PATH "/pg/global'\n"
-                "P00 DETAIL: create path '" TEST_PATH "/pg/pg_tblspc'\n"
-                "P01 DETAIL: restore file " TEST_PATH "/pg/PG_VERSION (4B, 100.00%%) checksum"
-                " 8dbabb96e032b8d9f1993c0e4b9141e71ade01a1\n"
-                "P00   INFO: write " TEST_PATH "/pg/recovery.conf\n"
+                "P00 DETAIL: check '" TEST_PATH "/ts/1/PG_9.4_201409291' exists\n"
+                "P00   INFO: remove invalid files/links/paths from '" TEST_PATH "/pg'\n"
+                "P00 DETAIL: update mode for '" TEST_PATH "/pg' to 0700\n"
+                "P00 DETAIL: remove invalid file '" TEST_PATH "/pg/bogus-file'\n"
+                "P00 DETAIL: remove link '" TEST_PATH "/pg/pg_tblspc/1' because destination changed\n"
+                "P00 DETAIL: remove special file '" TEST_PATH "/pg/pipe'\n"
+                "P00 DETAIL: create symlink '" TEST_PATH "/pg/pg_tblspc/1' to '" TEST_PATH "/ts/1'\n"
+                "P00 DETAIL: create path '" TEST_PATH "/pg/pg_tblspc/1/16384'\n"
+                "P01 DETAIL: restore file " TEST_PATH "/pg/postgresql.auto.conf (15B, 44.11%)"
+                " checksum 37a0c84d42c3ec3d08c311cec2cef2a7ab55a7c3\n"
+                "P01 DETAIL: restore file " TEST_PATH "/pg/postgresql.conf (10B, 73.52%) checksum"
+                " 1a49a3c2240449fee1422e4afcf44d5b96378511\n"
+                "P01 DETAIL: restore file " TEST_PATH "/pg/PG_VERSION - exists and matches size 4 and modification time 1482182860"
+                " (4B, 85.29%) checksum 8dbabb96e032b8d9f1993c0e4b9141e71ade01a1\n"
+                "P01 DETAIL: restore file " TEST_PATH "/pg/size-mismatch (1B, 88.23%) checksum"
+                " c032adc1ff629c9b66f22749ad667e6beadf144b\n"
+                "P01 DETAIL: restore file " TEST_PATH "/pg/tablespace_map (0B, 88.23%)\n"
+                "P01 DETAIL: restore file " TEST_PATH "/pg/pg_tblspc/1/16384/PG_VERSION (4B, 100.00%)"
+                " checksum 8dbabb96e032b8d9f1993c0e4b9141e71ade01a1\n"
+                "P00   WARN: recovery type is preserve but recovery file does not exist at '" TEST_PATH "/pg/recovery.conf'\n"
                 "P00 DETAIL: sync path '" TEST_PATH "/pg'\n"
                 "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc'\n"
+                "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc/1'\n"
+                "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc/1/16384'\n"
+                "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc/1/PG_9.4_201409291'\n"
                 "P00   WARN: backup does not contain 'global/pg_control' -- cluster will not start\n"
                 "P00 DETAIL: sync path '" TEST_PATH "/pg/global'\n"
-                "P00   INFO: restore size = 4B, file total = 1",
-                TEST_PATH, TEST_PATH, TEST_PATH, TEST_PATH));
+                "P00   INFO: restore size = 34B, file total = 6");
 
-        // Remove recovery.conf before file comparison since it will have a new timestamp. Make sure it existed, though.
-        HRN_STORAGE_REMOVE(storagePgWrite(), PG_FILE_RECOVERYCONF, .errorOnMissing = true);
+            TEST_STORAGE_LIST(
+                storagePg(), NULL,
+                "./\n"
+                "PG_VERSION {s=4, t=1482182860}\n"
+                "global/\n"
+                "pg_tblspc/\n"
+                "pg_tblspc/1> {d=" TEST_PATH "/ts/1}\n"
+                "postgresql.auto.conf {s=15, t=1482182861}\n"
+                "postgresql.conf {s=10, t=1482182860}\n"
+                "size-mismatch {s=1, t=1482182861}\n"
+                "tablespace_map {s=0, t=1482182860}\n",
+                .level = storageInfoLevelBasic, .includeDot = true);
 
-        TEST_STORAGE_LIST(
-            storagePg(), NULL,
-            "./\n"
-            "PG_VERSION {s=4, t=1482182860}\n"
-            "global/\n"
-            "pg_tblspc/\n",
-            .level = storageInfoLevelBasic, .includeDot = true);
+            TEST_STORAGE_LIST(
+                storagePg(), "pg_tblspc/1",
+                ".> {d=" TEST_PATH "/ts/1}\n"
+                "16384/\n"
+                "16384/PG_VERSION {s=4, t=1482182860}\n"
+                "PG_9.4_201409291/\n",
+                .level = storageInfoLevelBasic, .includeDot = true);
 
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("full restore with delta force");
+            // PG_VERSION was not restored because delta force relies on time and size which were the same in the manifest and on
+            // disk
+            TEST_STORAGE_GET(storagePg(), PG_FILE_PGVERSION, "BOG\n", .comment = "check PG_VERSION was not restored");
 
-        argList = strLstNew();
-        hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
-        hrnCfgArgKeyRaw(argList, cfgOptRepoPath, 1, repoPath);
-        hrnCfgArgKeyRaw(argList, cfgOptRepoPath, 2, repoPathEncrpyt);
-        hrnCfgArgRaw(argList, cfgOptPgPath, pgPath);
-        hrnCfgArgRawZ(argList, cfgOptType, "preserve");
-        hrnCfgArgRawZ(argList, cfgOptSet, "20161219-212741F");
-        hrnCfgArgRawBool(argList, cfgOptDelta, true);
-        hrnCfgArgRawBool(argList, cfgOptForce, true);
-        hrnCfgArgKeyRawStrId(argList, cfgOptRepoCipherType, 2, cipherTypeAes256Cbc);
-        hrnCfgEnvKeyRawZ(cfgOptRepoCipherPass, 2, TEST_CIPHER_PASS);
-        HRN_CFG_LOAD(cfgCmdRestore, argList);
-
-        // Munge PGDATA mode so it gets fixed
-        HRN_STORAGE_MODE(storagePg(), NULL, 0777);
-
-        // Store backup.info to repo1 - repo1 will be selected because of the priority order
-        HRN_INFO_PUT(storageRepoIdxWrite(0), INFO_BACKUP_PATH_FILE, TEST_RESTORE_BACKUP_INFO "\n" TEST_RESTORE_BACKUP_INFO_DB);
-
-        // Make sure existing backup.manifest file is ignored
-        HRN_STORAGE_PUT_EMPTY(storagePgWrite(), BACKUP_MANIFEST_FILE);
-
-        // Add a bogus file that will be removed
-        HRN_STORAGE_PUT_EMPTY(storagePgWrite(), "bogus-file");
-
-        // Add a special file that will be removed
-        HRN_SYSTEM_FMT("mkfifo %s/pipe", strZ(pgPath));
-
-        // Modify time of postgresql.conf so it will be copied even though content is the same
-        HRN_STORAGE_PUT_Z(storagePgWrite(), "postgresql.conf", "VALID_CONF", .modeFile = 0600);
-
-        // Modify time of postgresql.auto.conf so it will be copied even though content is the same and timestamp matches
-        HRN_STORAGE_PUT_Z(
-            storagePgWrite(), "postgresql.auto.conf", "VALID_CONF_AUTO", .modeFile = 0600, .timeModified = 1482182861);
-
-        // Size mismatch
-        HRN_STORAGE_PUT_EMPTY(storagePgWrite(), "size-mismatch", .modeFile = 0600);
-
-        // Overwrite PG_VERSION with bogus content that will not be detected by delta force because the time and size are the same
-        HRN_STORAGE_PUT_Z(storagePgWrite(), PG_FILE_PGVERSION, "BOG\n", .modeFile = 0600, .timeModified = 1482182860);
-
-        // Change destination of tablespace link
-        THROW_ON_SYS_ERROR(
-            symlink("/bogus", zNewFmt("%s/pg_tblspc/1", strZ(pgPath))) == -1, FileOpenError, "unable to create symlink");
-
-        MEM_CONTEXT_BEGIN(manifest->pub.memContext)
-        {
-            // tablespace_map (will be ignored during restore)
-            HRN_MANIFEST_FILE_ADD(
-                manifest, .name = TEST_PGDATA PG_FILE_TABLESPACEMAP, .timestamp = 1482182860, .checksumSha1 = HASH_TYPE_SHA1_ZERO);
-            HRN_STORAGE_PUT_EMPTY(storageRepoWrite(), TEST_REPO_PATH PG_FILE_TABLESPACEMAP);
-
-            HRN_MANIFEST_FILE_ADD(
-                manifest, .name = MANIFEST_TARGET_PGDATA "/postgresql.conf", .size = 10, .timestamp = 1482182860,
-                .checksumSha1 = "1a49a3c2240449fee1422e4afcf44d5b96378511");
-            HRN_STORAGE_PUT_Z(storageRepoWrite(), TEST_REPO_PATH "/postgresql.conf", "VALID_CONF");
-
-            HRN_MANIFEST_FILE_ADD(
-                manifest, .name = MANIFEST_TARGET_PGDATA "/postgresql.auto.conf", .size = 15, .timestamp = 1482182861,
-                .checksumSha1 = "37a0c84d42c3ec3d08c311cec2cef2a7ab55a7c3");
-            HRN_STORAGE_PUT_Z(storageRepoWrite(), TEST_REPO_PATH "/postgresql.auto.conf", "VALID_CONF_AUTO");
-
-            HRN_MANIFEST_FILE_ADD(
-                manifest, .name = MANIFEST_TARGET_PGDATA "/size-mismatch", .size = 1, .timestamp = 1482182861,
-                .checksumSha1 = "c032adc1ff629c9b66f22749ad667e6beadf144b");
-            HRN_STORAGE_PUT_Z(storageRepoWrite(), TEST_REPO_PATH "/size-mismatch", "X");
-
-            // pg_tblspc/1
-            HRN_MANIFEST_TARGET_ADD(
-                manifest, .type = manifestTargetTypeLink, .name = MANIFEST_TARGET_PGTBLSPC "/1", .path = TEST_PATH "/ts/1",
-                .tablespaceId = 1, .tablespaceName = "ts1");
-            HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGTBLSPC);
-            HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGTBLSPC "/1");
-            HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGTBLSPC "/1/PG_9.4_201409291");
-            HRN_MANIFEST_LINK_ADD(
-                manifest, .name = MANIFEST_TARGET_PGDATA "/" MANIFEST_TARGET_PGTBLSPC "/1", .destination = TEST_PATH "/ts/1");
-
-            // pg_tblspc/1/16384 path
-            HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGTBLSPC "/1/16384");
-
-            // pg_tblspc/1/16384/PG_VERSION
-            HRN_MANIFEST_FILE_ADD(
-                manifest, .name = MANIFEST_TARGET_PGTBLSPC "/1/16384/" PG_FILE_PGVERSION, .size = 4,
-                .timestamp = 1482182860, .checksumSha1 = "8dbabb96e032b8d9f1993c0e4b9141e71ade01a1");
-
-            HRN_STORAGE_PUT_Z(
-                storageRepoWrite(), STORAGE_REPO_BACKUP "/" TEST_LABEL "/" MANIFEST_TARGET_PGTBLSPC "/1/16384/" PG_FILE_PGVERSION,
-                PG_VERSION_94_Z "\n");
-
-            // Always sort
-            lstSort(manifest->pub.targetList, sortOrderAsc);
-            lstSort(manifest->pub.fileList, sortOrderAsc);
-            lstSort(manifest->pub.linkList, sortOrderAsc);
-            lstSort(manifest->pub.pathList, sortOrderAsc);
+            // Cleanup
+            hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
+            HRN_STORAGE_PATH_REMOVE(storageRepoIdxWrite(1), NULL, .recurse = true);
         }
-        MEM_CONTEXT_END();
-
-        manifestSave(
-            manifest,
-            storageWriteIo(
-                storageNewWriteP(storageRepoWrite(), STRDEF(STORAGE_REPO_BACKUP "/" TEST_LABEL "/" BACKUP_MANIFEST_FILE))));
-
-        #undef TEST_LABEL
-        #undef TEST_PGDATA
-        #undef TEST_REPO_PATH
-
-        hrnCmdRestore();
-
-        TEST_RESULT_LOG(
-            "P00   INFO: repo1: restore backup set 20161219-212741F, recovery will start at 2016-12-19 21:27:40\n"
-            "P00 DETAIL: check '" TEST_PATH "/pg' exists\n"
-            "P00 DETAIL: check '" TEST_PATH "/ts/1/PG_9.4_201409291' exists\n"
-            "P00   INFO: remove invalid files/links/paths from '" TEST_PATH "/pg'\n"
-            "P00 DETAIL: update mode for '" TEST_PATH "/pg' to 0700\n"
-            "P00 DETAIL: remove invalid file '" TEST_PATH "/pg/bogus-file'\n"
-            "P00 DETAIL: remove link '" TEST_PATH "/pg/pg_tblspc/1' because destination changed\n"
-            "P00 DETAIL: remove special file '" TEST_PATH "/pg/pipe'\n"
-            "P00 DETAIL: create symlink '" TEST_PATH "/pg/pg_tblspc/1' to '" TEST_PATH "/ts/1'\n"
-            "P00 DETAIL: create path '" TEST_PATH "/pg/pg_tblspc/1/16384'\n"
-            "P01 DETAIL: restore file " TEST_PATH "/pg/postgresql.auto.conf (15B, 44.11%)"
-            " checksum 37a0c84d42c3ec3d08c311cec2cef2a7ab55a7c3\n"
-            "P01 DETAIL: restore file " TEST_PATH "/pg/postgresql.conf (10B, 73.52%) checksum"
-            " 1a49a3c2240449fee1422e4afcf44d5b96378511\n"
-            "P01 DETAIL: restore file " TEST_PATH "/pg/PG_VERSION - exists and matches size 4 and modification time 1482182860"
-            " (4B, 85.29%) checksum 8dbabb96e032b8d9f1993c0e4b9141e71ade01a1\n"
-            "P01 DETAIL: restore file " TEST_PATH "/pg/size-mismatch (1B, 88.23%) checksum"
-            " c032adc1ff629c9b66f22749ad667e6beadf144b\n"
-            "P01 DETAIL: restore file " TEST_PATH "/pg/tablespace_map (0B, 88.23%)\n"
-            "P01 DETAIL: restore file " TEST_PATH "/pg/pg_tblspc/1/16384/PG_VERSION (4B, 100.00%)"
-            " checksum 8dbabb96e032b8d9f1993c0e4b9141e71ade01a1\n"
-            "P00   WARN: recovery type is preserve but recovery file does not exist at '" TEST_PATH "/pg/recovery.conf'\n"
-            "P00 DETAIL: sync path '" TEST_PATH "/pg'\n"
-            "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc'\n"
-            "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc/1'\n"
-            "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc/1/16384'\n"
-            "P00 DETAIL: sync path '" TEST_PATH "/pg/pg_tblspc/1/PG_9.4_201409291'\n"
-            "P00   WARN: backup does not contain 'global/pg_control' -- cluster will not start\n"
-            "P00 DETAIL: sync path '" TEST_PATH "/pg/global'\n"
-            "P00   INFO: restore size = 34B, file total = 6");
-
-        TEST_STORAGE_LIST(
-            storagePg(), NULL,
-            "./\n"
-            "PG_VERSION {s=4, t=1482182860}\n"
-            "global/\n"
-            "pg_tblspc/\n"
-            "pg_tblspc/1> {d=" TEST_PATH "/ts/1}\n"
-            "postgresql.auto.conf {s=15, t=1482182861}\n"
-            "postgresql.conf {s=10, t=1482182860}\n"
-            "size-mismatch {s=1, t=1482182861}\n"
-            "tablespace_map {s=0, t=1482182860}\n",
-            .level = storageInfoLevelBasic, .includeDot = true);
-
-        TEST_STORAGE_LIST(
-            storagePg(), "pg_tblspc/1",
-            ".> {d=" TEST_PATH "/ts/1}\n"
-            "16384/\n"
-            "16384/PG_VERSION {s=4, t=1482182860}\n"
-            "PG_9.4_201409291/\n",
-            .level = storageInfoLevelBasic, .includeDot = true);
-
-        // PG_VERSION was not restored because delta force relies on time and size which were the same in the manifest and on disk
-        TEST_STORAGE_GET(storagePg(), PG_FILE_PGVERSION, "BOG\n", .comment = "check PG_VERSION was not restored");
-
-        // Cleanup
-        hrnCfgEnvKeyRemoveRaw(cfgOptRepoCipherPass, 2);
-        HRN_STORAGE_PATH_REMOVE(storageRepoIdxWrite(1), NULL, .recurse = true);
+        HRN_CIPHER_END();
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("full restore with force");

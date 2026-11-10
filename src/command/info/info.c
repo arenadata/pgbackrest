@@ -793,7 +793,7 @@ stanzaInfoList(
 
             Variant *const repoInfo = varNewKv(kvNew());
             kvPut(varKv(repoInfo), REPO_KEY_KEY_VAR, VARUINT(repoData->key));
-            kvPut(varKv(repoInfo), KEY_CIPHER_VAR, VARSTR(strIdToStr(repoData->cipher)));
+            kvPut(varKv(repoInfo), KEY_CIPHER_VAR, VARSTR(cipherConvertFromIdToStr(repoData->cipher)));
 
             // If the stanza on this repo has the default status of ok but the backupInfo was not read, then the stanza exists on
             // other repos but not this one
@@ -886,7 +886,7 @@ stanzaInfoList(
 
             // Set the overall cipher type
             if (stanzaCipherType != INFO_STANZA_STATUS_CODE_MIXED)
-                kvPut(varKv(stanzaInfo), KEY_CIPHER_VAR, VARSTR(strIdToStr(stanzaCipherType)));
+                kvPut(varKv(stanzaInfo), KEY_CIPHER_VAR, VARSTR(cipherConvertFromIdToStr(stanzaCipherType)));
             else
                 kvPut(varKv(stanzaInfo), KEY_CIPHER_VAR, VARSTRDEF(INFO_STANZA_MIXED));
         }

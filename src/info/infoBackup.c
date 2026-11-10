@@ -696,15 +696,25 @@ infoBackupLoadFileCallback(void *const data, const unsigned int try)
             const String *const fileName = try == 0 ? loadData->fileName : strNewFmt("%s" INFO_COPY_EXT, strZ(loadData->fileName));
 
             // Attempt to load the file
-            IoRead *const read = storageReadIo(storageNewReadP(loadData->storage, fileName));
-            cipherBlockFilterGroupAdd(ioReadFilterGroup(read), loadData->cipherType, cipherModeDecrypt, loadData->cipherPass);
-
-            MEM_CONTEXT_BEGIN(loadData->memContext)
+            TRY_BEGIN()
             {
-                loadData->infoBackup = infoBackupNewLoad(read);
-                result = true;
+                IoRead *const read = storageReadIo(storageNewReadP(loadData->storage, fileName));
+                cipherBlockFilterGroupAdd(ioReadFilterGroup(read), loadData->cipherType, cipherModeDecrypt, loadData->cipherPass);
+
+                MEM_CONTEXT_BEGIN(loadData->memContext)
+                {
+                    loadData->infoBackup = infoBackupNewLoad(read);
+                }
+                MEM_CONTEXT_END();
             }
-            MEM_CONTEXT_END();
+            CATCH_ANY()
+            {
+                // Replace the error with a clearer one when the cipher settings do not match the file
+                infoLoadErrorRethrow(loadData->storage, fileName, loadData->cipherType, loadData->cipherPass);
+            }
+            TRY_END();
+
+            result = true;
         }
         MEM_CONTEXT_TEMP_END();
     }

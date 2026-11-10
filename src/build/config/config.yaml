@@ -2061,6 +2061,15 @@ option:
       option: repo-cipher-type
       list:
         - aes-256-cbc
+        - aes-128-cbc
+        - aes-192-cbc
+        - kuznyechik-cbc
+        - grasshopper-cbc
+        - magma-cbc
+        - aria-128-cbc
+        - aria-192-cbc
+        - aria-256-cbc
+        - sm4-cbc
     group: repo
     deprecate:
       repo-cipher-pass: {}
@@ -2073,6 +2082,15 @@ option:
     allow-list:
       - none
       - aes-256-cbc
+      - aes-128-cbc
+      - aes-192-cbc
+      - kuznyechik-cbc
+      - grasshopper-cbc
+      - magma-cbc
+      - aria-128-cbc
+      - aria-192-cbc
+      - aria-256-cbc
+      - sm4-cbc
     command: repo-type
     deprecate:
       repo-cipher-type: {}
